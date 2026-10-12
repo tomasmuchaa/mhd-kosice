@@ -9,8 +9,9 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict, Any, Optional
 
 class DpmkLiveFeed:
-    UBIAN_URL = "https://www.ubian.sk/navigation/vehicles/nearby"
-    KOSICE_CITY_ID = 18024
+    UBIAN_BASE_URL = os.getenv("UBIAN_BASE_URL", "https://www.ubian.sk")
+    UBIAN_URL = os.getenv("UBIAN_VEHICLES_URL", f"{UBIAN_BASE_URL}/navigation/vehicles/nearby")
+    KOSICE_CITY_ID = int(os.getenv("UBIAN_CITY_ID", "18024"))
     KOSICE_COORDS = (48.7164, 21.2611)  # Stred mesta Košice
 
     # Centrá mestských častí pre kompletné pokrytie Košíc (vrátane okrajových častí ako Šaca, Furča, KVP, Ťahanovce)
@@ -31,8 +32,13 @@ class DpmkLiveFeed:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "Accept": "application/json, text/javascript, */*; q=0.01",
             "X-Requested-With": "XMLHttpRequest",
-            "Referer": "https://www.ubian.sk/"
+            "Referer": f"{self.UBIAN_BASE_URL}/"
         }
+        # In-memory TTL cache pre live vozidlá (ochrana pred DoS a preťažením upstreamu)
+        self._live_cache: List[Dict[str, Any]] = []
+        self._live_cache_ts: float = 0.0
+        self._live_cache_ttl: float = float(os.getenv("LIVE_FEED_CACHE_SECONDS", "3.0"))
+
         # Pamäť posledného stavu meškania pre výpočet nárastu (delay_delta)
         # vehicle_id -> {"delay_minutes": int, "latitude": float, "longitude": float, "timestamp": float}
         self.last_seen_delays: Dict[Any, Dict[str, Any]] = {}
@@ -58,6 +64,11 @@ class DpmkLiveFeed:
         Stiahne všetky aktuálne sa pohybujúce vozidlá DPMK pomocou viacbodového skenovania
         všetkých mestských častí Košíc (odstraňuje duplicity a vyťahuje priame Ubian dáta).
         """
+        now_ts = time.time()
+        # Rýchla TTL vyrovnávacia pamäť (chráni server a Ubian pred preťažením)
+        if self._live_cache and (now_ts - self._live_cache_ts < self._live_cache_ttl):
+            return self._live_cache
+
         now_iso = datetime.now().astimezone().isoformat()
 
         # Paralelné viacbodové stiahnutie pre bleskovú odozvu
@@ -208,7 +219,11 @@ class DpmkLiveFeed:
         cutoff = now_ts - 1800
         self.delay_hotspots = [h for h in self.delay_hotspots if h.get("timestamp", 0) >= cutoff]
 
-        return list(unique_vehicles.values())
+        result_list = list(unique_vehicles.values())
+        self._live_cache = result_list
+        self._live_cache_ts = now_ts
+
+        return result_list
 
     def get_active_hotspots(self, max_age_seconds: int = 1500) -> List[Dict[str, Any]]:
         """
@@ -252,7 +267,7 @@ class DpmkLiveFeed:
 
     def get_trip_polyline_and_stops(self, trip_id: int) -> Dict[str, Any]:
         """Stiahne kompletnú trasu (shape polyline) a zoznam zastávok pre konkrétnu jazdu."""
-        url = f"https://www.ubian.sk/navigation/vehicles/trip_stops?tripID={trip_id}&withRoute=1"
+        url = f"{self.UBIAN_BASE_URL}/navigation/vehicles/trip_stops?tripID={trip_id}&withRoute=1"
         req = urllib.request.Request(url, headers=self.headers)
         with urllib.request.urlopen(req, timeout=10) as response:
             return json.loads(response.read().decode("utf-8"))
@@ -398,7 +413,7 @@ class DpmkLiveFeed:
         time: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Stiahne surové plánované odchody pre jedno konkrétne stop_id z Ubianu."""
-        url = f"https://www.ubian.sk/navigation/stops/planned_departures?stopID={stop_id}"
+        url = f"{self.UBIAN_BASE_URL}/navigation/stops/planned_departures?stopID={stop_id}"
         if date and time:
             url += f"&date={date}&time={time}"
         elif date:

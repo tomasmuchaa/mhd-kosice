@@ -2692,6 +2692,7 @@
     body.live-nav-active #bottom-nav-bar,
     body.live-nav-active #app-logo-title,
     body.live-nav-active #mobile-menu-btn,
+    body.live-nav-active #feedback-quick-btn,
     body.live-nav-active #locate-me-btn,
     body.live-nav-active #follow-banner,
     body.live-nav-active .history-bottom-sheet,
@@ -2706,6 +2707,41 @@
     }
     .nav-dropdown-gps-item:hover {
       background: rgba(56, 189, 248, 0.18) !important;
+    }
+
+    /* Tlačidlo spätnej väzby (imhd.sk verejné testovanie) */
+    .feedback-quick-btn {
+      display: flex;
+      position: fixed;
+      top: 12px;
+      right: 60px;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #10b981;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      cursor: pointer;
+      z-index: 10040;
+      transition: transform 0.15s, background-color 0.2s, box-shadow 0.2s;
+    }
+    .feedback-quick-btn:hover {
+      background: rgba(30, 41, 59, 0.85);
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+      transform: scale(1.05);
+    }
+    .feedback-quick-btn:active {
+      transform: scale(0.92);
+    }
+    body.dark-mode .feedback-quick-btn {
+      background: rgba(7, 11, 22, 0.9) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+      color: #34d399 !important;
     }
 
     /* Tlačidlo a overlay pre vysunutie bočných filtrov (Apple VisionOS / iOS) */
@@ -4165,6 +4201,11 @@
       <button class="follow-cancel-btn" onclick="stopFollowingVehicle()" title="Ukončiť sledovanie">✕</button>
     </div>
 
+    <!-- Tlačidlo spätnej väzby a hlásenia chýb (imhd.sk verejné testovanie) -->
+    <button id="feedback-quick-btn" class="feedback-quick-btn apple-glass" onclick="openFeedbackModal()" aria-label="Spätná väzba a hlásenie chýb" title="Spätná väzba / Nahlásiť chybu (imhd.sk)">
+      <span style="font-size: 1.15rem; line-height: 1;">💬</span>
+    </button>
+
     <!-- Tlačidlo pre otvorenie filtrov a vrstiev na mape -->
     <button id="mobile-menu-btn" class="mobile-menu-btn apple-glass" onclick="toggleMobileDrawer()" aria-label="Filtre liniek a vrstvy" title="Filtre liniek a vrstvy">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
@@ -4708,8 +4749,12 @@
       </div>
     </div>
 
-    <!-- Nastavenia / Developer Mode & Galéria v drawer menu -->
+    <!-- Nastavenia / Spätná väzba, Developer Mode & Galéria v drawer menu -->
     <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+      <button type="button" class="btn-dev-override" onclick="openFeedbackModal()" style="font-size: 0.78rem; padding: 8px 10px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;" title="Nahlásiť chybu alebo poslať spätnú väzbu pre imhd.sk">
+        <span>💬</span>
+        <span>Nahlásiť chybu / Spätná väzba</span>
+      </button>
       <button type="button" class="btn-dev-override" onclick="openIconGalleryModal()" style="font-size: 0.78rem; padding: 8px 10px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;" title="Otvoriť galériu všetkých modelov a ich SVG ikoniek">
         <span>🎨</span>
         <span>Katalóg & Galéria SVG ikoniek</span>
@@ -4883,6 +4928,54 @@
       <div id="icon-gallery-grid" class="icon-gallery-grid">
         <!-- Generované JavaScriptom -->
       </div>
+    </div>
+  </div>
+
+  <!-- Modálne okno: Spätná väzba a hlásenie chýb (pre imhd.sk používateľov) -->
+  <div id="feedback-modal-backdrop" class="override-modal-backdrop" onclick="closeFeedbackModal()"></div>
+  <div id="feedback-modal" class="override-modal apple-glass" role="dialog" aria-modal="true" aria-labelledby="feedback-modal-title" style="display: none; max-width: 480px; z-index: 10050;">
+    <div class="override-modal-header">
+      <div class="override-modal-title" id="feedback-modal-title" style="color: #34d399;">
+        <span>💬</span>
+        <span>Spätná väzba & Hlásenie chýb</span>
+      </div>
+      <button class="override-modal-close" onclick="closeFeedbackModal()" title="Zavrieť">✕</button>
+    </div>
+    <div class="override-modal-body">
+      <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 12px; line-height: 1.45; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 8px 10px;">
+        🧪 Aplikácia je vo verejnom testovaní pre komunitu <strong>imhd.sk</strong>. Vopred ďakujeme za každý postreh, nahlásenú chybu alebo nápad na zlepšenie!
+      </div>
+      <form id="feedback-form" onsubmit="submitFeedbackForm(event)">
+        <div class="override-field-group" style="margin-bottom: 10px;">
+          <label for="feedback-category" class="override-label">Kategória podnetu</label>
+          <select id="feedback-category" class="override-select">
+            <option value="Nesprávny model / ŠPZ">🐞 Nesprávny model alebo ŠPZ vozidla</option>
+            <option value="Chyba plánovača trás">🛣️ Plánovač trás / prestupy</option>
+            <option value="Chyba mapy alebo GPS">🗺️ Zobrazenie mapy / GPS poloha</option>
+            <option value="Nápad na vylepšenie">💡 Nápad na novú funkciu</option>
+            <option value="Iné">📝 Iná pripomienka</option>
+          </select>
+        </div>
+
+        <div class="override-field-group" style="margin-bottom: 10px;">
+          <label for="feedback-message" class="override-label">Popis chyby alebo spätná väzba *</label>
+          <textarea id="feedback-message" class="override-input" rows="4" style="height: auto; min-height: 90px; resize: vertical; font-family: inherit;" placeholder="Napíšte napríklad: Linka 19 na zastávke Mier mala zle zobrazený typ vozidla, alebo návrh na zlepšenie..." required></textarea>
+        </div>
+
+        <div class="override-field-group" style="margin-bottom: 14px;">
+          <label for="feedback-contact" class="override-label">Váš nick na fóre imhd.sk alebo e-mail (voliteľné)</label>
+          <input type="text" id="feedback-contact" class="override-input" placeholder="Napr. nick z diskusie na imhd alebo kontakt pre odpoveď" autocomplete="off" />
+        </div>
+
+        <div id="feedback-status-msg" style="display: none; padding: 8px 10px; border-radius: 6px; font-size: 0.78rem; margin-bottom: 12px;"></div>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px;">
+          <button type="button" class="btn-dev-override" onclick="closeFeedbackModal()" style="background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.3); color: #cbd5e1;">Zrušiť</button>
+          <button type="submit" id="feedback-submit-btn" class="btn-dev-override" style="background: #10b981; border: 1px solid #059669; color: #ffffff; font-weight: 700; padding: 8px 14px;">
+            <span>🚀 Odoslať</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -5117,6 +5210,7 @@
         if (turnOff) {
           isDevMode = false;
           localStorage.setItem('isDevMode', 'false');
+          sessionStorage.removeItem('adminToken');
           updateDevModeUI();
           if (typeof syncVisibleMarkers === 'function') syncVisibleMarkers();
           if (currentAppView === 'garage') renderGarageView();
@@ -5124,16 +5218,16 @@
           return;
         }
       }
-      const pass = prompt("Zadajte administrátorské heslo pre Developer Mode (DPMK):");
-      if (pass === "dpmkadmin") {
+      const pass = prompt("Zadajte administrátorské heslo / token pre Developer Mode:");
+      if (pass !== null && pass.trim()) {
+        const token = pass.trim();
+        sessionStorage.setItem('adminToken', token);
         isDevMode = true;
         localStorage.setItem('isDevMode', 'true');
         updateDevModeUI();
         if (typeof syncVisibleMarkers === 'function') syncVisibleMarkers();
         if (currentAppView === 'garage') renderGarageView();
-        alert("✅ Developer Mode aktivovaný!\nV popupe aj v detailoch vozidiel je teraz dostupné tlačidlo '🔧 Opraviť model/ŠPZ'.");
-      } else if (pass !== null) {
-        alert("❌ Nesprávne heslo pre Developer Mode!");
+        alert("Developer Mode aktivovaný!\nV popupe aj v detailoch vozidiel je teraz dostupné tlačidlo '🔧 Opraviť model/ŠPZ'.");
       }
     }
 
@@ -5197,19 +5291,32 @@
     async function toggleQuickVerify(evCislo, vehicleId, targetState = null) {
       const current = isVehicleVerified({ vehicle_id: vehicleId, fleet_info: { evidencne_cislo: evCislo } });
       const newState = (targetState !== null) ? Boolean(targetState) : !current;
+      const adminToken = sessionStorage.getItem('adminToken') || '';
 
       setVehicleVerifiedLocal(evCislo, vehicleId, newState);
 
       try {
-        await fetch(`${BASE_ORIGIN}/api/v1/admin/verify`, {
+        const resp = await fetch(`${BASE_ORIGIN}/api/v1/admin/verify`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Token': adminToken
+          },
           body: JSON.stringify({
             evidencne_cislo: evCislo || null,
             vehicle_id: vehicleId || null,
             verified: newState
           })
         });
+
+        if (resp.status === 403) {
+          alert("❌ Prístup odoprený: Neplatné administrátorské heslo / token pre Developer Mode!");
+          sessionStorage.removeItem('adminToken');
+          isDevMode = false;
+          localStorage.removeItem('isDevMode');
+          updateDevModeUI();
+          return;
+        }
       } catch(e) {
         console.warn('API /api/v1/admin/verify:', e);
       }
@@ -5326,6 +5433,119 @@
       modal.classList.remove('open');
       if (backdrop) backdrop.classList.remove('open');
     }
+
+    // ==========================================
+    // SPÄTNÁ VÄZBA & HLÁSENIE CHÝB (imhd.sk verejné testovanie)
+    // ==========================================
+    function openFeedbackModal() {
+      if (typeof closeMobileDrawer === 'function') closeMobileDrawer();
+      const modal = document.getElementById('feedback-modal');
+      const backdrop = document.getElementById('feedback-modal-backdrop');
+      const statusEl = document.getElementById('feedback-status-msg');
+      if (statusEl) statusEl.style.display = 'none';
+      if (backdrop) backdrop.classList.add('open');
+      if (modal) {
+        modal.style.display = 'block';
+        modal.classList.add('open');
+      }
+      setTimeout(() => {
+        const msgEl = document.getElementById('feedback-message');
+        if (msgEl) msgEl.focus();
+      }, 100);
+    }
+
+    function closeFeedbackModal() {
+      const modal = document.getElementById('feedback-modal');
+      const backdrop = document.getElementById('feedback-modal-backdrop');
+      if (modal) {
+        modal.classList.remove('open');
+        modal.style.display = 'none';
+      }
+      if (backdrop) backdrop.classList.remove('open');
+    }
+
+    async function submitFeedbackForm(e) {
+      e.preventDefault();
+      const msgEl = document.getElementById('feedback-message');
+      const catEl = document.getElementById('feedback-category');
+      const contactEl = document.getElementById('feedback-contact');
+      const statusEl = document.getElementById('feedback-status-msg');
+      const submitBtn = document.getElementById('feedback-submit-btn');
+
+      const message = (msgEl ? msgEl.value : '').trim();
+      if (!message || message.length < 3) {
+        alert('Prosím, napíšte vašu správu (aspoň 3 znaky).');
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Odosielam...';
+      }
+
+      try {
+        const payload = {
+          message: message,
+          category: catEl ? catEl.value : 'Iné',
+          contact: (contactEl ? contactEl.value : '').trim() || null
+        };
+
+        const resp = await fetch('/api/v1/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok) {
+          if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.style.background = 'rgba(16, 185, 129, 0.2)';
+            statusEl.style.border = '1px solid #10b981';
+            statusEl.style.color = '#34d399';
+            statusEl.innerHTML = '✅ <strong>Ďakujeme!</strong> Vaša spätná väzba bola úspešne zaznamenaná.';
+          }
+          if (msgEl) msgEl.value = '';
+          if (contactEl) contactEl.value = '';
+          setTimeout(() => {
+            closeFeedbackModal();
+            if (statusEl) statusEl.style.display = 'none';
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<span>🚀 Odoslať</span>';
+            }
+          }, 1800);
+        } else {
+          if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.style.background = 'rgba(239, 68, 68, 0.2)';
+            statusEl.style.border = '1px solid #ef4444';
+            statusEl.style.color = '#f87171';
+            statusEl.innerHTML = `❌ Chyba: ${data.detail || data.message || 'Nepodarilo sa odoslať správu.'}`;
+          }
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>🚀 Odoslať</span>';
+          }
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.style.display = 'block';
+          statusEl.style.background = 'rgba(239, 68, 68, 0.2)';
+          statusEl.style.border = '1px solid #ef4444';
+          statusEl.style.color = '#f87171';
+          statusEl.innerHTML = '❌ Nastala sieťová chyba pri odosielaní.';
+        }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>🚀 Odoslať</span>';
+        }
+      }
+    }
+
+    window.openFeedbackModal = openFeedbackModal;
+    window.closeFeedbackModal = closeFeedbackModal;
+    window.submitFeedbackForm = submitFeedbackForm;
 
     // ==========================================
     // KATALÓG & GALÉRIA SVG IKONIEK VOZIDIEL
@@ -5488,13 +5708,24 @@
         if (origEv) payload.original_evidencne_cislo = origEv;
         if (vid) payload.vehicle_id = vid;
 
+        const adminToken = sessionStorage.getItem('adminToken') || '';
         const resp = await fetch(`${BASE_ORIGIN}/api/v1/admin/override`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-Admin-Token': adminToken
           },
           body: JSON.stringify(payload)
         });
+
+        if (resp.status === 403) {
+          alert("❌ Prístup odoprený: Neplatné administrátorské heslo / token! Prosím, aktivujte Developer Mode správnym heslom.");
+          sessionStorage.removeItem('adminToken');
+          isDevMode = false;
+          localStorage.removeItem('isDevMode');
+          updateDevModeUI();
+          return;
+        }
 
         if (!resp.ok) {
           const errData = await resp.json().catch(() => ({}));

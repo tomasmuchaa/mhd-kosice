@@ -1,11 +1,13 @@
 import os
 import json
+import time
+import uuid
 import unicodedata
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Union, Tuple
 from fastapi import FastAPI, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel
 
 from app.services.fleet_service import FleetService
@@ -21,6 +23,12 @@ def strip_accents(text: str) -> str:
     cleaned = "".join(c for c in nfkd if not unicodedata.combining(c)).lower()
     return " ".join(cleaned.replace(',', ' ').replace('-', ' ').replace('.', ' ').split())
 
+# Bezpečnostná a produkčná konfigurácia z premenných prostredia
+DEBUG_MODE = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
+ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "dpmkadmin")
+RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "120"))
+FEEDBACK_LIMIT_PER_5MIN = int(os.getenv("FEEDBACK_LIMIT_PER_5MIN", "5"))
+
 # Cesty k súborom
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
@@ -31,12 +39,83 @@ MANIFEST_PATH = os.path.join(PROJECT_DIR, "manifest.json")
 SERVICE_WORKER_PATH = os.path.join(PROJECT_DIR, "service-worker.js")
 ICONS_DIR = os.path.join(PROJECT_DIR, "data", "icons")
 STATIC_ICONS_DIR = os.path.join(PROJECT_DIR, "static", "icons")
+FEEDBACK_FILE = os.path.join(PROJECT_DIR, "data", "feedback.json")
 
+# FastAPI aplikácia s vypnutým Swagger/Docs na produkcii (ochrana pred odhalením endpointov)
 app = FastAPI(
     title="MHD Košice - Inteligentný Backend",
     description="Pokročilý systém pre sledovanie, vyhľadávanie a analýzu MHD v Košiciach.",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url="/docs" if DEBUG_MODE else None,
+    redoc_url="/redoc" if DEBUG_MODE else None,
+    openapi_url="/openapi.json" if DEBUG_MODE else None
 )
+
+# In-memory sliding-window pamäť pre rate limiting
+RATE_LIMIT_STORE: Dict[str, List[float]] = {}
+FEEDBACK_LIMIT_STORE: Dict[str, List[float]] = {}
+
+def get_client_ip(request: Request) -> str:
+    """Zistí skutočnú IP adresu klienta aj za Cloudflare alebo Render proxy."""
+    cf_ip = request.headers.get("cf-connecting-ip")
+    if cf_ip:
+        return cf_ip.strip()
+    x_forwarded = request.headers.get("x-forwarded-for")
+    if x_forwarded:
+        return x_forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
+
+def verify_admin_token(request: Request):
+    """
+    Overí tajný administrátorský token z HTTP hlavičky (X-Admin-Token alebo Authorization: Bearer <token>).
+    Ochraňuje citlivé zásahy do vozového parku (Developer Mode).
+    """
+    token = request.headers.get("X-Admin-Token")
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:].strip()
+        elif auth_header:
+            token = auth_header.strip()
+
+    if not token or token != ADMIN_SECRET_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Prístup odoprený: Neplatný alebo chýbajúci administrátorský token (X-Admin-Token)."
+        )
+
+# Základný Rate Limiting Middleware (Ochrana pred DoS a zaspamovaním)
+@app.middleware("http")
+async def rate_limiting_middleware(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/api/"):
+        client_ip = get_client_ip(request)
+        now = time.time()
+
+        if path == "/api/v1/feedback" and request.method == "POST":
+            window_start = now - 300.0  # 5 minút
+            FEEDBACK_LIMIT_STORE.setdefault(client_ip, [])
+            FEEDBACK_LIMIT_STORE[client_ip] = [t for t in FEEDBACK_LIMIT_STORE[client_ip] if t > window_start]
+            if len(FEEDBACK_LIMIT_STORE[client_ip]) >= FEEDBACK_LIMIT_PER_5MIN:
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Príliš veľa odoslaných správ. Skúste to prosím o chvíľu."},
+                    headers={"Retry-After": "60"}
+                )
+            FEEDBACK_LIMIT_STORE[client_ip].append(now)
+        else:
+            window_start = now - 60.0  # 1 minúta
+            RATE_LIMIT_STORE.setdefault(client_ip, [])
+            RATE_LIMIT_STORE[client_ip] = [t for t in RATE_LIMIT_STORE[client_ip] if t > window_start]
+            if len(RATE_LIMIT_STORE[client_ip]) >= RATE_LIMIT_PER_MINUTE:
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Príliš veľa požiadaviek (Rate limit prekročený). Skúste to prosím o chvíľu."},
+                    headers={"Retry-After": "10"}
+                )
+            RATE_LIMIT_STORE[client_ip].append(now)
+
+    return await call_next(request)
 
 # Povolenie CORS pre volania z lokálneho HTML a mobilných aplikácií
 app.add_middleware(
@@ -69,24 +148,29 @@ def root(request: Request):
     accept = request.headers.get("accept", "")
     if "text/html" in accept:
         return RedirectResponse(url="/mapa")
+
+    endpoints = {
+        "live_vehicles": "/api/v1/vehicles/live",
+        "fleet": "/api/v1/fleet",
+        "stops": "/api/v1/stops",
+        "stop_departures": "/api/v1/stops/{stop_id}/departures",
+        "search_by_spz": "/api/v1/vehicle/search?spz=KE-704IY",
+        "vehicle_occupancy": "/api/v1/vehicle/{vehicle_id}/occupancy",
+        "feedback": "/api/v1/feedback",
+        "mapa": "/mapa",
+        "ikonky": "/ikonky",
+        "manifest": "/manifest.json"
+    }
+    if DEBUG_MODE:
+        endpoints["docs"] = "/docs"
+        endpoints["historical_track"] = "/api/v1/track/historical"
+        endpoints["walking_transfers"] = "/api/v1/routing/transfers"
+        endpoints["journey_planner"] = "/api/v1/routing/journey?from_id=1000000178&to_id=1000000030"
+
     return {
         "service": "MHD Košice API",
         "status": "online",
-        "endpoints": {
-            "live_vehicles": "/api/v1/vehicles/live",
-            "fleet": "/api/v1/fleet",
-            "stops": "/api/v1/stops",
-            "stop_departures": "/api/v1/stops/{stop_id}/departures",
-            "search_by_spz": "/api/v1/vehicle/search?spz=KE-704IY",
-            "vehicle_occupancy": "/api/v1/vehicle/{vehicle_id}/occupancy",
-            "historical_track": "/api/v1/track/historical",
-            "walking_transfers": "/api/v1/routing/transfers",
-            "journey_planner": "/api/v1/routing/journey?from_id=1000000178&to_id=1000000030",
-            "mapa": "/mapa",
-            "ikonky": "/ikonky",
-            "manifest": "/manifest.json",
-            "docs": "/docs"
-        }
+        "endpoints": endpoints
     }
 
 @app.get("/mapa", response_class=FileResponse)
@@ -909,11 +993,13 @@ class OverrideRequest(BaseModel):
 
 
 @app.post("/api/v1/admin/override")
-def create_or_update_override(req: OverrideRequest):
+def create_or_update_override(req: OverrideRequest, request: Request):
     """
     Developer Mode endpoint pre manuálnu korekciu priradeného modelu, evidenčného čísla a ŠPZ vozidla.
-    Zapisuje sa dynamicky do pamäte a do lokálneho súboru data/overrides.json.
+    Zabezpečený tajným administrátorským tokenom (X-Admin-Token).
     """
+    verify_admin_token(request)
+
     if not req.evidencne_cislo and not req.vehicle_id and not req.original_evidencne_cislo:
         raise HTTPException(status_code=400, detail="Je potrebné zadať evidencne_cislo alebo vehicle_id.")
     if not req.model or not req.model.strip():
@@ -941,10 +1027,13 @@ class VerifyRequest(BaseModel):
 
 
 @app.post("/api/v1/admin/verify")
-def verify_vehicle_endpoint(req: VerifyRequest):
+def verify_vehicle_endpoint(req: VerifyRequest, request: Request):
     """
     Developer Mode endpoint na rýchle označenie vozidla ako 'overené' (alebo zrušenie overenia).
+    Zabezpečený tajným administrátorským tokenom (X-Admin-Token).
     """
+    verify_admin_token(request)
+
     success = fleet_service.set_verified(
         vehicle_id=str(req.vehicle_id).strip() if req.vehicle_id else None,
         ev_cislo=str(req.evidencne_cislo).strip() if req.evidencne_cislo else None,
@@ -958,11 +1047,85 @@ def verify_vehicle_endpoint(req: VerifyRequest):
 
 
 @app.get("/api/v1/admin/overrides")
-def get_all_overrides():
-    """Zoznam všetkých aktívnych manuálnych prepisov flotily."""
+def get_all_overrides(request: Request):
+    """Zoznam všetkých aktívnych manuálnych prepisov flotily (vyžaduje X-Admin-Token)."""
+    verify_admin_token(request)
     return {
         "status": "ok",
         "overrides": fleet_service.MANUAL_OVERRIDES
+    }
+
+
+class FeedbackRequest(BaseModel):
+    message: str
+    category: Optional[str] = "Iné"
+    contact: Optional[str] = None
+
+
+@app.post("/api/v1/feedback")
+def submit_feedback(req: FeedbackRequest, request: Request):
+    """
+    Verejný endpoint pre zber spätnej väzby a hlásenie chýb od používateľov imhd.sk.
+    Záznam sa ukladá do súboru data/feedback.json s časovou pečiatkou a kategóriou.
+    """
+    msg = req.message.strip()
+    if not msg or len(msg) < 3:
+        raise HTTPException(status_code=400, detail="Správa musí obsahovať aspoň 3 znaky.")
+    if len(msg) > 3000:
+        raise HTTPException(status_code=400, detail="Správa je príliš dlhá (max 3000 znakov).")
+
+    client_ip = get_client_ip(request)
+    entry = {
+        "id": f"fb_{int(time.time())}_{uuid.uuid4().hex[:6]}",
+        "timestamp": datetime.now().isoformat(),
+        "category": (req.category or "Iné").strip(),
+        "message": msg,
+        "contact": req.contact.strip() if req.contact else None,
+        "client_ip": client_ip,
+        "user_agent": request.headers.get("user-agent", "")
+    }
+
+    os.makedirs(os.path.dirname(FEEDBACK_FILE), exist_ok=True)
+    feedback_list = []
+    if os.path.exists(FEEDBACK_FILE):
+        try:
+            with open(FEEDBACK_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    feedback_list = data
+        except Exception:
+            feedback_list = []
+
+    feedback_list.append(entry)
+    try:
+        with open(FEEDBACK_FILE, "w", encoding="utf-8") as f:
+            json.dump(feedback_list, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chyba pri ukladaní spätnej väzby: {e}")
+
+    return {
+        "status": "ok",
+        "message": "Ďakujeme za vašu spätnú väzbu! Pomáha nám zlepšovať systém MHD Košice."
+    }
+
+
+@app.get("/api/v1/admin/feedback")
+def get_all_feedback(request: Request):
+    """Zoznam doručenej spätnej väzby (vyžaduje X-Admin-Token)."""
+    verify_admin_token(request)
+    feedback_list = []
+    if os.path.exists(FEEDBACK_FILE):
+        try:
+            with open(FEEDBACK_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    feedback_list = data
+        except Exception:
+            pass
+    return {
+        "status": "ok",
+        "total": len(feedback_list),
+        "feedback": feedback_list
     }
 
 
