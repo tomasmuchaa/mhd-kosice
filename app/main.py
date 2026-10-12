@@ -557,20 +557,30 @@ def get_network_stats():
     lines_stats.sort(key=lambda x: (x["max_delay_minutes"], x["average_delay_minutes"]), reverse=True)
     top_3_delayed_lines = lines_stats[:3]
 
-    # TOP 5 najviac meškajúcich konkrétnych vozidiel
+    # TOP najviac meškajúcich konkrétnych vozidiel (obohatené o model a ev. číslo z fleet_service)
     sorted_delayed_vehicles = sorted(raw_vehicles, key=lambda x: int(x.get("delay_minutes") or 0), reverse=True)
     top_delayed_vehicles = []
-    for v in sorted_delayed_vehicles[:5]:
+    for v in sorted_delayed_vehicles[:10]:
         d_min = int(v.get("delay_minutes") or 0)
         if d_min > 0:
+            matched_fleet = fleet_service.match_live_vehicle(
+                vehicle_id=v.get("vehicle_id"),
+                license_number=v.get("license_number"),
+                line=v.get("line"),
+                line_type=v.get("line_type"),
+                raw_vehicle=v
+            ) or {}
             top_delayed_vehicles.append({
                 "vehicle_id": v.get("vehicle_id"),
                 "line": v.get("line"),
+                "line_type": v.get("line_type"),
                 "destination": v.get("destination"),
                 "delay_minutes": d_min,
-                "model": v.get("model") or "Vozidlo DPMK",
-                "license_number": v.get("license_number"),
-                "current_stop_name": v.get("current_stop_name")
+                "evidencne_cislo": matched_fleet.get("evidencne_cislo") or v.get("evidencne_cislo"),
+                "model": matched_fleet.get("model") or v.get("model") or "Autobus DPMK",
+                "license_number": matched_fleet.get("spz") or v.get("license_number"),
+                "current_stop_name": v.get("current_stop_name"),
+                "fleet_info": matched_fleet
             })
 
     # Distribúcia meškania

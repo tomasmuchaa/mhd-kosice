@@ -4038,13 +4038,16 @@
       padding: 14px;
       position: relative;
       cursor: pointer;
-      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s, box-shadow 0.2s, background 0.2s;
       box-shadow: 0 4px 14px rgba(239, 68, 68, 0.1);
     }
     .dash-problem-line-card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(239, 68, 68, 0.7);
-      box-shadow: 0 6px 18px rgba(239, 68, 68, 0.22);
+      transform: scale(1.01);
+      border-color: rgba(239, 68, 68, 0.85);
+      box-shadow: 0 8px 22px rgba(239, 68, 68, 0.26);
+    }
+    .dash-problem-line-card:active {
+      transform: scale(0.99);
     }
     .dash-line-badge-lg {
       display: inline-flex;
@@ -4093,6 +4096,80 @@
     .dash-dist-seg-yellow { background: #f59e0b; height: 100%; transition: width 0.4s ease; }
     .dash-dist-seg-red { background: #ef4444; height: 100%; transition: width 0.4s ease; }
 
+    /* Widget Flotila na trati (Zloženie výpravy podľa trakcií) */
+    .dash-fleet-composition-box {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+    .dash-fleet-comp-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .dash-fleet-comp-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .dash-fleet-comp-item:hover {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+    .dash-fleet-comp-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .dash-fleet-comp-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #f8fafc;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    /* Dvojstĺpcový layout Dashboardu na desktope a jednostĺpcový na mobile/tablete */
+    .dashboard-main-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    @media (min-width: 1024px) {
+      .dashboard-main-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 20px;
+        align-items: start;
+      }
+      #dash-delayed-veh-list {
+        max-height: 380px;
+        overflow-y: auto;
+        padding-right: 6px;
+        scrollbar-width: thin;
+      }
+      #dash-delayed-veh-list::-webkit-scrollbar {
+        width: 5px;
+      }
+      #dash-delayed-veh-list::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 4px;
+      }
+    }
+
     .dash-vehicles-list-box {
       background: rgba(15, 23, 42, 0.75);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -4111,6 +4188,23 @@
     }
     .dash-veh-item:last-child {
       border-bottom: none;
+    }
+    .dash-veh-mini-icon {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 2px;
+    }
+    .dash-veh-mini-icon svg {
+      width: 26px !important;
+      height: 26px !important;
+      display: block;
     }
 
     /* Tepelná mapa meškaní - Tooltip */
@@ -4294,6 +4388,7 @@
 
     body.dark-mode .dash-kpi-card,
     body.dark-mode .dash-distribution-box,
+    body.dark-mode .dash-fleet-composition-box,
     body.dark-mode .dash-vehicles-list-box {
       background: rgba(8, 13, 27, 0.90) !important;
       border-color: rgba(255, 255, 255, 0.1) !important;
@@ -4811,92 +4906,126 @@
       <button class="refresh-btn" onclick="loadAndRenderDashboard(true)" style="padding: 7px 14px; font-size: 0.82rem;">↻ Obnoviť</button>
     </div>
 
-    <!-- KPI Grid -->
-    <div class="dashboard-kpi-grid">
-      <div class="dash-kpi-card" style="--kpi-accent: #38bdf8;">
-        <div class="dash-kpi-label">
-          <span>🚍</span> Aktívne vozidlá
+    <div class="dashboard-main-grid">
+      <!-- ĽAVÝ STĹPEC: KPI metriky, presnosť spojov a TOP 3 najproblémovejšie linky -->
+      <div class="dashboard-col-left">
+        <!-- KPI Grid -->
+        <div class="dashboard-kpi-grid">
+          <div class="dash-kpi-card" style="--kpi-accent: #38bdf8;">
+            <div class="dash-kpi-label">
+              <span>🚍</span> Aktívne vozidlá
+            </div>
+            <div class="dash-kpi-val" id="dash-total-vehicles">--</div>
+            <div class="dash-kpi-sub" id="dash-total-sub">V premávke na linkách</div>
+          </div>
+
+          <div class="dash-kpi-card" style="--kpi-accent: #ef4444;">
+            <div class="dash-kpi-label">
+              <span>⏳</span> Meškajúce spoje
+            </div>
+            <div class="dash-kpi-val" style="color: #f87171;" id="dash-delayed-vehicles">--</div>
+            <div class="dash-kpi-sub" id="dash-delayed-sub">Meškanie > 3 minúty</div>
+          </div>
+
+          <div class="dash-kpi-card" style="--kpi-accent: #f59e0b;">
+            <div class="dash-kpi-label">
+              <span>⏱️</span> Priemerné meškanie
+            </div>
+            <div class="dash-kpi-val" style="color: #fbbf24;" id="dash-avg-delay">--</div>
+            <div class="dash-kpi-sub">Priemer celej siete</div>
+          </div>
+
+          <div class="dash-kpi-card" style="--kpi-accent: #ec4899;">
+            <div class="dash-kpi-label">
+              <span>⚠️</span> Maximálne meškanie
+            </div>
+            <div class="dash-kpi-val" style="color: #f472b6;" id="dash-max-delay">--</div>
+            <div class="dash-kpi-sub" id="dash-max-sub">Najvyšší zistený sklz</div>
+          </div>
         </div>
-        <div class="dash-kpi-val" id="dash-total-vehicles">--</div>
-        <div class="dash-kpi-sub" id="dash-total-sub">V premávke na linkách</div>
+
+        <!-- Distribúcia presnosti -->
+        <div class="dash-distribution-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div class="dash-section-title" style="margin-bottom: 0;">
+              <span>🎯</span>
+              <span>Presnosť spojov v sieti</span>
+            </div>
+            <div id="dash-ontime-percentage" style="font-size: 0.82rem; font-weight: 700; color: #22c55e;">-- % načas</div>
+          </div>
+          <div class="dash-dist-bar">
+            <div id="dash-dist-bar-green" class="dash-dist-seg-green" style="width: 70%;" title="Načas (0-3 min)"></div>
+            <div id="dash-dist-bar-yellow" class="dash-dist-seg-yellow" style="width: 20%;" title="Mierne meškanie (4-6 min)"></div>
+            <div id="dash-dist-bar-red" class="dash-dist-seg-red" style="width: 10%;" title="Kritické meškanie (>6 min)"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.72rem; color: #94a3b8; flex-wrap: wrap; gap: 6px;">
+            <span style="display: flex; align-items: center; gap: 5px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block;"></span>
+              <span id="dash-legend-ontime">Načas (≤ 3 min): --</span>
+            </span>
+            <span style="display: flex; align-items: center; gap: 5px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
+              <span id="dash-legend-minor">Mierne (4-6 min): --</span>
+            </span>
+            <span style="display: flex; align-items: center; gap: 5px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
+              <span id="dash-legend-heavy">Kritické (> 6 min): --</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- TOP 3 Meškajúce linky -->
+        <div style="margin-bottom: 22px;">
+          <div class="dash-section-title">
+            <span>🚨</span>
+            <span>TOP 3 Najproblémovejšie linky práve teraz</span>
+          </div>
+          <div id="dash-top-lines-container" class="dash-top-lines-grid">
+            <div style="padding: 24px; text-align: center; color: #94a3b8; grid-column: 1 / -1;">
+              <span class="pulse-dot"></span> Počítam štatistiky liniek...
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="dash-kpi-card" style="--kpi-accent: #ef4444;">
-        <div class="dash-kpi-label">
-          <span>⏳</span> Meškajúce spoje
+      <!-- PRAVÝ STĹPEC: Widget zloženia výpravy podľa trakcií a Zoznam vozidiel s najvyšším meškaním -->
+      <div class="dashboard-col-right">
+        <!-- Flotila na trati (Zloženie výpravy) -->
+        <div class="dash-fleet-composition-box">
+          <div class="dash-section-title" style="margin-bottom: 12px;">
+            <span>🧩</span>
+            <span>Flotila na trati (Zloženie výpravy)</span>
+          </div>
+          <div class="dash-fleet-comp-grid">
+            <div class="dash-fleet-comp-item">
+              <span class="dash-fleet-comp-label"><span>🚋</span><span>Električky:</span></span>
+              <span class="dash-fleet-comp-val" id="dash-fleet-tram" style="color: #fde047;">0</span>
+            </div>
+            <div class="dash-fleet-comp-item">
+              <span class="dash-fleet-comp-label"><span>⚡</span><span>Elektrobusy:</span></span>
+              <span class="dash-fleet-comp-val" id="dash-fleet-electric" style="color: #4ade80;">0</span>
+            </div>
+            <div class="dash-fleet-comp-item">
+              <span class="dash-fleet-comp-label"><span>🪗</span><span>Kĺbové autobusy:</span></span>
+              <span class="dash-fleet-comp-val" id="dash-fleet-articulated" style="color: #60a5fa;">0</span>
+            </div>
+            <div class="dash-fleet-comp-item">
+              <span class="dash-fleet-comp-label"><span>🚌</span><span>Sólo / Štandard:</span></span>
+              <span class="dash-fleet-comp-val" id="dash-fleet-solo" style="color: #f87171;">0</span>
+            </div>
+          </div>
         </div>
-        <div class="dash-kpi-val" style="color: #f87171;" id="dash-delayed-vehicles">--</div>
-        <div class="dash-kpi-sub" id="dash-delayed-sub">Meškanie > 3 minúty</div>
-      </div>
 
-      <div class="dash-kpi-card" style="--kpi-accent: #f59e0b;">
-        <div class="dash-kpi-label">
-          <span>⏱️</span> Priemerné meškanie
+        <!-- Zoznam najviac meškajúcich vozidiel -->
+        <div class="dash-vehicles-list-box">
+          <div class="dash-section-title" style="margin-bottom: 12px;">
+            <span>🛑</span>
+            <span>Vozidlá s najvyšším meškaním</span>
+          </div>
+          <div id="dash-delayed-veh-list">
+            <div style="text-align: center; color: #94a3b8; padding: 16px;">Načítavam vozidlá...</div>
+          </div>
         </div>
-        <div class="dash-kpi-val" style="color: #fbbf24;" id="dash-avg-delay">--</div>
-        <div class="dash-kpi-sub">Priemer celej siete</div>
-      </div>
-
-      <div class="dash-kpi-card" style="--kpi-accent: #ec4899;">
-        <div class="dash-kpi-label">
-          <span>⚠️</span> Maximálne meškanie
-        </div>
-        <div class="dash-kpi-val" style="color: #f472b6;" id="dash-max-delay">--</div>
-        <div class="dash-kpi-sub" id="dash-max-sub">Najvyšší zistený sklz</div>
-      </div>
-    </div>
-
-    <!-- TOP 3 Meškajúce linky -->
-    <div style="margin-bottom: 22px;">
-      <div class="dash-section-title">
-        <span>🚨</span>
-        <span>TOP 3 Najproblémovejšie linky práve teraz</span>
-      </div>
-      <div id="dash-top-lines-container" class="dash-top-lines-grid">
-        <div style="padding: 24px; text-align: center; color: #94a3b8; grid-column: 1 / -1;">
-          <span class="pulse-dot"></span> Počítam štatistiky liniek...
-        </div>
-      </div>
-    </div>
-
-    <!-- Distribúcia presnosti -->
-    <div class="dash-distribution-box">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <div class="dash-section-title" style="margin-bottom: 0;">
-          <span>🎯</span>
-          <span>Presnosť spojov v sieti</span>
-        </div>
-        <div id="dash-ontime-percentage" style="font-size: 0.82rem; font-weight: 700; color: #22c55e;">-- % načas</div>
-      </div>
-      <div class="dash-dist-bar">
-        <div id="dash-dist-bar-green" class="dash-dist-seg-green" style="width: 70%;" title="Načas (0-3 min)"></div>
-        <div id="dash-dist-bar-yellow" class="dash-dist-seg-yellow" style="width: 20%;" title="Mierne meškanie (4-6 min)"></div>
-        <div id="dash-dist-bar-red" class="dash-dist-seg-red" style="width: 10%;" title="Kritické meškanie (>6 min)"></div>
-      </div>
-      <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.72rem; color: #94a3b8;">
-        <span style="display: flex; align-items: center; gap: 5px;">
-          <span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block;"></span>
-          <span id="dash-legend-ontime">Načas (≤ 3 min): --</span>
-        </span>
-        <span style="display: flex; align-items: center; gap: 5px;">
-          <span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
-          <span id="dash-legend-minor">Mierne (4-6 min): --</span>
-        </span>
-        <span style="display: flex; align-items: center; gap: 5px;">
-          <span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
-          <span id="dash-legend-heavy">Kritické (> 6 min): --</span>
-        </span>
-      </div>
-    </div>
-
-    <!-- Zoznam najviac meškajúcich vozidiel -->
-    <div class="dash-vehicles-list-box">
-      <div class="dash-section-title" style="margin-bottom: 12px;">
-        <span>🛑</span>
-        <span>Vozidlá s najvyšším meškaním</span>
-      </div>
-      <div id="dash-delayed-veh-list">
-        <div style="text-align: center; color: #94a3b8; padding: 16px;">Načítavam vozidlá...</div>
       </div>
     </div>
 
@@ -11253,6 +11382,77 @@
       }
     }
 
+    function renderDashboardMiniVehicleSvg(v) {
+      const cat = getVehicleCategory(v) || {};
+      const catId = String(cat.id || '');
+      const line = String(v.line || '?');
+      const delayMin = Number(v.delay_minutes || 0);
+      const fleet = v.fleet_info || v || {};
+      const ev = String(fleet.evidencne_cislo || v.evidencne_cislo || '').trim();
+
+      if (catId === 'tram-vario' && typeof renderVarioLfSvg === 'function') {
+        return renderVarioLfSvg(line, delayMin, ev || '826');
+      }
+      if (catId === 'tram-kt8' && typeof renderKt8d5Svg === 'function') {
+        return renderKt8d5Svg(line, delayMin, ev || '525');
+      }
+      if (catId === 'tram-t6' && typeof renderT6a5Svg === 'function') {
+        return renderT6a5Svg(line, delayMin, ev || '616');
+      }
+      if ((catId.startsWith('tram') || cat.brand === 'tram') && typeof renderGeneralTramSvg === 'function') {
+        return renderGeneralTramSvg(line, delayMin);
+      }
+      if (catId === 'sor-ns18' && typeof renderSorNs18ElectricSvg === 'function') {
+        return renderSorNs18ElectricSvg(line, delayMin, ev || '4901');
+      }
+      if ((catId === 'sor-ebn' || catId === 'sor-electric') && typeof renderSorEbnSvg === 'function') {
+        return renderSorEbnSvg(line, delayMin, ev || '6901');
+      }
+      if (catId === 'solaris-u1875' && typeof renderSolarisU1875Svg === 'function') {
+        return renderSolarisU1875Svg(line, delayMin);
+      }
+      if (catId === 'solaris-u18' && typeof renderSolarisU18Svg === 'function') {
+        return renderSolarisU18Svg(line, delayMin);
+      }
+      if (catId === 'solaris-u15' && typeof renderSolarisU15Svg === 'function') {
+        return renderSolarisU15Svg(line, delayMin);
+      }
+      if (catId === 'solaris-u12-hybrid' && typeof renderSolarisU12HybridSvg === 'function') {
+        return renderSolarisU12HybridSvg(line, delayMin, ev || '3501');
+      }
+      if (catId === 'solaris-u12-iv' && typeof renderSolarisU12IvSvg === 'function') {
+        return renderSolarisU12IvSvg(line, delayMin);
+      }
+      if (catId === 'solaris-u12' && typeof renderSolarisU12Svg === 'function') {
+        return renderSolarisU12Svg(line, delayMin);
+      }
+      if (catId === 'sor-nb18' && typeof renderSorNb18Svg === 'function') {
+        return renderSorNb18Svg(line, delayMin);
+      }
+      if (catId === 'sor-nsg18' && typeof renderSorNsg18Svg === 'function') {
+        return renderSorNsg18Svg(line, delayMin);
+      }
+      if (catId === 'sor-nsg12' && typeof renderSorNsg12Svg === 'function') {
+        return renderSorNsg12Svg(line, delayMin);
+      }
+      if (catId === 'sor-nbg12' && typeof renderSorNbg12Svg === 'function') {
+        return renderSorNbg12Svg(line, delayMin);
+      }
+      if (catId === 'sor-bn95' && typeof renderSorBn95Svg === 'function') {
+        return renderSorBn95Svg(line, delayMin);
+      }
+      if (catId === 'sor-c105' && typeof renderSorC105Svg === 'function') {
+        return renderSorC105Svg(line, delayMin);
+      }
+      if (catId === 'sor-nb12' && typeof renderSorNb12Svg === 'function') {
+        return renderSorNb12Svg(line, delayMin);
+      }
+      if (typeof renderGeneralBusSvg === 'function') {
+        return renderGeneralBusSvg(line, delayMin, cat.color || '#2563eb', cat.borderColor || '#60a5fa');
+      }
+      return '';
+    }
+
     function renderDashboardData(stats) {
       if (!stats) return;
 
@@ -11275,7 +11475,7 @@
       const elMax = document.getElementById('dash-max-delay');
       if (elMax) elMax.innerText = `+${maxDelay} min`;
 
-      // 2. TOP 3 Meškajúce linky (červené karty)
+      // 2. TOP 3 Meškajúce linky (červené interaktívne karty)
       const topLinesContainer = document.getElementById('dash-top-lines-container');
       if (topLinesContainer) {
         const topLines = stats.top_delayed_lines || [];
@@ -11294,7 +11494,7 @@
             const dest = item.sample_destination || 'Rôzne smery';
 
             return `
-              <div class="dash-problem-line-card" onclick="focusLineOnMap('${item.line}')" title="Kliknite pre zobrazenie linky ${item.line} na mape">
+              <div class="dash-problem-line-card" onclick="focusLineOnMap('${item.line}')" title="Kliknite pre vyfiltrovanie a zobrazenie linky ${item.line} na mape">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 1.15rem;">${rankEmoji}</span>
@@ -11344,7 +11544,58 @@
       const elLegHea = document.getElementById('dash-legend-heavy');
       if (elLegHea) elLegHea.innerText = `Kritické (>6m): ${heavy} (${pHeavy}%)`;
 
-      // 4. Konkrétne najviac meškajúce vozidlá
+      // 3.5 Rozdelenie výpravy podľa trakcií (Flotila na trati)
+      const activeList = (latestVehiclesList && latestVehiclesList.length > 0)
+        ? latestVehiclesList
+        : (vehiclesCache || []);
+      let countTram = 0;
+      let countElectric = 0;
+      let countArticulated = 0;
+      let countSolo = 0;
+
+      activeList.forEach(v => {
+        const cat = getVehicleCategory(v) || {};
+        const catId = String(cat.id || '');
+        const fleet = v.fleet_info || v || {};
+        const modelLower = String(fleet.model || v.model || '').toLowerCase();
+        const lineType = String(v.line_type || v.trakcia || '').toUpperCase();
+
+        const isTram = (
+          lineType === 'TRAM' ||
+          cat.brand === 'tram' ||
+          catId.startsWith('tram') ||
+          /elektri[cč]ka|vario|kt8|t6/i.test(modelLower)
+        );
+        const isElectric = !isTram && (
+          ['sor-electric', 'sor-ns18', 'sor-ebn'].includes(catId) ||
+          /ebn|ns\s*18\s*electric|ns.*elec|elektro|electric/i.test(modelLower)
+        );
+        const isArticulated = !isTram && (
+          ['solaris-u1875', 'solaris-u18', 'solaris-u15', 'solaris-long', 'sor-nb18', 'sor-ns18', 'sor-nsg18', 'sor-diesel-long', 'ikarus'].includes(catId) ||
+          /\b18\b|18[,.]75|\b15\b|k[lĺ]bov|articulated|280|741/i.test(modelLower)
+        );
+
+        if (isTram) {
+          countTram++;
+        } else if (isElectric) {
+          countElectric++;
+        } else if (isArticulated) {
+          countArticulated++;
+        } else {
+          countSolo++;
+        }
+      });
+
+      const elFlTram = document.getElementById('dash-fleet-tram');
+      if (elFlTram) elFlTram.innerText = countTram;
+      const elFlElec = document.getElementById('dash-fleet-electric');
+      if (elFlElec) elFlElec.innerText = countElectric;
+      const elFlArt = document.getElementById('dash-fleet-articulated');
+      if (elFlArt) elFlArt.innerText = countArticulated;
+      const elFlSolo = document.getElementById('dash-fleet-solo');
+      if (elFlSolo) elFlSolo.innerText = countSolo;
+
+      // 4. Konkrétne najviac meškajúce vozidlá (s SVG mini-ikonou a reálnym #ev • model)
       const listContainer = document.getElementById('dash-delayed-veh-list');
       if (listContainer) {
         const topVeh = stats.top_delayed_vehicles || [];
@@ -11356,25 +11607,46 @@
           `;
         } else {
           listContainer.innerHTML = topVeh.map(v => {
-            const line = v.line || '--';
-            const dest = v.destination || 'Neznámy smer';
-            const model = v.model || 'Vozidlo DPMK';
-            const spz = v.license_number ? `(${v.license_number})` : '';
-            const del = v.delay_minutes || 0;
-            const stop = v.current_stop_name ? `• Zastávka: ${v.current_stop_name}` : '';
+            const liveMatch = activeList.find(x => String(x.vehicle_id) === String(v.vehicle_id));
+            const mergedVeh = liveMatch
+              ? { ...v, ...liveMatch, fleet_info: liveMatch.fleet_info || v.fleet_info }
+              : v;
+            const fleet = mergedVeh.fleet_info || {};
+            const cat = getVehicleCategory(mergedVeh) || {};
+            const line = mergedVeh.line || '--';
+            const dest = mergedVeh.destination || 'Neznámy smer';
+            const evRaw = String(
+              fleet.evidencne_cislo ||
+              mergedVeh.evidencne_cislo ||
+              (mergedVeh.vehicle_id ? String(mergedVeh.vehicle_id).slice(-4) : '')
+            ).trim();
+            const evText = evRaw ? `#${evRaw}` : '#--';
+            const rawModel = fleet.model || mergedVeh.model || '';
+            const modelName = (rawModel && rawModel !== 'Vozidlo DPMK' && rawModel !== 'Autobus DPMK')
+              ? rawModel
+              : (cat.name || rawModel || 'Autobus DPMK');
+            const del = mergedVeh.delay_minutes || 0;
+            const stop = mergedVeh.current_stop_name ? ` • ${mergedVeh.current_stop_name}` : '';
+            const miniSvgHtml = renderDashboardMiniVehicleSvg(mergedVeh);
+            const isTramBadge = (cat.id && cat.id.startsWith('tram')) || cat.brand === 'tram';
+            const badgeBg = isTramBadge ? '#eab308' : '#e11d48';
+            const badgeFg = isTramBadge ? '#0f172a' : '#ffffff';
 
             return `
               <div class="dash-veh-item">
                 <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
-                  <span class="line-badge" style="background: #e11d48; color: #ffffff; min-width: 40px; text-align: center; font-weight: 800; border-radius: 6px; padding: 4px 6px;">
+                  <span class="line-badge" style="background: ${badgeBg}; color: ${badgeFg}; min-width: 38px; text-align: center; font-weight: 800; border-radius: 6px; padding: 4px 6px; flex-shrink: 0;">
                     ${line}
+                  </span>
+                  <span class="dash-veh-mini-icon" title="${modelName}">
+                    ${miniSvgHtml}
                   </span>
                   <div style="overflow: hidden;">
                     <div style="font-size: 0.86rem; font-weight: 600; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                       ${dest}
                     </div>
-                    <div style="font-size: 0.72rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                      ${model} ${spz} ${stop}
+                    <div style="font-size: 0.74rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      <strong style="color: #e2e8f0; font-family: 'JetBrains Mono', monospace;">${evText}</strong> • ${modelName}${stop}
                     </div>
                   </div>
                 </div>
@@ -11382,7 +11654,7 @@
                   <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 3px 8px; border-radius: 6px; font-weight: 800; font-size: 0.85rem; white-space: nowrap;">
                     +${del} min
                   </span>
-                  <button class="filter-btn-text" onclick="focusVehicleOnMap(${v.vehicle_id})" title="Zobraziť vozidlo na mape" style="font-size: 0.78rem; padding: 4px 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; color: #38bdf8; cursor: pointer;">
+                  <button class="filter-btn-text" onclick="focusVehicleOnMap('${mergedVeh.vehicle_id}')" title="Zobraziť vozidlo ${evText} na mape" style="font-size: 0.78rem; padding: 4px 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; color: #38bdf8; cursor: pointer;">
                     📍 Mapa
                   </button>
                 </div>
@@ -11437,14 +11709,17 @@
       linesStats.sort((a, b) => b.max_delay_minutes - a.max_delay_minutes || b.average_delay_minutes - a.average_delay_minutes);
 
       const sortedVehicles = [...rawList].sort((a, b) => parseInt(b.delay_minutes || 0) - parseInt(a.delay_minutes || 0));
-      const topVehicles = sortedVehicles.slice(0, 5).filter(v => parseInt(v.delay_minutes || 0) > 0).map(v => ({
+      const topVehicles = sortedVehicles.slice(0, 10).filter(v => parseInt(v.delay_minutes || 0) > 0).map(v => ({
         vehicle_id: v.vehicle_id,
         line: v.line,
+        line_type: v.line_type,
         destination: v.destination,
         delay_minutes: parseInt(v.delay_minutes || 0),
-        model: v.model || 'Vozidlo DPMK',
-        license_number: v.license_number,
-        current_stop_name: v.current_stop_name
+        evidencne_cislo: (v.fleet_info && v.fleet_info.evidencne_cislo) || v.evidencne_cislo,
+        model: (v.fleet_info && v.fleet_info.model) || v.model || 'Vozidlo DPMK',
+        license_number: (v.fleet_info && v.fleet_info.spz) || v.license_number,
+        current_stop_name: v.current_stop_name,
+        fleet_info: v.fleet_info
       }));
 
       renderDashboardData({
@@ -11465,39 +11740,101 @@
 
     function focusLineOnMap(lineNumber) {
       switchAppView('map');
+      stopFollowingVehicle();
       const lineStr = String(lineNumber).trim();
-      disabledLines.delete(lineStr);
-      applyLineFilters();
-      updateLinesFilterUI(latestVehiclesList);
 
-      const rawList = (vehiclesCache && vehiclesCache.length > 0) ? vehiclesCache : latestVehiclesList;
-      const targetVeh = rawList.find(v => String(v.line).trim() === lineStr && (parseInt(v.delay_minutes || 0)) > 3) 
-                     || rawList.find(v => String(v.line).trim() === lineStr);
-      if (targetVeh && targetVeh.latitude && targetVeh.longitude) {
+      activeModelFilter = null;
+      activeModelVehicleIds = null;
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) searchInput.value = lineStr;
+      const feedback = document.getElementById('search-feedback');
+      if (feedback) {
+        feedback.className = 'search-feedback success';
+        feedback.innerText = `Filter mapy: zobrazená linka ${lineStr}`;
+      }
+
+      const rawList = (latestVehiclesList && latestVehiclesList.length > 0)
+        ? latestVehiclesList
+        : (vehiclesCache || []);
+
+      // Aktivujeme filter výhradne pre túto konkrétnu linku
+      disabledLines.clear();
+      rawList.forEach(v => {
+        if (v.line && String(v.line).trim() !== lineStr) {
+          disabledLines.add(v.line);
+        }
+      });
+      disabledLines.delete(lineStr);
+
+      applyLineFilters();
+      updateLinesFilterUI(rawList);
+
+      const lineVehicles = rawList.filter(v => String(v.line).trim() === lineStr && v.latitude && v.longitude);
+      if (lineVehicles.length > 0) {
         setTimeout(() => {
-          map.setView([targetVeh.latitude, targetVeh.longitude], 15, { animate: true });
-          if (markers[targetVeh.vehicle_id]) {
-            markers[targetVeh.vehicle_id].openPopup();
+          map.invalidateSize();
+          syncVisibleMarkers();
+          if (lineVehicles.length === 1) {
+            const single = lineVehicles[0];
+            map.flyTo([single.latitude, single.longitude], 15, { animate: true, duration: 1.0 });
+            if (markers[single.vehicle_id]) {
+              markers[single.vehicle_id].openPopup();
+            }
+          } else {
+            const bounds = L.latLngBounds(lineVehicles.map(v => [v.latitude, v.longitude]));
+            map.fitBounds(bounds, {
+              padding: [70, 70],
+              maxZoom: 15,
+              animate: true,
+              duration: 1.0
+            });
           }
         }, 120);
+      }
+      if (typeof showMapToast === 'function') {
+        showMapToast(`Filter mapy: linka ${lineStr} (${lineVehicles.length} voz.)`, 'info');
       }
     }
 
     function focusVehicleOnMap(vehicleId) {
       switchAppView('map');
-      const numId = parseInt(vehicleId);
+      const sId = String(vehicleId).trim();
+      const numId = parseInt(vehicleId, 10);
+      const rawList = (latestVehiclesList && latestVehiclesList.length > 0)
+        ? latestVehiclesList
+        : (vehiclesCache || []);
+      const v = rawList.find(x => String(x.vehicle_id) === sId);
+
+      activeModelFilter = null;
+      activeModelVehicleIds = null;
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) searchInput.value = '';
+      if (v && v.line) {
+        disabledLines.delete(v.line);
+      }
+      applyLineFilters();
+      updateLinesFilterUI(rawList);
+
       setTimeout(() => {
-        const marker = markers[vehicleId] || markers[numId];
-        if (marker) {
+        map.invalidateSize();
+        syncVisibleMarkers();
+        const marker = markers[vehicleId] || markers[sId] || markers[numId];
+        if (v && v.latitude && v.longitude) {
+          startFollowingVehicle(v);
+          map.flyTo([v.latitude, v.longitude], 16, { animate: true, duration: 1.0 });
+          setTimeout(() => {
+            syncVisibleMarkers();
+            const m = markers[vehicleId] || markers[sId] || markers[numId];
+            if (window.innerWidth <= 768 && typeof openVehicleDetailBottomSheet === 'function') {
+              openVehicleDetailBottomSheet(v);
+            } else if (m) {
+              m.openPopup();
+            }
+          }, 350);
+        } else if (marker) {
           const latlng = marker.getLatLng();
-          map.setView(latlng, 16, { animate: true });
+          map.flyTo(latlng, 16, { animate: true, duration: 1.0 });
           marker.openPopup();
-        } else {
-          const rawList = (vehiclesCache && vehiclesCache.length > 0) ? vehiclesCache : latestVehiclesList;
-          const v = rawList.find(x => x.vehicle_id == vehicleId);
-          if (v && v.latitude && v.longitude) {
-            map.setView([v.latitude, v.longitude], 16, { animate: true });
-          }
         }
       }, 120);
     }
