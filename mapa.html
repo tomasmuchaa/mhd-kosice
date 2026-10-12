@@ -3585,7 +3585,7 @@
     }
 
     .garage-search-box {
-      margin-bottom: 16px;
+      margin-bottom: 10px;
     }
     .garage-last-update {
       font-size: 0.72rem;
@@ -3593,6 +3593,59 @@
       margin-top: 6px;
       text-align: right;
       font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Rýchle filtre v Garáži (Liquid Glass filter-chipy) */
+    .garage-filter-chips {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 2px 10px 2px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .garage-filter-chips::-webkit-scrollbar {
+      display: none;
+    }
+    .garage-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 9999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      line-height: 1.25;
+      white-space: nowrap;
+      flex-shrink: 0;
+      cursor: pointer;
+      user-select: none;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .garage-chip:hover {
+      background: rgba(99, 102, 241, 0.16);
+      border-color: rgba(99, 102, 241, 0.5);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .garage-chip:active {
+      transform: scale(0.96);
+    }
+    .garage-chip.active {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.38), rgba(56, 189, 248, 0.26));
+      border-color: rgba(99, 102, 241, 0.55);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.25);
     }
 
     /* Skupiny v Garáži */
@@ -4645,6 +4698,17 @@
         <div id="badge-status" class="live-badge badge-live" style="font-size: 0.72rem; padding: 2px 8px;">Živý stream aktívny</div>
         <div id="stat-updated" class="garage-last-update">Načítavam dáta...</div>
       </div>
+    </div>
+
+    <!-- Rýchle filtre flotily (Filter-chipy) -->
+    <div class="garage-filter-chips" id="garage-filter-chips" role="tablist" aria-label="Rýchle filtre vozového parku">
+      <button type="button" class="garage-chip active" data-filter="all" onclick="setGarageFilter('all')">Všetky</button>
+      <button type="button" class="garage-chip" data-filter="electric" onclick="setGarageFilter('electric')">⚡ Elektrobusy</button>
+      <button type="button" class="garage-chip" data-filter="tram" onclick="setGarageFilter('tram')">🚋 Električky</button>
+      <button type="button" class="garage-chip" data-filter="articulated" onclick="setGarageFilter('articulated')">🪗 Kĺbové</button>
+      <button type="button" class="garage-chip" data-filter="solo" onclick="setGarageFilter('solo')">🚌 Sólo / Štandard</button>
+      <button type="button" class="garage-chip" data-filter="depo_bardejovska" id="chip-depo-bardejovska" onclick="setGarageFilter('depo_bardejovska')">🏢 Depo Bardejovská</button>
+      <button type="button" class="garage-chip" data-filter="depo_hornadska" id="chip-depo-hornadska" onclick="setGarageFilter('depo_hornadska')">🏭 Depo Hornádska</button>
     </div>
 
     <!-- Zoznam skupín vozidiel generovaný dynamicky -->
@@ -6135,6 +6199,45 @@
     let fleetLoadingPromise = null;
     let fleetTotalCount = 214;
 
+    function enrichFleetWithTramsAndDepots(rawList) {
+      const list = Array.isArray(rawList) ? [...rawList] : [];
+      const existingEvs = new Set(list.map(x => String(x.evidencne_cislo || '').trim()));
+
+      // Ak CSV/API neobsahuje električkovú vozovňu, doplníme aktívne električky DPMK (Depo Bardejovská)
+      for (let ev = 801; ev <= 846; ev++) {
+        const sEv = String(ev);
+        if (!existingEvs.has(sEv)) {
+          list.push({ evidencne_cislo: sEv, spz: null, model: 'Vario LF2+', rok_vyroby: '2015', trakcia: 'TRAM', depo: 'Depo Bardejovská' });
+          existingEvs.add(sEv);
+        }
+      }
+      const kt8Evs = [502, 504, 506, 513, 515, 517, 518, 520, 521, 522, 523, 524, 525, 527, 530, 531, 534, 536, 538];
+      kt8Evs.forEach(ev => {
+        const sEv = String(ev);
+        if (!existingEvs.has(sEv)) {
+          list.push({ evidencne_cislo: sEv, spz: null, model: 'ČKD Tatra KT8D5.RN2', rok_vyroby: '2006', trakcia: 'TRAM', depo: 'Depo Bardejovská' });
+          existingEvs.add(sEv);
+        }
+      });
+      const t6Evs = [600, 602, 603, 606, 616, 617, 622, 623, 624, 625];
+      t6Evs.forEach(ev => {
+        const sEv = String(ev);
+        if (!existingEvs.has(sEv)) {
+          list.push({ evidencne_cislo: sEv, spz: null, model: 'ČKD Tatra T6A5', rok_vyroby: '1992', trakcia: 'TRAM', depo: 'Depo Bardejovská' });
+          existingEvs.add(sEv);
+        }
+      });
+
+      return list.map(item => {
+        if (!item.depo && !item.garaz) {
+          const m = String(item.model || '').toLowerCase();
+          const isTramOrEbn = item.trakcia === 'TRAM' || /elektri[cč]ka|vario|kt8|t6|ebn/i.test(m);
+          item.depo = isTramOrEbn ? 'Depo Bardejovská' : 'Depo Hornádska';
+        }
+        return item;
+      });
+    }
+
     async function loadFleetDatabase() {
       if (fleetDatabaseCache && fleetDatabaseCache.length > 0) return fleetDatabaseCache;
       if (fleetLoadingPromise) return fleetLoadingPromise;
@@ -6147,16 +6250,13 @@
           }
           if (resp.ok) {
             const data = await resp.json();
-            const list = Array.isArray(data) ? data : (data.vehicles || []);
+            const rawList = Array.isArray(data) ? data : (data.vehicles || []);
+            const list = enrichFleetWithTramsAndDepots(rawList);
             fleetDatabaseCache = list;
-            if (data.total_fleet) {
-              fleetTotalCount = data.total_fleet;
-            } else if (list.length > 0) {
-              fleetTotalCount = list.length;
-            }
+            fleetTotalCount = list.length;
             updateGarageStatsSummary();
             if (currentAppView === 'garage') {
-              renderGarageView();
+              renderGarageView(true);
             }
             return list;
           }
@@ -6848,17 +6948,100 @@
     // GARÁŽ DPMK - ZOSKUPENÝ ZOZNAM VOZIDIEL
     // ==========================================
     let garageSearchQuery = '';
+    let currentGarageFilter = 'all';
 
     function handleGarageSearch(query) {
       garageSearchQuery = (query || '').trim().toLowerCase();
-      renderGarageView();
+      renderGarageView(true);
     }
 
-    async function renderGarageView() {
+    function setGarageFilter(filterKey) {
+      currentGarageFilter = filterKey || 'all';
+      const chips = document.querySelectorAll('#garage-filter-chips .garage-chip');
+      chips.forEach(chip => {
+        if (chip.getAttribute('data-filter') === currentGarageFilter) {
+          chip.classList.add('active');
+        } else {
+          chip.classList.remove('active');
+        }
+      });
+      renderGarageView(true);
+    }
+
+    function filterGarageCards(filterKey) {
+      setGarageFilter(filterKey);
+    }
+
+    function matchesGarageFilter(v, filterKey) {
+      if (!filterKey || filterKey === 'all') return true;
+      const fleet = v.fleet_info || v || {};
+      const model = String(fleet.model || v.model || '').trim();
+      const modelLower = model.toLowerCase();
+      const cat = getVehicleCategory(v) || {};
+      const catId = String(cat.id || '');
+      const lineType = String(v.line_type || v.trakcia || fleet.trakcia || '').toUpperCase();
+
+      const isTram = (
+        lineType === 'TRAM' ||
+        cat.brand === 'tram' ||
+        catId.startsWith('tram') ||
+        /elektri[cč]ka|vario|kt8|t6/i.test(modelLower)
+      );
+
+      const isElectricBus = (
+        !isTram && (
+          ['sor-electric', 'sor-ns18', 'sor-ebn'].includes(catId) ||
+          /ebn|ns\s*18\s*electric|ns.*elec|elektro|electric/i.test(modelLower)
+        )
+      );
+
+      const isArticulated = (
+        ['tram-vario', 'tram-kt8', 'solaris-u1875', 'solaris-u18', 'solaris-u15', 'solaris-long', 'sor-nb18', 'sor-ns18', 'sor-nsg18', 'sor-diesel-long', 'ikarus'].includes(catId) ||
+        /\b18\b|18[,.]75|\b15\b|kt8|vario|lf2|k[lĺ]bov|articulated|280|741/i.test(modelLower)
+      );
+
+      if (filterKey === 'tram') {
+        return isTram;
+      }
+      if (filterKey === 'electric') {
+        return isElectricBus;
+      }
+      if (filterKey === 'articulated') {
+        return isArticulated;
+      }
+      if (filterKey === 'solo') {
+        return !isArticulated;
+      }
+      if (filterKey === 'depo_bardejovska' || filterKey === 'depo_hornadska') {
+        const rawDepo = String(
+          fleet.depo || fleet.garaz || fleet.vozovna || fleet.depot ||
+          v.depo || v.garaz || v.vozovna || v.depot || ''
+        ).trim().toLowerCase();
+
+        if (rawDepo) {
+          if (filterKey === 'depo_bardejovska') {
+            return rawDepo.includes('bardejov');
+          }
+          if (filterKey === 'depo_hornadska') {
+            return rawDepo.includes('horn');
+          }
+        }
+        // Fallback pre rozdelenie vozovní DPMK Košice (Bardejovská = električky + SOR EBN, Hornádska = autobusy)
+        if (filterKey === 'depo_bardejovska') {
+          return isTram || catId === 'sor-ebn' || /ebn/i.test(modelLower);
+        }
+        if (filterKey === 'depo_hornadska') {
+          return !isTram && catId !== 'sor-ebn' && !/ebn/i.test(modelLower);
+        }
+      }
+      return true;
+    }
+
+    async function renderGarageView(fromClientFilter = false) {
       const container = document.getElementById('garage-groups-container');
       if (!container) return;
 
-      // 1. Kompletné načítanie dát (asynchrónny fetch na backend)
+      // 1. Kompletné načítanie dát (len ak ešte nie sú načítané v pamäti)
       if (!fleetDatabaseCache || fleetDatabaseCache.length === 0) {
         if (!container.innerHTML || container.innerHTML.includes('Načítavam flotilu')) {
           container.innerHTML = `
@@ -6872,7 +7055,7 @@
         await loadFleetDatabase();
       }
 
-      if (!latestVehiclesList || latestVehiclesList.length === 0) {
+      if (!fromClientFilter && (!latestVehiclesList || latestVehiclesList.length === 0)) {
         if (typeof fetchVehicles === 'function') {
           await fetchVehicles();
         }
@@ -6902,6 +7085,7 @@
       // Active vehicles (aktuálne v premávke s live telemetriou)
       const allActive = [...(latestVehiclesList || [])];
       const activeVehicles = allActive.filter(v => {
+        if (!matchesGarageFilter(v, currentGarageFilter)) return false;
         if (!q) return true;
         const fleet = v.fleet_info || {};
         const model = (fleet.model || v.model || '').toLowerCase();
@@ -6924,14 +7108,18 @@
           isDepot: true,
           vehicle_id: null,
           line: '',
-          line_type: '',
+          line_type: item.trakcia || '',
+          trakcia: item.trakcia || '',
+          depo: item.depo || item.garaz || '',
           destination: 'V depe (odstavené)',
           fleet_info: {
             evidencne_cislo: item.evidencne_cislo,
             spz: item.spz,
             model: item.model,
             rok_vyroby: item.rok_vyroby,
-            vin: item.vin
+            vin: item.vin,
+            trakcia: item.trakcia,
+            depo: item.depo || item.garaz
           },
           evidencne_cislo: item.evidencne_cislo,
           spz: item.spz,
@@ -6941,6 +7129,7 @@
       });
 
       const inactiveVehicles = allInactive.filter(v => {
+        if (!matchesGarageFilter(v, currentGarageFilter)) return false;
         if (!q) return true;
         const fleet = v.fleet_info || {};
         const model = (fleet.model || v.model || '').toLowerCase();
@@ -6953,7 +7142,7 @@
       updateGarageStatsSummary(allActive.length, allInactive.length);
 
       const updateEl = document.getElementById('stat-updated');
-      if (updateEl) {
+      if (updateEl && !fromClientFilter) {
         updateEl.innerText = `Aktualizované: ${new Date().toLocaleTimeString('sk-SK')}`;
       }
 
@@ -6962,11 +7151,23 @@
 
       // Ak žiadne vozidlá nezodpovedajú filtru
       if (activeVehicles.length === 0 && inactiveVehicles.length === 0) {
+        const filterLabelMap = {
+          all: 'Všetky',
+          electric: '⚡ Elektrobusy',
+          tram: '🚋 Električky',
+          articulated: '🪗 Kĺbové',
+          solo: '🚌 Sólo / Štandard',
+          depo_bardejovska: '🏢 Depo Bardejovská',
+          depo_hornadska: '🏭 Depo Hornádska'
+        };
+        const activeFilterDesc = q
+          ? `"${q}"`
+          : `"${filterLabelMap[currentGarageFilter] || currentGarageFilter}"`;
         container.innerHTML = `
           <div style="text-align: center; padding: 48px 20px; color: #94a3b8;">
             <div style="font-size: 2.8rem; margin-bottom: 12px;">🔍</div>
-            <div style="font-size: 1.05rem; font-weight: 700; color: #f1f5f9;">Žiadne vozidlá nezodpovedajú filtru "${q}"</div>
-            <div style="font-size: 0.82rem; margin-top: 6px;">Skúste zmeniť hľadaný výraz alebo kliknite na ✕ v poli hľadania.</div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #f1f5f9;">Žiadne vozidlá nezodpovedajú filtru ${activeFilterDesc}</div>
+            <div style="font-size: 0.82rem; margin-top: 6px;">Skúste prepnúť filter vyššie na „Všetky“ alebo upraviť hľadaný výraz.</div>
           </div>
         `;
         return;
@@ -6983,31 +7184,31 @@
             borderLeft: '#fde047',
             matcher: (v) => {
               const cat = getVehicleCategory(v);
-              return cat.id === 'tram' || cat.brand === 'tram';
+              return (cat.id && cat.id.startsWith('tram')) || cat.brand === 'tram';
             },
             vehicles: []
           },
           {
             id: 'sor-electric',
-            title: 'SOR elektrobus (EBN, NS, NSG)',
+            title: 'SOR elektrobus (EBN, NS 18 Electric)',
             icon: '⚡',
             color: '#22c55e',
             borderLeft: '#16a34a',
             matcher: (v) => {
               const cat = getVehicleCategory(v);
-              return ['sor-electric', 'sor-nsg12'].includes(cat.id);
+              return ['sor-electric', 'sor-ns18', 'sor-ebn'].includes(cat.id);
             },
             vehicles: []
           },
           {
             id: 'solaris-std',
-            title: 'Solaris štandardný (Urbino 12, Hybrid)',
+            title: 'Solaris štandardný (Urbino 12, IV, Hybrid)',
             icon: '🚌',
             color: '#dc2626',
             borderLeft: '#991b1b',
             matcher: (v) => {
               const cat = getVehicleCategory(v);
-              return ['solaris-u12', 'solaris-u12-hybrid', 'solaris-standard'].includes(cat.id);
+              return ['solaris-u12', 'solaris-u12-iv', 'solaris-u12-hybrid', 'solaris-standard'].includes(cat.id);
             },
             vehicles: []
           },
@@ -7025,25 +7226,25 @@
           },
           {
             id: 'sor-nb18',
-            title: 'SOR naftový kĺbový (NB 18)',
+            title: 'SOR kĺbový (NB 18, NSG 18)',
             icon: '🚍',
             color: '#1d4ed8',
             borderLeft: '#1d4ed8',
             matcher: (v) => {
               const cat = getVehicleCategory(v);
-              return ['sor-nb18', 'sor-diesel-long'].includes(cat.id);
+              return ['sor-nb18', 'sor-nsg18', 'sor-diesel-long'].includes(cat.id);
             },
             vehicles: []
           },
           {
             id: 'sor-nb12',
-            title: 'SOR naftový / plynový štandardný (NB 12, BN, NBG, C)',
+            title: 'SOR naftový / plynový štandardný (NB 12, BN, NBG, NSG, C)',
             icon: '🚌',
             color: '#38bdf8',
             borderLeft: '#0284c7',
             matcher: (v) => {
               const cat = getVehicleCategory(v);
-              return ['sor-nb12', 'sor-bn95', 'sor-nbg12', 'sor-c105', 'sor-diesel-std', 'sor-diesel'].includes(cat.id);
+              return ['sor-nb12', 'sor-bn95', 'sor-nbg12', 'sor-nsg12', 'sor-c105', 'sor-diesel-std', 'sor-diesel', 'rosero'].includes(cat.id);
             },
             vehicles: []
           },
@@ -7100,7 +7301,7 @@
         const modelName = fleet.model || cat.name || 'DPMK vozidlo';
         const lineStr = String(v.line || '?');
         let lineBadgeCls = 'line-bus';
-        if (cat.id === 'tram') lineBadgeCls = 'line-tram';
+        if ((cat.id && cat.id.startsWith('tram')) || cat.brand === 'tram') lineBadgeCls = 'line-tram';
         else if (lineStr.startsWith('N')) lineBadgeCls = 'line-night';
 
         const delay = (v.delay_minutes !== undefined && v.delay_minutes !== null) ? Number(v.delay_minutes) : 0;
@@ -7205,7 +7406,7 @@
             `).join('')}
           </div>
         `;
-      } else if (!q) {
+      } else if (!q && currentGarageFilter === 'all') {
         fullHtml += `
           <div class="garage-state-block">
             <div class="garage-state-banner banner-active" style="opacity: 0.75;">
