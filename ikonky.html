@@ -1,0 +1,2843 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Katalóg & Galéria SVG ikoniek vozidiel • MHD Košice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --card-bg: rgba(22, 30, 49, 0.72);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover-border: rgba(56, 189, 248, 0.4);
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-yellow: #facc15;
+      --accent-green: #22c55e;
+      --accent-orange: #f97316;
+      --accent-red: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.6) 0px, transparent 100%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 60px;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+
+    /* Hlavička */
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 24px;
+    }
+
+    .header-title-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .header-icon {
+      font-size: 2.2rem;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(56, 189, 248, 0.2);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #f1f5f9;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .nav-btn.primary {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+    }
+
+    .nav-btn.primary:hover {
+      background: rgba(56, 189, 248, 0.3);
+      border-color: #38bdf8;
+    }
+
+    /* Interaktívny ovládací panel */
+    .controls-panel {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .controls-left {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .control-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .line-input {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      color: #38bdf8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 900;
+      padding: 6px 12px;
+      border-radius: 8px;
+      width: 72px;
+      text-align: center;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .line-input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    .delay-pills {
+      display: flex;
+      gap: 6px;
+    }
+
+    .delay-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .delay-pill:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .delay-pill.active {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: #38bdf8;
+      color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+    }
+
+    .search-input-box {
+      position: relative;
+      min-width: 220px;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      padding: 7px 12px 7px 32px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: #38bdf8;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    /* Kategórie filter */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .filter-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
+    .filter-btn.active {
+      background: #38bdf8;
+      border-color: #38bdf8;
+      color: #0f172a;
+      box-shadow: 0 2px 12px rgba(56, 189, 248, 0.35);
+    }
+
+    .filter-count {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 0.72rem;
+    }
+
+    /* Grid modelov */
+    .models-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 20px;
+    }
+
+    .model-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .model-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--card-hover-border);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.15);
+    }
+
+    .model-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .model-tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+    }
+
+    .tag-tram { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
+    .tag-articulated { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .tag-standard { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .tag-electric { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .tag-cng { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3); }
+    .tag-midibus { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .tag-historic { background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.3); }
+
+    /* Náhľad ikony */
+    .icon-stage {
+      background: radial-gradient(circle at center, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      height: 110px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .icon-render-box {
+      transform: scale(1.6);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+    }
+
+    .model-card:hover .icon-render-box {
+      transform: scale(1.85);
+    }
+
+    .icon-dim-badge {
+      position: absolute;
+      bottom: 6px;
+      right: 8px;
+      font-size: 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: #64748b;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .model-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .model-subtitle {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
+
+    .model-desc-box {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.74rem;
+      color: #cbd5e1;
+      line-height: 1.45;
+      margin-bottom: 14px;
+      flex-grow: 1;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .model-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .model-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .feature-bullet {
+      color: #38bdf8;
+      font-size: 0.8rem;
+      line-height: 1.2;
+    }
+
+    .model-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .btn-copy-svg {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #94a3b8;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-copy-svg:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+
+    .toast-msg {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #10b981;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 9999;
+    }
+
+    .toast-msg.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Responzivita */
+    @media (max-width: 640px) {
+      .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .controls-left {
+        width: 100%;
+      }
+      .search-input-box {
+        width: 100%;
+      }
+      .models-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Hlavička -->
+    <header>
+      <div class="header-title-box">
+        <div class="header-icon">🎨</div>
+        <div>
+          <h1>Katalóg & Galéria SVG ikoniek</h1>
+          <div class="subtitle">Unikátne čelné zobrazenia vozidiel MHD Košice (DPMK) v reálnom štýle</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="/mapa" class="nav-btn primary">
+          <span>📍</span>
+          <span>Späť na Živú mapu</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Interaktívne ovládacie prvky -->
+    <div class="controls-panel">
+      <div class="controls-left">
+        <!-- Číslo linky -->
+        <div class="control-group">
+          <span class="control-label">Test linky:</span>
+          <input type="text" id="global-line-input" class="line-input" value="19" maxlength="4" placeholder="19" oninput="updateAllIcons()" title="Zadajte číslo alebo označenie linky pre dynamické prekreslenie na sklách vozidiel" />
+        </div>
+
+        <!-- Meškanie (Delay bar) -->
+        <div class="control-group">
+          <span class="control-label">Meškanie:</span>
+          <div class="delay-pills">
+            <button class="delay-pill active" data-delay="0" onclick="setDelaySim(0, this)">0 min (OK)</button>
+            <button class="delay-pill" data-delay="2" onclick="setDelaySim(2, this)" style="border-left: 3px solid #facc15;">+2 min</button>
+            <button class="delay-pill" data-delay="4" onclick="setDelaySim(4, this)" style="border-left: 3px solid #f97316;">+4 min</button>
+            <button class="delay-pill" data-delay="8" onclick="setDelaySim(8, this)" style="border-left: 3px solid #ef4444;">+8 min</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vyhľadávanie modelu -->
+      <div class="search-input-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="model-search" class="search-input" placeholder="Hľadať model (napr. SOR, Solaris, KT8...)" oninput="filterModels()" />
+      </div>
+    </div>
+
+    <!-- Kategórie filtre -->
+    <div class="filter-bar">
+      <button class="filter-btn active" data-cat="all" onclick="setCategoryFilter('all', this)">
+        <span>Všetky modely</span>
+        <span class="filter-count" id="count-all">22</span>
+      </button>
+      <button class="filter-btn" data-cat="tram" onclick="setCategoryFilter('tram', this)">
+        <span>🚋 Električky</span>
+        <span class="filter-count" id="count-tram">4</span>
+      </button>
+      <button class="filter-btn" data-cat="articulated" onclick="setCategoryFilter('articulated', this)">
+        <span>🚌 Kĺbové (18m)</span>
+        <span class="filter-count" id="count-articulated">6</span>
+      </button>
+      <button class="filter-btn" data-cat="standard" onclick="setCategoryFilter('standard', this)">
+        <span>🚍 Štandardné (12-15m)</span>
+        <span class="filter-count" id="count-standard">7</span>
+      </button>
+      <button class="filter-btn" data-cat="electric-cng" onclick="setCategoryFilter('electric-cng', this)">
+        <span>⚡ Elektro & CNG</span>
+        <span class="filter-count" id="count-electric-cng">5</span>
+      </button>
+      <button class="filter-btn" data-cat="midibus" onclick="setCategoryFilter('midibus', this)">
+        <span>🚐 Minibusy</span>
+        <span class="filter-count" id="count-midibus">3</span>
+      </button>
+      <button class="filter-btn" data-cat="historic" onclick="setCategoryFilter('historic', this)">
+        <span>🏛️ Historické</span>
+        <span class="filter-count" id="count-historic">2</span>
+      </button>
+    </div>
+
+    <!-- Mriežka kariet modelov -->
+    <div id="models-grid" class="models-grid">
+      <!-- Generuje sa dynamicky cez JS -->
+    </div>
+  </div>
+
+  <div id="toast" class="toast-msg">SVG kód skopírovaný do schránky! ✅</div>
+
+  <script>
+    // Pomocné funkcie pre renderovanie SVG identické s mapa.html
+    function getLineFontSize(lineStr) {
+      const len = String(lineStr || '').length;
+      if (len <= 2) return 16;
+      if (len === 3) return 13;
+      return 10.5;
+    }
+
+    function getDelayBarColor(delayMinutes) {
+      if (typeof delayMinutes === 'string' && ['#facc15', '#f97316', '#ef4444', 'transparent'].includes(delayMinutes)) {
+        return delayMinutes;
+      }
+      const delay = (delayMinutes !== undefined && delayMinutes !== null) ? Number(delayMinutes) : 0;
+      if (isNaN(delay) || delay <= 0) return 'transparent';
+      if (delay <= 3) return '#facc15';
+      if (delay <= 5) return '#f97316';
+      return '#ef4444';
+    }
+
+    function escapeXml(str) {
+      return String(str || '?').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // 1. Vario LF2+ / Vario LF (Pragoimex) - DPMK 3-farebná livery (žltá-biela-azúrová), číslo 826, vysoký polopantograf, halogény
+    function renderVarioLfSvg(line, delayColorOrMinutes = '', evNum = '826') {
+      const safeLine = escapeXml(line || '19');
+      const displayEv = escapeXml(String(evNum || '826').trim() || '826');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 15 : (len === 2 ? 13.5 : (len === 3 ? 11 : 9));
+
+      // Štandardná logika meškania aplikovaná na horný displej/panel:
+      // 0 minút: neutrálna tmavá (#18181b), do 3 minút: žltá (#facc15), 3 až 5 minút: oranžová (#f97316), viac ako 5 minút: červená (#ef4444)
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const panelFill = isDelayed ? delayColor : '#18181b';
+      const panelStroke = isDelayed ? '#1e2433' : '#27272a';
+
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 58" width="46" height="58" class="veh-front-svg veh-vario-lf">
+        <defs>
+          <filter id="vario-shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.35"/>
+          </filter>
+        </defs>
+
+        <!-- KOĽAJOVÉ KOLESÁ / PODVOZOK (drobné pod nárazníkom) -->
+        <g fill="#1e2433" stroke="#111827" stroke-width="0.8">
+          <rect x="11.5" y="51.5" width="3.5" height="4.5" rx="1"/>
+          <rect x="31" y="51.5" width="3.5" height="4.5" rx="1"/>
+        </g>
+
+        <!-- SPÄTNÉ ZRKADLÁ (boky) -->
+        <g fill="#242b3d" stroke="#111827" stroke-width="1">
+          <rect x="4" y="22.5" width="3" height="8" rx="1.3"/>
+          <path d="M 6.5 25.5 L 9 25.5" stroke="#1e2433" stroke-width="1.4" stroke-linecap="round"/>
+          <rect x="39" y="22.5" width="3" height="8" rx="1.3"/>
+          <path d="M 37 25.5 L 39.5 25.5" stroke="#1e2433" stroke-width="1.4" stroke-linecap="round"/>
+        </g>
+
+        <!-- ELEGANTNÝ KOMPAKTNÝ POLOPANTOGRAF (kovová konštrukcia #475569, tenké línie, pevná pätka) -->
+        <g stroke-linejoin="round" stroke-linecap="round">
+          <!-- Pevná tmavá základňa na streche -->
+          <rect x="20" y="15.8" width="6" height="1.4" rx="0.4" fill="#1e293b" stroke="#334155" stroke-width="0.4"/>
+          <circle cx="21" cy="15.8" r="0.5" fill="#475569"/>
+          <circle cx="25" cy="15.8" r="0.5" fill="#475569"/>
+
+          <!-- Tenké kovové rameno a kĺb -->
+          <line x1="22" y1="15.8" x2="23" y2="12.5" stroke="#475569" stroke-width="1.1"/>
+          <circle cx="23" cy="12.5" r="0.6" fill="#1e293b" stroke="#64748b" stroke-width="0.3"/>
+
+          <!-- Kosoštvorcové / trojuholníkové horné vahadlo -->
+          <polygon points="23,12.5 19.5,8.5 26.5,8.5" fill="none" stroke="#475569" stroke-width="1.0"/>
+          <line x1="23" y1="8.5" x2="23" y2="7.0" stroke="#475569" stroke-width="1.0"/>
+
+          <!-- Kompaktná zberacia lišta (šírka 13px, 45% šírky strechy) -->
+          <line x1="16.5" y1="7.0" x2="29.5" y2="7.0" stroke="#334155" stroke-width="1.1"/>
+          <path d="M 16.5 7.0 L 15.5 7.8 M 29.5 7.0 L 30.5 7.8" stroke="#475569" stroke-width="0.8"/>
+        </g>
+
+        <!-- HLAVNÁ KAROSÉRIA (Vario LF2+) S KONTRASTNÝM TMAVÝM OLEMOVANÍM -->
+        <path d="M 10 17 Q 23 15 36 17 C 39.5 17.5 40.5 21 40.5 26 L 40.5 46.5 C 40.5 49.5 38.5 52 34 52 L 12 52 C 7.5 52 5.5 49.5 5.5 46.5 L 5.5 26 C 5.5 21 6.5 17.5 10 17 Z"
+              fill="#0284c7" stroke="#1e2433" stroke-width="2.2" stroke-linejoin="round" filter="url(#vario-shadow)"/>
+
+        <!-- 1. HORNÝ PRUH: AZÚROVO-MODRÁ STRECHA -->
+        <path d="M 10 17 Q 23 15 36 17 C 39.5 17.5 40.5 19 40.5 20.5 L 5.5 20.5 C 5.5 19 6.5 17.5 10 17 Z" fill="#0284c7"/>
+
+        <!-- 2. SÝTO ŽLTÝ PRUH (zaoblené čelo, okolie okna, displeja a svetiel) -->
+        <path d="M 5.7 20.5 L 40.3 20.5 L 40.3 38 Q 23 40.5 5.7 38 Z" fill="#facc15"/>
+
+        <!-- Bočné vertikálne stĺpiky a naznačené bočné okná -->
+        <path d="M 6.5 21 L 10.5 21 L 10.5 37 L 6.5 37 Z" fill="#f8fafc" opacity="0.95"/>
+        <path d="M 35.5 21 L 39.5 21 L 39.5 37 L 35.5 37 Z" fill="#f8fafc" opacity="0.95"/>
+        <rect x="7.2" y="22.5" width="2.5" height="12" rx="0.8" fill="#1e2433"/>
+        <rect x="36.3" y="22.5" width="2.5" height="12" rx="0.8" fill="#1e2433"/>
+
+        <!-- DYNAMICKÝ HORNÝ PANEL / DISPLEJ (Meškanie: 0 min: neutrálna tmavá #18181b, do 3 min: #facc15, 3-5 min: #f97316, >5 min: #ef4444) -->
+        <rect class="veh-delay-panel" x="13.5" y="18" width="19" height="4.8" rx="2" fill="${panelFill}" stroke="${panelStroke}" stroke-width="${isDelayed ? '0.9' : '0.6'}"/>
+        <!-- Oranžovo-červený bodový text / matrix grafika (iba ak nemešká) -->
+        <g fill="#f97316" style="${isDelayed ? 'display: none;' : ''}">
+          <circle cx="16" cy="20.4" r="0.6"/>
+          <circle cx="17.5" cy="19.6" r="0.5"/><circle cx="17.5" cy="21.2" r="0.5"/>
+          <circle cx="19.5" cy="20.4" r="0.6"/><circle cx="21" cy="20.4" r="0.6"/>
+          <circle cx="23" cy="19.8" r="0.5"/><circle cx="23" cy="21" r="0.5"/>
+          <circle cx="25" cy="20.4" r="0.6"/><circle cx="26.5" cy="20.4" r="0.6"/>
+          <circle cx="28.5" cy="19.6" r="0.5"/><circle cx="28.5" cy="21.2" r="0.5"/>
+          <circle cx="30" cy="20.4" r="0.6"/>
+        </g>
+
+        <!-- ČELNÉ SKLO (veľké, snehobiele/svetlosivé s tmavým rámom) -->
+        <rect x="11.5" y="23.5" width="23" height="13.5" rx="2.5" fill="#ffffff" stroke="#0f172a" stroke-width="1.4"/>
+        <!-- Jemný odlesk skla (sheen) -->
+        <polygon points="30.5,23.5 34,23.5 27.5,36.5 24,36.5" fill="#f1f5f9" opacity="0.7"/>
+
+        <!-- VEĽKÉ ČITATEĽNÉ ČÍSLO LINKY V STREDE OKNA (napr. 19) -->
+        <text x="23" y="30.5" text-anchor="middle" dominant-baseline="central"
+              font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+              fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+
+        <!-- ŠIKMÉ HALOGÉNOVÉ SVETLOMETY (po 3 na každej strane na rozhraní žltého a bieleho pruhu) -->
+        <!-- Ľavá trojica svetiel -->
+        <g stroke="#ca8a04" stroke-width="0.6">
+          <circle cx="12.5" cy="37.2" r="1.4" fill="#ffffff"/>
+          <circle cx="15.2" cy="38.3" r="1.2" fill="#fef08a"/>
+          <circle cx="17.8" cy="39.1" r="1" fill="#fef08a"/>
+        </g>
+        <!-- Pravá trojica svetiel -->
+        <g stroke="#ca8a04" stroke-width="0.6">
+          <circle cx="33.5" cy="37.2" r="1.4" fill="#ffffff"/>
+          <circle cx="30.8" cy="38.3" r="1.2" fill="#fef08a"/>
+          <circle cx="28.2" cy="39.1" r="1" fill="#fef08a"/>
+        </g>
+
+        <!-- 3. SNEHOBIELY STREDNÝ PRUH S ČÍSLOM VOZIDLA 826 -->
+        <path d="M 5.8 38.6 Q 23 41.2 40.2 38.6 L 40.2 44.2 Q 23 45.4 5.8 44.2 Z" fill="#ffffff"/>
+        <!-- Drobné čierne číslo vozidla 826 presne nad azúrovo-modrým nárazníkom -->
+        <text x="23" y="42.8" text-anchor="middle" dominant-baseline="central"
+              font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="4px"
+              fill="#0f172a" letter-spacing="0.2px">${displayEv}</text>
+
+        <!-- 4. SÝTO AZÚROVO-MODRÝ SPODOK VRÁTANE MASÍVNEHO NÁRAZNÍKA -->
+        <path d="M 5.8 44.2 Q 23 45.4 40.2 44.2 L 40.2 47 C 40.2 49.5 38.5 52 34 52 L 12 52 C 7.5 52 5.8 49.5 5.8 47 Z" fill="#0284c7"/>
+        
+        <!-- Masívny nárazník Vario LF2+ -->
+        <path d="M 10 45.2 Q 23 46.2 36 45.2 L 34.5 51 Q 23 52 11.5 51 Z"
+              fill="#0284c7" stroke="#0369a1" stroke-width="1.2"/>
+        <!-- Prehĺbenie nárazníka -->
+        <path d="M 12 46.2 Q 23 47.2 34 46.2 L 33 50.2 Q 23 51.2 13 50.2 Z" fill="#0369a1"/>
+      </svg>`;
+    }
+
+    // 2. ČKD Tatra KT8D5 - obojsmerná trojčlánková kĺbová električka (46×50 px) podľa košickej predlohy (č. 525):
+    // Prísne hranatý krabicový retro dizajn, azúrovo-modrá úzka línia strechy a nárazník, sýto žlté stĺpiky,
+    // číre biele čelné sklo s obrovským čiernym číslom linky (#0f172a), integrovaná lišta meškania,
+    // žltý zaoblený "podbradník" (polmesiac) pod oknom, biely panel s ev. č. 525, 2 veľké okrúhle retro svetlomety,
+    // vyčnievajúce mechanické spriahadlo (coupler), koľajový podvozok a diamantový kovový pantograf s pätkou
+    function renderKt8d5Svg(line, delayColorOrMinutes = '', evNum = '525') {
+      const safeLine = escapeXml(line || '9');
+      const displayEv = escapeXml(String(evNum || '525').trim() || '525');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 13 : (len === 2 ? 12 : (len === 3 ? 9.5 : 8));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 50" width="46" height="50" class="veh-front-svg veh-tram-kt8d5">
+          <defs>
+            <filter id="kt8d5-shadow" x="-12%" y="-8%" width="124%" height="116%">
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
+            </filter>
+          </defs>
+
+          <!-- PODVOZOK A KOĽAJOVÉ KOLESÁ (pod nárazníkom) -->
+          <g fill="#1e293b">
+            <rect x="8.5" y="42.5" width="5" height="5" rx="0.8"/>
+            <rect x="32.5" y="42.5" width="5" height="5" rx="0.8"/>
+          </g>
+          <!-- Lesklé oceľové nákolky kolies -->
+          <line x1="8.5" y1="47.5" x2="13.5" y2="47.5" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="32.5" y1="47.5" x2="37.5" y2="47.5" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round"/>
+
+          <!-- ELEGANTNÝ DIAMANTOVÝ PANTOGRAF S PÄTKOU NA STRECHE (zmenšený, tenké línie, tmavosivý kov) -->
+          <!-- Tmavosivá pätka / základňa na streche -->
+          <rect x="18" y="9.2" width="10" height="1.2" rx="0.3" fill="#1e293b" stroke="#334155" stroke-width="0.4"/>
+          <circle cx="19.2" cy="9.2" r="0.5" fill="#475569"/>
+          <circle cx="26.8" cy="9.2" r="0.5" fill="#475569"/>
+
+          <!-- Kosoštvorcová / nožnicová diamantová konštrukcia (stroke-width 1.0, tmavosivá #475569) -->
+          <g stroke="#475569" stroke-linecap="round" stroke-linejoin="round" fill="none">
+            <path d="M 19.5 9.2 L 18 6.0 L 23 3.5 L 28 6.0 L 26.5 9.2" stroke-width="1.0"/>
+            <line x1="18" y1="6.0" x2="28" y2="6.0" stroke-width="0.8"/>
+            <circle cx="18" cy="6.0" r="0.4" fill="#1e293b"/>
+            <circle cx="28" cy="6.0" r="0.4" fill="#1e293b"/>
+            <line x1="23" y1="3.5" x2="23" y2="2.3" stroke-width="0.9"/>
+            <!-- Kompaktná vrchná zberacia lišta (šírka 14px, ~40% šírky strechy) -->
+            <line x1="16" y1="2.3" x2="30" y2="2.3" stroke="#1e293b" stroke-width="1.2"/>
+            <path d="M 16 2.3 L 15 3.0 M 30 2.3 L 31 3.0" stroke="#475569" stroke-width="0.8"/>
+          </g>
+
+          <!-- RETRO SPÄTNÉ ZRKADLÁ KT8D5 (hranaté na tenkých ramenách) -->
+          <!-- Ľavé zrkadlo -->
+          <path d="M 6 15 L 2.5 15 L 2.5 17" fill="none" stroke="#0f172a" stroke-width="1.1" stroke-linecap="round"/>
+          <rect x="1.5" y="16.5" width="2" height="6.5" rx="0.5" fill="#18181b" stroke="#0f172a" stroke-width="0.4"/>
+          <rect x="1.8" y="17.2" width="1.4" height="5.1" rx="0.2" fill="#334155" opacity="0.8"/>
+          <!-- Pravé zrkadlo -->
+          <path d="M 40 15 L 43.5 15 L 43.5 17" fill="none" stroke="#0f172a" stroke-width="1.1" stroke-linecap="round"/>
+          <rect x="42.5" y="16.5" width="2" height="6.5" rx="0.5" fill="#18181b" stroke="#0f172a" stroke-width="0.4"/>
+          <rect x="42.8" y="17.2" width="1.4" height="5.1" rx="0.2" fill="#334155" opacity="0.8"/>
+
+          <!-- HLAVNÁ KAROSÉRIA - PRÍSNE HRANATÝ KRABICOVÝ TVAR KT8D5 (robustný 46px skelet) -->
+          <rect x="5.5" y="10.2" width="35" height="32.5" rx="1.2" fill="#ffffff" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" filter="url(#kt8d5-shadow)"/>
+
+          <!-- 1. ÚZKA LÍNIA STRECHY: AZÚROVO-MODRÁ (#0284c7) -->
+          <rect x="5.5" y="10.2" width="35" height="2.2" rx="0.8" fill="#0284c7"/>
+          <line x1="5.5" y1="12.4" x2="40.5" y2="12.4" stroke="#0f172a" stroke-width="0.7"/>
+
+          <!-- 2. HORNÝ PANEL TRASY NAD OKNOM (tmavý s jantárovou LED linkou) -->
+          <rect x="11" y="12.8" width="24" height="2.2" rx="0.4" fill="#18181b" stroke="#27272a" stroke-width="0.4"/>
+          <line x1="13" y1="13.9" x2="33" y2="13.9" stroke="#f97316" stroke-width="0.6" stroke-dasharray="1 0.7"/>
+
+          <!-- 3. SÝTO ŽLTÉ BOČNÉ STĹPIKY A RÁMY OKNA (#facc15) -->
+          <rect x="5.5" y="12.4" width="2.5" height="16.6" fill="#facc15"/>
+          <rect x="38" y="12.4" width="2.5" height="16.6" fill="#facc15"/>
+
+          <!-- 4. VEĽKÉ HRANATÉ ČELNÉ SKLO (ČISTÁ BIELA PRE ELEKTRIČKY fill="#ffffff") -->
+          <rect x="8" y="15" width="30" height="14" rx="1" fill="#ffffff" stroke="#0f172a" stroke-width="0.9"/>
+
+          <!-- DIAGONÁLNY POLOPRIEHLADNÝ SVETLOSIVÝ ODLESK SKLA -->
+          <polygon points="26,15 31,15 22,29 17,29" fill="#e2e8f0" opacity="0.45"/>
+          <polygon points="33,15 36,15 29,29 26,29" fill="#e2e8f0" opacity="0.25"/>
+
+          <!-- 5. INDIKAČNÁ LIŠTA MEŠKANIA (v hornej časti skla na celú šírku 100%) -->
+          <rect class="veh-delay-bar" x="8" y="15" width="30" height="3.2" rx="0.8" fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="8" y1="18.2" x2="38" y2="18.2" stroke="#0f172a" stroke-width="0.8"/>` : ''}
+
+          <!-- 6. OBROVSKÉ TUČNÉ ČIERNE ČÍSLO LINKY VYCENTROVANÉ V STREDE SKLA -->
+          <text x="23" y="23.2" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- STIERAČE ČELNÉHO SKLA (dva robustné stierače ako na KT8D5) -->
+          <line x1="15" y1="28.8" x2="16.5" y2="24" stroke="#0f172a" stroke-width="0.7" stroke-linecap="round"/>
+          <line x1="27" y1="28.8" x2="28.5" y2="24" stroke="#0f172a" stroke-width="0.7" stroke-linecap="round"/>
+
+          <!-- 7. TYPICKÝ ŽLTÝ ZAOBLEŇÝ 'PODBRADNÍK' (POLMESIAC / OBLÚK #facc15) POD OKNOM -->
+          <path d="M 5.5 29 L 40.5 29 L 40.5 30.5 Q 23 35.8 5.5 30.5 Z" fill="#facc15" stroke="#ca8a04" stroke-width="0.4"/>
+          <line x1="5.5" y1="29" x2="40.5" y2="29" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- 8. SNEHOBIELY STREDNÝ PANEL S EVIDENČNÝM ČÍSLOM 525 -->
+          <!-- Bočné smerovky na hranách masky -->
+          <rect x="5.8" y="31" width="1.6" height="5" rx="0.3" fill="#ea580c" stroke="#c2410c" stroke-width="0.2"/>
+          <rect x="38.6" y="31" width="1.6" height="5" rx="0.3" fill="#ea580c" stroke="#c2410c" stroke-width="0.2"/>
+          <!-- Drobné evidenčné číslo 525 vycentrované pod žltým oblúkom -->
+          <text x="23" y="34.8" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="3.2px"
+                fill="#0f172a" letter-spacing="0.3px">${displayEv}</text>
+
+          <!-- 9. MASÍVNY AZÚROVO-MODRÝ NÁRAZNÍK (#0284c7) -->
+          <path d="M 5.5 37 L 40.5 37 L 40.5 42.5 L 5.5 42.5 Z" fill="#0284c7"/>
+          <line x1="5.5" y1="37" x2="40.5" y2="37" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- 10. DVA VEĽKÉ OKRÚHLE RETRO SVETLOMETY NA ROZHRANÍ BIELEHO PANELA A NÁRAZNÍKA -->
+          <!-- Ľavý svetlomet -->
+          <g>
+            <circle cx="12" cy="37" r="2.5" fill="#f1f5f9" stroke="#64748b" stroke-width="0.7"/>
+            <circle cx="12" cy="37" r="1.8" fill="#fef08a" stroke="#ca8a04" stroke-width="0.4"/>
+            <circle cx="12" cy="37" r="1.1" fill="#ffffff"/>
+          </g>
+          <!-- Pravý svetlomet -->
+          <g>
+            <circle cx="34" cy="37" r="2.5" fill="#f1f5f9" stroke="#64748b" stroke-width="0.7"/>
+            <circle cx="34" cy="37" r="1.8" fill="#fef08a" stroke="#ca8a04" stroke-width="0.4"/>
+            <circle cx="34" cy="37" r="1.1" fill="#ffffff"/>
+          </g>
+
+          <!-- Malé červené kruhové odrazky v nárazníku -->
+          <circle cx="12" cy="40.5" r="0.7" fill="#ef4444" stroke="#991b1b" stroke-width="0.2"/>
+          <circle cx="34" cy="40.5" r="0.7" fill="#ef4444" stroke="#991b1b" stroke-width="0.2"/>
+
+          <!-- 11. ZLOŽITEJŠIE TMAVOŠEDÉ MECHANICKÉ SPRIAHADLO (COUPLER) VYČNIEVAJÚCE ZOSPODU -->
+          <g fill="#334155" stroke="#0f172a" stroke-width="0.5">
+            <!-- Nosné rameno coupleru -->
+            <rect x="21.5" y="42" width="3" height="4.5" rx="0.4"/>
+            <!-- Masívna hlava spriahadla Scharfenberg / pražského typu -->
+            <rect x="19.5" y="45.5" width="7" height="2.5" rx="0.6" fill="#1e293b"/>
+            <!-- Predný strediaci kolík a hák spriahadla -->
+            <circle cx="21" cy="46.7" r="0.6" fill="#cbd5e1" stroke="none"/>
+            <rect x="24.5" y="46.2" width="1.2" height="1.8" rx="0.2" fill="#cbd5e1" stroke="none"/>
+          </g>
+        </svg>
+      `;
+    }
+
+    // 3. ČKD Tatra T6A5 - klasická hranatá sólo električka (44×48 px) podľa košickej predlohy (č. 622):
+    // Prísne hranatý boxy dizajn, úzka azúrovo-modrá hrana strechy a spodný nárazník, sýto žlté stĺpiky,
+    // snehobiely panel s košickými žltými a modrými vlnkami/oblúkmi, ev. č. 622 a logom ČKD,
+    // veľké hranaté žlté čelné sklo (fill="#facc15") s obrovským čiernym číslom linky (#0f172a),
+    // integrovaná horizontálna lišta meškania (0 min = transparentná, <=3 = žltá, 3-5 = oranžová, >5 = červená),
+    // 2 okrúhle svetlomety na bielo-modrom rozhraní, tmavé spriahadlo (coupler), koľajové kolesá a elegantný žltý pantograf s pätkou
+    function renderT6a5Svg(line, delayColorOrMinutes = '', evNum = '622') {
+      const safeLine = escapeXml(line || '7');
+      const displayEv = escapeXml(String(evNum || '622').trim() || '622');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 13.5 : (len === 2 ? 12 : (len === 3 ? 9.5 : 8));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 48" width="44" height="48" class="veh-front-svg veh-tram-t6a5">
+          <defs>
+            <filter id="t6a5-shadow" x="-12%" y="-8%" width="124%" height="116%">
+              <feDropShadow dx="0" dy="1.2" stdDeviation="1.0" flood-color="#000000" flood-opacity="0.3"/>
+            </filter>
+          </defs>
+
+          <!-- PODVOZOK A KOĽAJOVÉ KOLESÁ -->
+          <g fill="#1e293b">
+            <rect x="8.5" y="41.5" width="4.5" height="4.5" rx="0.6"/>
+            <rect x="31" y="41.5" width="4.5" height="4.5" rx="0.6"/>
+          </g>
+          <line x1="8.5" y1="46" x2="13" y2="46" stroke="#94a3b8" stroke-width="1.1" stroke-linecap="round"/>
+          <line x1="31" y1="46" x2="35.5" y2="46" stroke="#94a3b8" stroke-width="1.1" stroke-linecap="round"/>
+
+          <!-- PANTOGRAF NA STRECHE (žltý/kovový, elegantný zmenšený, tmavá pätka) -->
+          <rect x="17.5" y="9.2" width="9" height="1.1" rx="0.3" fill="#1e293b" stroke="#334155" stroke-width="0.4"/>
+          <circle cx="18.7" cy="9.2" r="0.4" fill="#475569"/>
+          <circle cx="25.3" cy="9.2" r="0.4" fill="#475569"/>
+          <g stroke-linecap="round" stroke-linejoin="round" fill="none">
+            <path d="M 18.5 9.2 L 22 4.2 L 25.5 9.2" stroke="#eab308" stroke-width="1.0"/>
+            <line x1="19.5" y1="6.8" x2="24.5" y2="6.8" stroke="#ca8a04" stroke-width="0.8"/>
+            <line x1="22" y1="4.2" x2="22" y2="2.2" stroke="#ca8a04" stroke-width="0.9"/>
+            <line x1="15.5" y1="2.2" x2="28.5" y2="2.2" stroke="#1e293b" stroke-width="1.2"/>
+            <path d="M 15.5 2.2 L 14.5 3.0 M 28.5 2.2 L 29.5 3.0" stroke="#475569" stroke-width="0.8"/>
+          </g>
+
+          <!-- RETRO SPÄTNÉ ZRKADLÁ T6A5 -->
+          <path d="M 6 14.5 L 2.5 14.5 L 2.5 16.5" fill="none" stroke="#0f172a" stroke-width="1.0" stroke-linecap="round"/>
+          <rect x="1.5" y="16" width="2" height="6" rx="0.5" fill="#18181b" stroke="#0f172a" stroke-width="0.4"/>
+          <rect x="1.8" y="16.6" width="1.4" height="4.8" rx="0.2" fill="#334155" opacity="0.8"/>
+          <path d="M 38 14.5 L 41.5 14.5 L 41.5 16.5" fill="none" stroke="#0f172a" stroke-width="1.0" stroke-linecap="round"/>
+          <rect x="40.5" y="16" width="2" height="6" rx="0.5" fill="#18181b" stroke="#0f172a" stroke-width="0.4"/>
+          <rect x="40.8" y="16.6" width="1.4" height="4.8" rx="0.2" fill="#334155" opacity="0.8"/>
+
+          <!-- HLAVNÝ SKELET KAROSÉRIE T6A5 (prísne hranatý boxy dizajn) -->
+          <rect x="6" y="9.8" width="32" height="31.7" rx="0.8" fill="#ffffff" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" filter="url(#t6a5-shadow)"/>
+
+          <!-- 1. ÚZKA HRANA STRECHY: AZÚROVO-MODRÁ (#0284c7) -->
+          <rect x="6" y="9.8" width="32" height="2.0" rx="0.6" fill="#0284c7"/>
+          <line x1="6" y1="11.8" x2="38" y2="11.8" stroke="#0f172a" stroke-width="0.7"/>
+
+          <!-- HORNÝ PANEL TRASY (tmavé puzdro s jantárovým LED displejom) -->
+          <rect x="10" y="12.2" width="24" height="2.1" rx="0.4" fill="#18181b" stroke="#27272a" stroke-width="0.4"/>
+          <line x1="12" y1="13.25" x2="32" y2="13.25" stroke="#f59e0b" stroke-width="0.6" stroke-dasharray="1 0.7"/>
+
+          <!-- 2. SÝTO ŽLTÉ BOČNÉ STĹPIKY A RÁMY OKNA (#facc15) -->
+          <rect x="6" y="11.8" width="2.5" height="16.7" fill="#facc15"/>
+          <rect x="35.5" y="11.8" width="2.5" height="16.7" fill="#facc15"/>
+
+          <!-- 3. VEĽKÉ HRANATÉ ČELNÉ SKLO SO ŽLTOU VÝPLŇOU (fill="#facc15") -->
+          <rect x="8.5" y="14.3" width="27" height="14.2" rx="0.6" fill="#facc15" stroke="#0f172a" stroke-width="0.9"/>
+
+          <!-- JEMNÝ DIAGONÁLNY ODLESK SKLA -->
+          <polygon points="26,14.3 30,14.3 22,28.5 18,28.5" fill="#ffffff" opacity="0.28"/>
+
+          <!-- 4. HORIZONTÁLNA INDIKAČNÁ LIŠTA MEŠKANIA -->
+          <rect class="veh-delay-bar" x="8.5" y="14.3" width="27" height="3.2" rx="0.5" fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="8.5" y1="17.5" x2="35.5" y2="17.5" stroke="#0f172a" stroke-width="0.7"/>` : ''}
+
+          <!-- 5. OBROVSKÉ TUČNÉ ČIERNE ČÍSLO LINKY VYCENTROVANÉ V ŽLTOM SKLE -->
+          <text x="22" y="22.8" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- STIERAČ ČELNÉHO SKLA -->
+          <line x1="19" y1="28" x2="21" y2="23.5" stroke="#0f172a" stroke-width="0.7" stroke-linecap="round"/>
+
+          <!-- 6. SNEHOBIELY STREDNÝ PANEL S KOŠICKÝMI VLNKAMI (#ffffff + žlté a modré vlny) -->
+          <rect x="6" y="28.5" width="32" height="8" fill="#ffffff"/>
+          <line x1="6" y1="28.5" x2="38" y2="28.5" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- Žltá vlna klesajúca zľava pod oknom -->
+          <path d="M 6 28.5 L 17 28.5 Q 18.5 32.5 12 33.2 Q 6 33.8 6 34.5 Z" fill="#facc15"/>
+          <!-- Modrá azúrová vlna stúpajúca sprava z nárazníka -->
+          <path d="M 38 31 Q 31 32.8 28.5 36.5 L 38 36.5 Z" fill="#0284c7"/>
+
+          <!-- Bočné smerovky -->
+          <rect x="6.3" y="30.8" width="1.4" height="4.2" rx="0.3" fill="#ea580c" stroke="#c2410c" stroke-width="0.2"/>
+          <rect x="36.3" y="30.8" width="1.4" height="4.2" rx="0.3" fill="#ea580c" stroke="#c2410c" stroke-width="0.2"/>
+
+          <!-- Malé logo ČKD v strede -->
+          <text x="22" y="31.2" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="2.1px"
+                fill="#475569" letter-spacing="0.3px">ČKD</text>
+          <!-- Drobné evidenčné číslo 622 vycentrované v bielom poli -->
+          <text x="22" y="34.3" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="3.2px"
+                fill="#0f172a" letter-spacing="0.3px">${displayEv}</text>
+
+          <!-- 7. SPODNÝ MASÍVNY AZÚROVO-MODRÝ NÁRAZNÍK (#0284c7) -->
+          <rect x="6" y="36.5" width="32" height="5.0" fill="#0284c7"/>
+          <line x1="6" y1="36.5" x2="38" y2="36.5" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- 8. OKRÚHLE HLAVNÉ SVETLOMETY NA ROZHRANÍ BIELEHO PANELA A NÁRAZNÍKA -->
+          <!-- Ľavý svetlomet -->
+          <g>
+            <circle cx="11.5" cy="36.5" r="2.2" fill="#f1f5f9" stroke="#64748b" stroke-width="0.6"/>
+            <circle cx="11.5" cy="36.5" r="1.6" fill="#fef08a" stroke="#ca8a04" stroke-width="0.3"/>
+            <circle cx="11.5" cy="36.5" r="1.0" fill="#ffffff"/>
+            <!-- Oranžové prídavné svetlo / smerovka -->
+            <circle cx="14.5" cy="37" r="0.7" fill="#f97316" stroke="#c2410c" stroke-width="0.2"/>
+          </g>
+          <!-- Pravý svetlomet -->
+          <g>
+            <circle cx="32.5" cy="36.5" r="2.2" fill="#f1f5f9" stroke="#64748b" stroke-width="0.6"/>
+            <circle cx="32.5" cy="36.5" r="1.6" fill="#fef08a" stroke="#ca8a04" stroke-width="0.3"/>
+            <circle cx="32.5" cy="36.5" r="1.0" fill="#ffffff"/>
+            <!-- Oranžové prídavné svetlo / smerovka -->
+            <circle cx="29.5" cy="37" r="0.7" fill="#f97316" stroke="#c2410c" stroke-width="0.2"/>
+          </g>
+
+          <!-- Malé odrazky v nárazníku -->
+          <circle cx="11.5" cy="39.8" r="0.6" fill="#ef4444" stroke="#991b1b" stroke-width="0.2"/>
+          <circle cx="32.5" cy="39.8" r="0.6" fill="#ef4444" stroke="#991b1b" stroke-width="0.2"/>
+
+          <!-- 9. MECHANICKÉ SPRIAHADLO (COUPLER) VYČNIEVAJÚCE ZOSPODU -->
+          <g fill="#334155" stroke="#0f172a" stroke-width="0.5">
+            <rect x="20.5" y="41.2" width="3" height="3.5" rx="0.3"/>
+            <rect x="18.8" y="44.5" width="6.4" height="2.2" rx="0.5" fill="#1e293b"/>
+            <circle cx="20.2" cy="45.6" r="0.5" fill="#cbd5e1" stroke="none"/>
+            <rect x="23.2" y="45.1" width="1.0" height="1.2" rx="0.2" fill="#cbd5e1" stroke="none"/>
+          </g>
+        </svg>
+      `;
+    }
+
+    // 4. Električka DPMK všeobecná
+    function renderGeneralTramSvg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-gtram-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 48" width="44" height="48" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><rect x="8" y="14" width="28" height="21" rx="3"/></clipPath></defs>
+        <!-- ELEGANTNÝ PANTOGRAF S UKOTVENÍM NA STRECHE (tenká kovová konštrukcia, ~43% šírky strechy) -->
+        <rect x="17.5" y="10.2" width="9" height="1.1" rx="0.3" fill="#1e293b" stroke="#334155" stroke-width="0.4"/>
+        <g stroke="#475569" stroke-linecap="round" stroke-linejoin="round" fill="none">
+          <path d="M 18.5 10.2 L 22 4.8 L 25.5 10.2" stroke-width="1.0"/>
+          <line x1="19.5" y1="7.5" x2="24.5" y2="7.5" stroke-width="0.8"/>
+          <line x1="22" y1="4.8" x2="22" y2="4.0" stroke-width="0.9"/>
+          <line x1="15" y1="4.0" x2="29" y2="4.0" stroke="#1e293b" stroke-width="1.1"/>
+          <path d="M 15 4.0 L 14 4.7 M 29 4.0 L 30 4.7" stroke="#475569" stroke-width="0.8"/>
+        </g>
+        <rect x="6" y="11" width="32" height="32" rx="4" fill="#eab308" stroke="#ca8a04" stroke-width="2.5"/>
+        <rect x="2.5" y="16" width="3" height="7" rx="1" fill="#1e293b"/>
+        <rect x="38.5" y="16" width="3" height="7" rx="1" fill="#1e293b"/>
+        <rect x="8" y="14" width="28" height="21" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect class="veh-delay-bar" x="8" y="14" width="28" height="5.5" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="22" y="26.5" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="15" y="37" width="14" height="3" rx="1" fill="#0f172a"/>
+        <circle cx="11" cy="38.5" r="2" fill="#fef08a" stroke="#ca8a04" stroke-width="0.8"/>
+        <circle cx="33" cy="38.5" r="2" fill="#fef08a" stroke="#ca8a04" stroke-width="0.8"/>
+        <rect x="14" y="43" width="16" height="2" rx="1" fill="#1e293b"/>
+        <rect x="8" y="43" width="4.5" height="4" rx="1" fill="#475569" stroke="#0f172a" stroke-width="1"/>
+        <rect x="31.5" y="43" width="4.5" height="4" rx="1" fill="#475569" stroke="#0f172a" stroke-width="1"/>
+      </svg>`;
+    }
+
+    // 5. SOR NS 18 Electric - moderný kĺbový elektrobus podľa skutočného vozidla (Kotas dizajn):
+    // Plynulá aerodynamická geometria karosérie (<path>), výrazný masívny nabíjací pantograf na streche
+    // s hrubými oranžovými ramenami a zberacou lištou (OppCharge), široký tmavý batériový box,
+    // tmavé stĺpiky s ikonickým bielym lemovaním (Kotas swoosh oblúky) po bokoch,
+    // čisté BIELE čelné sklo (fill="#ffffff") s veľkým tučným ČIERNYM číslom linky (#0f172a),
+    // horná indikačná lišta meškania, strieborné bočné panely s modernými šikmými bodovými LED svetlometmi
+    // a projektormi (permanentne neutrálne), čierna maska so znakom SOR, strieborná V-línia (chevron),
+    // spodný masívny tyrkysový/azúrový nárazník (#0284c7) s čiernym aerodynamickým vstupom vzduchu,
+    // dlhé čierne spätné zrkadlá (tykadlá SOR) po bokoch a tmavé kolesá naspodku
+    function renderSorNs18ElectricSvg(line, delayColorOrMinutes = '', evNum = '6801') {
+      const safeLine = escapeXml(line || '19');
+      const displayEv = escapeXml(String(evNum || '6801').trim() || '6801');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const cleanSpz = 'KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv);
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 42" width="44" height="42" class="veh-front-svg veh-sor-ns18">
+          <defs>
+            <filter id="sor-ns18e-shadow" x="-12%" y="-10%" width="124%" height="120%">
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
+            </filter>
+          </defs>
+
+          <!-- KOLESÁ (tmavé, pod nárazníkom) -->
+          <g fill="#0f172a">
+            <rect x="6.5" y="38" width="4.5" height="3.5" rx="1"/>
+            <rect x="33" y="38" width="4.5" height="3.5" rx="1"/>
+          </g>
+
+          <!-- SPÄTNÉ ZRKADLÁ SOR (TYKADLÁ) -->
+          <!-- Ľavé tykadlo -->
+          <path d="M 5.5 9.5 C 2.5 8.8, 0.4 11.2, 0.6 15.2 L 0.8 17.5" fill="none" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M 0.2 14.5 C -0.2 16, 0 19, 1.2 20.5 C 1.8 19, 1.8 16, 1.4 14.5 Z" fill="#18181b" stroke="#0f172a" stroke-width="0.5"/>
+          <rect x="0.4" y="15.2" width="0.8" height="4.5" rx="0.3" fill="#38bdf8" opacity="0.6"/>
+          <!-- Pravé tykadlo -->
+          <path d="M 38.5 9.5 C 41.5 8.8, 43.6 11.2, 43.4 15.2 L 43.2 17.5" fill="none" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M 43.8 14.5 C 44.2 16, 44 19, 42.8 20.5 C 42.2 19, 42.2 16, 42.6 14.5 Z" fill="#18181b" stroke="#0f172a" stroke-width="0.5"/>
+          <rect x="42.8" y="15.2" width="0.8" height="4.5" rx="0.3" fill="#38bdf8" opacity="0.6"/>
+
+          <!-- ELEGANTNÝ, KOMPAKTNÝ NABÍJACÍ PANTOGRAF NA STRECHE (40-50% šírky strechy, tenká kovová konštrukcia) -->
+          <!-- Pevná tmavá základňa ukotvená na batériovom boxe -->
+          <rect x="17.5" y="6.4" width="9" height="1.0" rx="0.3" fill="#0f172a" stroke="#334155" stroke-width="0.4"/>
+          <circle cx="18.5" cy="6.4" r="0.5" fill="#475569"/>
+          <circle cx="25.5" cy="6.4" r="0.5" fill="#475569"/>
+
+          <!-- Tenká kovová nožnicová konštrukcia (stroke-width 1.0, tmavosivá kovová #475569) -->
+          <line x1="18.5" y1="6.4" x2="20.5" y2="4.6" stroke="#475569" stroke-width="1.0" stroke-linecap="round"/>
+          <line x1="25.5" y1="6.4" x2="23.5" y2="4.6" stroke="#475569" stroke-width="1.0" stroke-linecap="round"/>
+          <line x1="20.5" y1="4.6" x2="22.0" y2="3.4" stroke="#475569" stroke-width="1.0" stroke-linecap="round"/>
+          <line x1="23.5" y1="4.6" x2="22.0" y2="3.4" stroke="#475569" stroke-width="1.0" stroke-linecap="round"/>
+          <line x1="20.5" y1="4.6" x2="23.5" y2="4.6" stroke="#475569" stroke-width="0.8"/>
+          <circle cx="20.5" cy="4.6" r="0.45" fill="#1e293b" stroke="#64748b" stroke-width="0.3"/>
+          <circle cx="23.5" cy="4.6" r="0.45" fill="#1e293b" stroke="#64748b" stroke-width="0.3"/>
+
+          <!-- Zmenšená vrchná zberacia lišta (šírka 15px, decentné zakončenia, tmavosivá kovová) -->
+          <rect x="14.5" y="2.6" width="15.0" height="0.8" rx="0.3" fill="#334155" stroke="#475569" stroke-width="0.4"/>
+          <path d="M 14.5 3.0 L 13.5 3.8 M 29.5 3.0 L 30.5 3.8" stroke="#475569" stroke-width="0.8" stroke-linecap="round"/>
+
+          <!-- Decentný drobný symbol blesku -->
+          <polygon points="22.3,3.8 21.3,5.0 22.1,5.0 21.5,6.2 23.0,4.8 22.1,4.8" fill="#eab308"/>
+
+          <!-- ŠIROKÝ TMAVÝ BATÉRIOVÝ BOX NA STRECHE -->
+          <rect x="10" y="7.2" width="24" height="2.6" rx="0.8" fill="#1e293b" stroke="#0f172a" stroke-width="0.8"/>
+          <line x1="12" y1="8.4" x2="32" y2="8.4" stroke="#475569" stroke-width="0.6" stroke-dasharray="1.2 0.8"/>
+
+          <!-- HLAVNÁ KAROSÉRIA (Kotas aerodynamická geometria - zaoblené plynulé línie) -->
+          <path d="M 4.2 12.5 C 4.2 9.8 8.5 9.0 22 9.0 C 35.5 9.0 39.8 9.8 39.8 12.5 L 39.8 36.5 C 39.8 38 38 38.8 35.5 38.8 L 8.5 38.8 C 6 38.8 4.2 38 4.2 36.5 Z"
+                fill="#0f172a" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" filter="url(#sor-ns18e-shadow)"/>
+
+          <!-- IKONICKÉ BIELE BOČNÉ SWOOSH OBLÚKY (Kotas dizajnové lemovanie stĺpikov z fotky) -->
+          <!-- Ľavý biely oblúk -->
+          <path d="M 4.2 13 C 4.2 10.2 7.5 9.3 10.5 9.3 L 9.5 11.2 C 7.5 11.2 6.0 12 6.0 14.5 L 6.0 33 C 6.0 35.2 5.2 37 4.2 37.5 Z" fill="#ffffff"/>
+          <!-- Pravý biely oblúk -->
+          <path d="M 39.8 13 C 39.8 10.2 36.5 9.3 33.5 9.3 L 34.5 11.2 C 36.5 11.2 38.0 12 38.0 14.5 L 38.0 33 C 38.0 35.2 38.8 37 39.8 37.5 Z" fill="#ffffff"/>
+
+          <!-- AERODYNAMICKÁ TMAVÁ KLENBA STRECHY -->
+          <path d="M 6.0 12.5 C 6.0 10.2 9.5 9.5 22 9.5 C 34.5 9.5 38.0 10.2 38.0 12.5 Z" fill="#0f172a"/>
+          <!-- Tmavý strešný displej trasy -->
+          <rect x="12" y="10" width="20" height="2.2" rx="0.5" fill="#18181b" stroke="#27272a" stroke-width="0.3"/>
+          <line x1="14" y1="11.1" x2="28" y2="11.1" stroke="#f59e0b" stroke-width="0.5" stroke-dasharray="1 0.8"/>
+
+          <!-- ČISTÉ BIELE ČELNÉ SKLO (fill="#ffffff") -->
+          <rect x="6.0" y="12.5" width="32.0" height="14.7" rx="1.5" fill="#ffffff" stroke="#0f172a" stroke-width="1.1"/>
+
+          <!-- DIAGONÁLNY POLOPRIEHLADNÝ BIELY/SVETLOSIVÝ ODLESK SKLA -->
+          <polygon points="25,12.5 29.5,12.5 21,27.2 16.5,27.2" fill="#e2e8f0" opacity="0.45"/>
+          <polygon points="31,12.5 33.5,12.5 26.5,27.2 24,27.2" fill="#e2e8f0" opacity="0.25"/>
+
+          <!-- INDIKAČNÁ LIŠTA MEŠKANIA (v hornej časti bieleho okna na celú šírku) -->
+          <rect class="veh-delay-bar" x="6.0" y="12.5" width="32.0" height="3.2" rx="1.5"
+                fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="6.0" y1="15.7" x2="38.0" y2="15.7" stroke="#0f172a" stroke-width="0.8"/>` : ''}
+
+          <!-- ČÍSLO LINKY (vycentrované v strede bieleho okna, striktne tučné a čierne) -->
+          <text x="22" y="21.0" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- STIERAČE ČELNÉHO SKLA -->
+          <line x1="9" y1="26.8" x2="18" y2="26.3" stroke="#0f172a" stroke-width="0.8" stroke-linecap="round"/>
+          <line x1="21" y1="26.8" x2="31" y2="26.3" stroke="#0f172a" stroke-width="0.8" stroke-linecap="round"/>
+
+          <!-- STREDNÁ TMAVÁ MASKA POD ČELNÝM SKLOM -->
+          <path d="M 13 27.2 L 31 27.2 L 31.5 33.2 L 12.5 33.2 Z" fill="#0f172a"/>
+          <!-- Logo SOR uprostred -->
+          <g transform="translate(22, 29.8)">
+            <ellipse cx="0" cy="0" rx="2.2" ry="1.1" fill="#1e293b" stroke="#cbd5e1" stroke-width="0.3"/>
+            <text x="0" y="0.1" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-weight="900" font-size="1.1px" fill="#ffffff" letter-spacing="0.2px">SOR</text>
+          </g>
+
+          <!-- STRIEBORNÉ/SIVÉ BOČNÉ PANELY SVETLOMETOV -->
+          <!-- Ľavý panel -->
+          <polygon points="6.0,27.2 13.0,27.2 12.5,33.2 6.0,33.2" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.4"/>
+          <!-- Pravý panel -->
+          <polygon points="31.0,27.2 38.0,27.2 38.0,33.2 31.5,33.2" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.4"/>
+
+          <!-- ŠIKMÉ BODOVÉ LED SVETLOMETY (neutrálne bielo-žlté) -->
+          <!-- Ľavé LED diódy a projektory -->
+          <circle cx="7.2" cy="28.4" r="0.45" fill="#ffffff" stroke="#64748b" stroke-width="0.15"/>
+          <circle cx="8.5" cy="28.9" r="0.45" fill="#ffffff" stroke="#64748b" stroke-width="0.15"/>
+          <circle cx="9.8" cy="29.5" r="0.45" fill="#ffffff" stroke="#64748b" stroke-width="0.15"/>
+          <circle cx="11.1" cy="30.2" r="0.45" fill="#ffffff" stroke="#64748b" stroke-width="0.15"/>
+          <circle cx="7.8" cy="31.4" r="0.9" fill="#ffffff" stroke="#64748b" stroke-width="0.25"/>
+          <circle cx="10.2" cy="31.6" r="0.75" fill="#fef08a" stroke="#ca8a04" stroke-width="0.25"/>
+
+          <!-- Pravé LED diódy a projektory -->
+          <circle cx="36.8" cy="28.4" r="0.45" fill="#ffffff" stroke="#64748b" stroke-width="0.15"/>
+          <circle cx="35.5" cy="28.9" r="0.45" fill="#ffffff" stroke="#64748b" stroke-width="0.15"/>
+          <circle cx="34.2" cy="29.5" r="0.45" fill="#ffffff" stroke="#64748b" stroke-width="0.15"/>
+          <circle cx="32.9" cy="30.2" r="0.45" fill="#ffffff" stroke="#64748b" stroke-width="0.15"/>
+          <circle cx="36.2" cy="31.4" r="0.9" fill="#ffffff" stroke="#64748b" stroke-width="0.25"/>
+          <circle cx="33.8" cy="31.6" r="0.75" fill="#fef08a" stroke="#ca8a04" stroke-width="0.25"/>
+
+          <!-- STRIEBORNÝ CHEVRON / V-LÍNIA ODDEĽUJÚCA MASKU A NÁRAZNÍK -->
+          <path d="M 6.0 33.2 L 22 34.6 L 38.0 33.2" fill="none" stroke="#e2e8f0" stroke-width="0.8"/>
+
+          <!-- SPODNÝ MASÍVNY NÁRAZNÍK (sýto tyrkysový / modrý pre elektrobusy #0284c7) -->
+          <path d="M 4.5 33.2 L 39.5 33.2 L 39.5 36.5 C 39.5 38 37.8 38.8 35.5 38.8 L 8.5 38.8 C 6.2 38.8 4.5 38 4.5 36.5 Z" fill="#0284c7"/>
+          <line x1="4.5" y1="33.2" x2="39.5" y2="33.2" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- Spodný aerodynamický čierny vstup vzduchu / spojler -->
+          <path d="M 13.5 36.5 L 30.5 36.5 L 29.5 38.8 L 14.5 38.8 Z" fill="#0f172a"/>
+          <circle cx="15.8" cy="37.6" r="0.5" fill="#fef08a"/>
+          <circle cx="28.2" cy="37.6" r="0.5" fill="#fef08a"/>
+
+          <!-- Malá ŠPZ v strede nárazníka -->
+          <rect x="17.5" y="34.2" width="9" height="2.2" rx="0.4" fill="#ffffff" stroke="#0f172a" stroke-width="0.4"/>
+          <text x="22" y="35.3" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.3px"
+                fill="#0f172a">${cleanSpz}</text>
+        </svg>
+      `;
+    }
+
+    // Alias pre spätnú kompatibilitu
+    function renderElectricBusSvg(b, s, line, d, ev = '6801') {
+      if (typeof line === 'string' || typeof line === 'number') {
+        return renderSorNs18ElectricSvg(line, d, ev);
+      }
+      return renderSorNs18ElectricSvg(b, s, ev);
+    }
+
+    // 6. SOR EBN 10.5 & 11 - mestský elektrobus s vysokým zaobleným hrbom na streche (⚡):
+    // Kompaktnejšie proporcie (44×42 px), sýto zelená/tyrkysová maska (#059669),
+    // čisté BIELE čelné sklo (fill="#ffffff") s veľkým tučným TMAVÝM číslom linky (#0f172a),
+    // horná lišta meškania, typické SOR tykadlá po bokoch, okrúhle bielo-žlté svetlá
+    function renderSorEbnSvg(line, delayColorOrMinutes = '', evNum = '6701') {
+      const safeLine = escapeXml(line || 'E1');
+      const displayEv = escapeXml(String(evNum || '6701').trim() || '6701');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const cleanSpz = 'KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv);
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 42" width="44" height="42" class="veh-front-svg veh-sor-ebn">
+          <defs>
+            <filter id="sor-ebn-shadow" x="-12%" y="-10%" width="124%" height="120%">
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
+            </filter>
+          </defs>
+
+          <!-- KOLESÁ (tmavé, pod nárazníkom) -->
+          <g fill="#0f172a">
+            <rect x="6" y="37" width="4.5" height="3.5" rx="1.2"/>
+            <rect x="33.5" y="37" width="4.5" height="3.5" rx="1.2"/>
+          </g>
+
+          <!-- TYPICKÉ SPÄTNÉ ZRKADLÁ SOR (TYKADLÁ) -->
+          <!-- Ľavé tykadlo -->
+          <path d="M 6.5 6 C 2.5 4.5, 0.6 7, 0.6 10.5 L 0.6 14" fill="none" stroke="#0f172a" stroke-width="1.4" stroke-linecap="round"/>
+          <rect x="0.2" y="10" width="1.8" height="7.2" rx="0.8" fill="#18181b" stroke="#0f172a" stroke-width="0.5"/>
+          <rect x="0.5" y="10.8" width="1.1" height="5.6" rx="0.3" fill="#334155" opacity="0.8"/>
+          <!-- Pravé tykadlo -->
+          <path d="M 37.5 6 C 41.5 4.5, 43.4 7, 43.4 10.5 L 43.4 14" fill="none" stroke="#0f172a" stroke-width="1.4" stroke-linecap="round"/>
+          <rect x="42" y="10" width="1.8" height="7.2" rx="0.8" fill="#18181b" stroke="#0f172a" stroke-width="0.5"/>
+          <rect x="42.4" y="10.8" width="1.1" height="5.6" rx="0.3" fill="#334155" opacity="0.8"/>
+
+          <!-- IKONICKÝ VYSOKÝ ZAOBLEŇÝ "HRB" NA STRECHE SOR EBN SO SYMBOLOM BLESKU ⚡ -->
+          <path d="M 10 6.5 C 10 1.2, 34 1.2, 34 6.5 Z" fill="#047857" stroke="#0f172a" stroke-width="1.2"/>
+          <path d="M 22.5 1.8 L 21 3.8 L 22.5 3.8 L 21.5 5.8 L 24 3.5 L 22.5 3.5 Z" fill="#fde047" stroke="#ca8a04" stroke-width="0.3"/>
+
+          <!-- HLAVNÁ KAROSÉRIA (SOR EBN - sýto zelená / tyrkysová #059669) -->
+          <rect x="4.5" y="5.8" width="35" height="32.2" rx="3.5" fill="#059669" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" filter="url(#sor-ebn-shadow)"/>
+
+          <!-- 1. HORNÁ HRANA NAD ČELNÝM SKLOM A DISPLEJ TRASY -->
+          <path d="M 4.8 8.8 L 4.8 7.2 C 4.8 6.4 5.6 5.8 6.8 5.8 L 37.2 5.8 C 38.4 5.8 39.2 6.4 39.2 7.2 L 39.2 8.8 Z" fill="#059669"/>
+          <rect x="12" y="6.4" width="20" height="2.2" rx="0.5" fill="#18181b" stroke="#27272a" stroke-width="0.3"/>
+          <line x1="14" y1="7.5" x2="28" y2="7.5" stroke="#f97316" stroke-width="0.5" stroke-dasharray="1 0.8"/>
+          <line x1="4.8" y1="8.8" x2="39.2" y2="8.8" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- 2. ČISTÉ BIELE ČELNÉ SKLO (fill="#ffffff") -->
+          <rect x="5.2" y="8.8" width="33.6" height="15.8" rx="1.6" fill="#ffffff" stroke="#0f172a" stroke-width="0.9"/>
+
+          <!-- DIAGONÁLNY SVETLOSIVÝ ODLESK SKLA -->
+          <polygon points="25,8.8 30,8.8 21,24.6 16,24.6" fill="#e2e8f0" opacity="0.45"/>
+          <polygon points="32,8.8 34.5,8.8 27,24.6 24.5,24.6" fill="#e2e8f0" opacity="0.25"/>
+
+          <!-- 3. INDIKAČNÁ LIŠTA MEŠKANIA (lícujúca s horným okrajom bieleho okna) -->
+          <path class="veh-delay-bar" d="M 5.2 11.8 L 5.2 9.6 C 5.2 9 5.7 8.8 6.5 8.8 L 37.5 8.8 C 38.3 8.8 38.8 9 38.8 9.6 L 38.8 11.8 Z"
+                fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="5.2" y1="11.8" x2="38.8" y2="11.8" stroke="#0f172a" stroke-width="0.8"/>` : ''}
+
+          <!-- 4. OBROVSKÉ TUČNÉ TMAVÉ ČÍSLO LINKY VYCENTROVANÉ V STREDE BIELÉHO SKLA -->
+          <text x="22" y="17.5" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- 5. PRECHODOVÝ PÁSIK MASKY -->
+          <rect x="4.8" y="24.6" width="34.4" height="1.4" fill="#047857"/>
+
+          <!-- 6. SNEHOBIELY STREDNÝ PANEL MASKY (s ev. číslom a logom SOR) -->
+          <rect x="4.8" y="26" width="34.4" height="5" fill="#ffffff"/>
+          <text x="22" y="27.6" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.7px"
+                fill="#0f172a" letter-spacing="0.2px">${displayEv}</text>
+          <!-- Logo SOR -->
+          <g transform="translate(22, 29.5)">
+            <rect x="-2" y="-0.5" width="4" height="1.1" rx="0.5" fill="#0f172a"/>
+            <ellipse cx="0" cy="0" rx="1.6" ry="0.4" fill="#f1f5f9"/>
+            <text x="0" y="0.1" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-weight="900" font-size="0.8px" fill="#b91c1c" letter-spacing="0.1px">SOR</text>
+          </g>
+
+          <!-- 7. SPODNÝ NÁRAZNÍK V SÝTO ZELENEJ / TYRKYSOVEJ FARBE (#059669) -->
+          <path d="M 4.8 31 L 39.2 31 L 39.2 34.5 C 39.2 36.5 37.8 38 35.5 38 L 8.5 38 C 6.2 38 4.8 36.5 4.8 34.5 Z" fill="#059669"/>
+          <line x1="4.8" y1="31" x2="39.2" y2="31" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- SVETLOMETY S NEUTRÁLNYMI BIELO-ŽLTÝMI SVETLAMI -->
+          <g>
+            <rect x="6.5" y="32.5" width="5.5" height="2.8" rx="0.6" fill="#0f172a" stroke="#1e293b" stroke-width="0.3"/>
+            <circle cx="8" cy="33.9" r="0.8" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.2"/>
+            <circle cx="10.4" cy="33.9" r="0.7" fill="#fef08a" stroke="#ca8a04" stroke-width="0.2"/>
+          </g>
+          <g>
+            <rect x="32" y="32.5" width="5.5" height="2.8" rx="0.6" fill="#0f172a" stroke="#1e293b" stroke-width="0.3"/>
+            <circle cx="33.6" cy="33.9" r="0.7" fill="#fef08a" stroke="#ca8a04" stroke-width="0.2"/>
+            <circle cx="36" cy="33.9" r="0.8" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.2"/>
+          </g>
+
+          <!-- MALÁ ŠPZ V STREDE NÁRAZNÍKA -->
+          <rect x="17.5" y="34.2" width="9" height="2.5" rx="0.5" fill="#ffffff" stroke="#0f172a" stroke-width="0.4"/>
+          <text x="22" y="35.4" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.4px"
+                fill="#0f172a">${cleanSpz}</text>
+        </svg>
+      `;
+    }
+
+    // 7. SOR NSG 18 - moderný kĺbový plynový autobus podľa košickej predlohy (č. 4801):
+    // Kotas aerodynamická geometria (44×42 px), tmavá/čierna strešná klenba CNG krytu nádrží na streche,
+    // žlté horné oblúky v rohoch a stĺpiky lemujúce sklo, azúrovo-modré boky,
+    // elegantný smerom nadol plynule zaoblený čierny štít (<path>) s ev. č. 4801 a znakom SOR,
+    // tenká žltá zakrivená línia ("úsmev") prepájajúca ľavý a pravý žltý stĺpik pod čiernym štítom,
+    // nárazník so snehobielym stredom a plynulo azúrovými rohmi so šikmými (klinovými) svetlometmi s neutrálnym svitom,
+    // čisté biele čelné sklo s obrovským čiernym číslom linky a integrovanou lištou meškania
+    function renderSorNsg18Svg(line, delayColorOrMinutes = '', evNum = '4801') {
+      const safeLine = escapeXml(line || '15');
+      const displayEv = escapeXml(String(evNum || '4801').trim() || '4801');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const clipId = 'ws-clip-nsg18-' + Math.random().toString(36).substr(2, 7);
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 42" width="44" height="42" class="veh-front-svg veh-sor-nsg18">
+          <defs>
+            <filter id="sor-nsg18-shadow" x="-12%" y="-10%" width="124%" height="120%">
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
+            </filter>
+            <clipPath id="${clipId}">
+              <path d="M 6.8 12.5 C 6.8 11.2 11 10.5 22 10.5 C 33 10.5 37.2 11.2 37.2 12.5 L 37.2 25.0 C 37.2 26.0 33 26.6 22 26.6 C 11 26.6 6.8 26.0 6.8 25.0 Z"/>
+            </clipPath>
+          </defs>
+
+          <!-- PODVOZOK A KOLESÁ -->
+          <g fill="#0f172a">
+            <rect x="6.5" y="37.5" width="4.5" height="4" rx="1"/>
+            <rect x="33.0" y="37.5" width="4.5" height="4" rx="1"/>
+          </g>
+          <line x1="6.5" y1="41" x2="11" y2="41" stroke="#334155" stroke-width="0.8"/>
+          <line x1="33" y1="41" x2="37.5" y2="41" stroke="#334155" stroke-width="0.8"/>
+
+          <!-- SPÄTNÉ ZRKADLÁ SOR (TYKADLÁ) -->
+          <!-- Ľavé tykadlo -->
+          <path d="M 5.8 9.8 C 2.8 9.0, 0.6 11.5, 0.8 15.5 L 1.0 17.8" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M 0.3 14.8 C -0.1 16.2, 0.1 19.2, 1.3 20.8 C 1.9 19.2, 1.9 16.2, 1.5 14.8 Z" fill="#18181b" stroke="#0f172a" stroke-width="0.4"/>
+          <rect x="0.5" y="15.5" width="0.7" height="4.5" rx="0.2" fill="#38bdf8" opacity="0.6"/>
+          <!-- Pravé tykadlo -->
+          <path d="M 38.2 9.8 C 41.2 9.0, 43.4 11.5, 43.2 15.5 L 43.0 17.8" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M 43.7 14.8 C 44.1 16.2, 43.9 19.2, 42.7 20.8 C 42.1 19.2, 42.1 16.2, 42.5 14.8 Z" fill="#18181b" stroke="#0f172a" stroke-width="0.4"/>
+          <rect x="42.8" y="15.5" width="0.7" height="4.5" rx="0.2" fill="#38bdf8" opacity="0.6"/>
+
+          <!-- TMAVÁ STREŠNÁ CNG KLENBA (KRYT NÁDRŽÍ NA STRECHE - TMAVÁ/ČIERNA) -->
+          <path d="M 12 7.0 C 12 4.2 16 3.2 22 3.2 C 28 3.2 32 4.2 32 7.0 Z" fill="#0f172a" stroke="#0f172a" stroke-width="0.8"/>
+          <path d="M 14.5 6.5 C 16 5.0 19 4.4 22 4.4 C 25 4.4 28 5.0 29.5 6.5 Z" fill="#1e293b"/>
+
+          <!-- HLAVNÁ KAROSÉRIA - ELEGANTNÝ AERODYNAMICKÝ KOTAS TVAR (modrá báza s tieňom) -->
+          <path d="M 4.5 11.5 C 4.5 8.5 9 7.2 22 7.2 C 35 7.2 39.5 8.5 39.5 11.5 L 39.5 35.8 C 39.5 37.8 37.5 38.6 35 38.6 L 9 38.6 C 6.5 38.6 4.5 37.8 4.5 35.8 Z"
+                fill="#0284c7" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" filter="url(#sor-nsg18-shadow)"/>
+
+          <!-- ŽLTÉ HORNÉ OBLÚKY V ROHOCH A BOČNÉ STĹPIKY (#facc15) -->
+          <!-- Ľavý žltý oblúk / stĺpik -->
+          <path d="M 4.5 11.5 C 4.5 8.5 8.5 7.4 14.5 7.4 L 14.0 9.4 C 9.5 9.4 6.8 10.5 6.8 12.5 L 6.8 25.5 C 5.8 24.5 4.5 22 4.5 19 Z" fill="#facc15"/>
+          <!-- Pravý žltý oblúk / stĺpik -->
+          <path d="M 39.5 11.5 C 39.5 8.5 35.5 7.4 29.5 7.4 L 30.0 9.4 C 34.5 9.4 37.2 10.5 37.2 12.5 L 37.2 25.5 C 38.2 24.5 39.5 22 39.5 19 Z" fill="#facc15"/>
+
+          <!-- TMAVÝ HORNÝ DISPLEJ TRASY (15 OC CASSOVIA) MEDZI ŽLTÝMI ROHMI -->
+          <path d="M 12 7.2 L 32 7.2 L 32 10.5 L 12 10.5 Z" fill="#0f172a"/>
+          <rect x="12.5" y="8.2" width="19" height="2.2" rx="0.4" fill="#18181b" stroke="#27272a" stroke-width="0.3"/>
+          <text x="22" y="9.4" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.5px" fill="#f8fafc" letter-spacing="0.2px">15 OC CASSOVIA</text>
+
+          <!-- ČISTÉ BIELE ČELNÉ SKLO (fill="#ffffff") -->
+          <path d="M 6.8 12.5 C 6.8 11.2 11 10.5 22 10.5 C 33 10.5 37.2 11.2 37.2 12.5 L 37.2 25.0 C 37.2 26.0 33 26.6 22 26.6 C 11 26.6 6.8 26.0 6.8 25.0 Z"
+                fill="#ffffff" stroke="#0f172a" stroke-width="1.1"/>
+
+          <!-- JEMNÝ DIAGONÁLNY ODLESK SKLA -->
+          <polygon points="25,10.5 29,10.5 21,26.5 17,26.5" fill="#e2e8f0" opacity="0.45" clip-path="url(#${clipId})"/>
+
+          <!-- INDIKAČNÁ LIŠTA MEŠKANIA (v hornej časti okna) -->
+          <rect class="veh-delay-bar" x="6.8" y="10.5" width="30.4" height="3.2" fill="${delayFill}" clip-path="url(#${clipId})" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="6.8" y1="13.7" x2="37.2" y2="13.7" stroke="#0f172a" stroke-width="0.8"/>` : ''}
+
+          <!-- OBROVSKÉ TUČNÉ ČIERNE ČÍSLO LINKY VYCENTROVANÉ V OKNE -->
+          <text x="22" y="19.2" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- STIERAČE ČELNÉHO SKLA -->
+          <line x1="10" y1="25.8" x2="18.5" y2="25.2" stroke="#0f172a" stroke-width="0.7" stroke-linecap="round"/>
+          <line x1="21.5" y1="25.8" x2="31" y2="25.2" stroke="#0f172a" stroke-width="0.7" stroke-linecap="round"/>
+
+          <!-- SPODNÝ NÁRAZNÍK: SNEHOBIELY STRED A AZÚROVO-MODRÉ ROHY -->
+          <!-- Ľavý azúrový roh -->
+          <path d="M 4.5 29.5 L 12.5 30.5 L 11.8 38.6 L 8.5 38.6 C 6.2 38.6 4.5 37.5 4.5 35.8 Z" fill="#0284c7"/>
+          <!-- Pravý azúrový roh -->
+          <path d="M 39.5 29.5 L 31.5 30.5 L 32.2 38.6 L 35.5 38.6 C 37.8 38.6 39.5 37.5 39.5 35.8 Z" fill="#0284c7"/>
+          <!-- Biely stred nárazníka -->
+          <path d="M 12.5 30.5 C 16.5 33.2 27.5 33.2 31.5 30.5 L 32.2 38.6 L 11.8 38.6 Z" fill="#ffffff"/>
+
+          <!-- ŠPZ v bielom strede nárazníka -->
+          <rect x="17.5" y="34.8" width="9" height="1.9" rx="0.3" fill="#ffffff" stroke="#0f172a" stroke-width="0.3"/>
+          <rect x="17.5" y="34.8" width="1.5" height="1.9" fill="#2563eb"/>
+          <text x="22.2" y="35.8" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.1px" fill="#0f172a" letter-spacing="0.1px">AA·403EV</text>
+
+          <!-- Spodný splitter / vstup vzduchu -->
+          <rect x="15.5" y="37.2" width="13" height="1.4" rx="0.3" fill="#0f172a"/>
+
+          <!-- ŽLTÁ ZAKRIVENÁ LÍNIA (ÚSMEV) PREPÁJAJÚCA ŽLTÉ STĹPIKY KAROSÉRIE (#facc15) -->
+          <path d="M 5.8 25.5 C 7.5 28.8 13.5 31.8 22 31.8 C 30.5 31.8 36.5 28.8 38.2 25.5 L 37.2 27.0 C 35.2 29.8 29.5 32.8 22 32.8 C 14.5 32.8 8.8 29.8 6.8 27.0 Z"
+                fill="#facc15" stroke="#ca8a04" stroke-width="0.3"/>
+
+          <!-- ELEGANTNÝ ČIERNY ŠTÍT POD ČELNÝM SKLOM (plynule zaoblený nadol, nie hranatý blok) -->
+          <path d="M 7.5 25.4 C 11.5 26.2 32.5 26.2 36.5 25.4 C 35.8 28.2 30.5 30.6 22 30.6 C 13.5 30.6 8.2 28.2 7.5 25.4 Z"
+                fill="#0f172a" stroke="#0f172a" stroke-width="0.6"/>
+
+          <!-- Drobné biele evidenčné číslo vo vnútri čierneho štítu -->
+          <text x="26.5" y="27.8" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.6px"
+                fill="#ffffff" letter-spacing="0.2px">${displayEv}</text>
+
+          <!-- Drobný znak SOR v čiernom štíte -->
+          <g transform="translate(18.5, 27.9)">
+            <ellipse cx="0" cy="0" rx="1.5" ry="0.8" fill="#1e293b" stroke="#cbd5e1" stroke-width="0.25"/>
+            <text x="0" y="0.1" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-weight="900" font-size="0.8px" fill="#ffffff" letter-spacing="0.1px">SOR</text>
+          </g>
+
+          <!-- ŠIKMÉ (KLINOVÉ) KRYTY PRE SVETLOMETY V MODRÝCH ROHOCH NÁRAZNÍKA -->
+          <!-- Ľavé klinové svetlo -->
+          <g>
+            <polygon points="5.8,30.2 12.2,31.2 11.6,35.2 5.5,34.0" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.4"/>
+            <!-- Bodové neutrálne LED diódy (šikmá línia) -->
+            <circle cx="6.6" cy="31.2" r="0.35" fill="#ffffff"/>
+            <circle cx="7.7" cy="31.6" r="0.35" fill="#ffffff"/>
+            <circle cx="8.9" cy="32.0" r="0.35" fill="#ffffff"/>
+            <circle cx="10.1" cy="32.5" r="0.35" fill="#ffffff"/>
+            <!-- Hlavný neutrálny projektor svetlometu -->
+            <circle cx="7.2" cy="33.0" r="0.8" fill="#ffffff" stroke="#64748b" stroke-width="0.2"/>
+            <circle cx="9.5" cy="33.5" r="0.7" fill="#fef08a" stroke="#ca8a04" stroke-width="0.2"/>
+          </g>
+          <!-- Pravé klinové svetlo -->
+          <g>
+            <polygon points="38.2,30.2 31.8,31.2 32.4,35.2 38.5,34.0" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.4"/>
+            <!-- Bodové neutrálne LED diódy (šikmá línia) -->
+            <circle cx="37.4" cy="31.2" r="0.35" fill="#ffffff"/>
+            <circle cx="36.3" cy="31.6" r="0.35" fill="#ffffff"/>
+            <circle cx="35.1" cy="32.0" r="0.35" fill="#ffffff"/>
+            <circle cx="33.9" cy="32.5" r="0.35" fill="#ffffff"/>
+            <!-- Hlavný neutrálny projektor svetlometu -->
+            <circle cx="36.8" cy="33.0" r="0.8" fill="#ffffff" stroke="#64748b" stroke-width="0.2"/>
+            <circle cx="34.5" cy="33.5" r="0.7" fill="#fef08a" stroke="#ca8a04" stroke-width="0.2"/>
+          </g>
+        </svg>
+      `;
+    }
+
+    // 8. SOR NSG 12
+    function renderSorNsg12Svg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-nsg12-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 46" width="44" height="46" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><path d="M 7.5 9 Q 22 6.5 36.5 9 L 36.5 31 Q 22 33 7.5 31 Z"/></clipPath></defs>
+        <path d="M 12 6 C 12 1.2, 32 1.2, 32 6 Z" fill="#0e7490" stroke="#06b6d4" stroke-width="1.4"/>
+        <rect x="6.5" y="39" width="6" height="4.5" rx="1.5" fill="#0f172a"/>
+        <rect x="31.5" y="39" width="6" height="4.5" rx="1.5" fill="#0f172a"/>
+        <rect x="5" y="6" width="34" height="35" rx="6" fill="#0284c7" stroke="#38bdf8" stroke-width="2.5"/>
+        <rect x="1.5" y="10" width="3.5" height="8" rx="1.5" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+        <rect x="39" y="10" width="3.5" height="8" rx="1.5" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+        <path d="M 7.5 9 Q 22 6.5 36.5 9 L 36.5 31 Q 22 33 7.5 31 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect class="veh-delay-bar" x="7" y="7" width="30" height="6.5" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="22" y="20.5" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="15" y="33" width="14" height="4" rx="2" fill="#0f172a"/>
+        <path d="M 9 32 Q 12 32.5 13 34.5" stroke="#fef08a" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M 35 32 Q 32 32.5 31 34.5" stroke="#fef08a" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>`;
+    }
+
+    // 9. SOR NB 18 City - kĺbový veľkokapacitný naftový autobus podľa košickej predlohy:
+    // Kompaktnejšie a usadenejšie proporcie (44×42 px, viditeľne menší ako električky), strešná klíma,
+    // čisté BIELE čelné sklo (fill="#ffffff") s jemným odleskom, veľké tučné TMAVÉ číslo linky (#0f172a),
+    // horizontálna lišta meškania, tenký žltý pásik, biely stred s ev. číslom 4761 a logom SOR,
+    // typické spätné zrkadlá (tykadlá SOR) po bokoch, azúrovo-modrý nárazník s elegantnými svetlometmi a ŠPZ
+    function renderSorNb18Svg(line, delayColorOrMinutes = '', evNum = '4761') {
+      const safeLine = escapeXml(line || '71');
+      const displayEv = escapeXml(String(evNum || '4761').trim() || '4761');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const cleanSpz = 'KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv);
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 42" width="44" height="42" class="veh-front-svg veh-sor-nb18">
+          <defs>
+            <filter id="sor-nb18-shadow" x="-12%" y="-10%" width="124%" height="120%">
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
+            </filter>
+          </defs>
+
+          <!-- KOLESÁ (pod nárazníkom) -->
+          <g fill="#0f172a">
+            <rect x="6" y="37" width="4.5" height="3.5" rx="1.2"/>
+            <rect x="33.5" y="37" width="4.5" height="3.5" rx="1.2"/>
+          </g>
+
+          <!-- TYPICKÉ SPÄTNÉ ZRKADLÁ SOR (TYKADLÁ) - prispôsobené kompaktnejšiemu tvaru -->
+          <!-- Ľavé tykadlo -->
+          <path d="M 7.5 4.5 C 3.5 3, 1 6, 1 9.5 L 1 12.5" fill="none" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
+          <rect x="0.3" y="9" width="2" height="7.5" rx="0.9" fill="#18181b" stroke="#0f172a" stroke-width="0.5"/>
+          <rect x="0.7" y="9.8" width="1.2" height="5.8" rx="0.4" fill="#334155" opacity="0.8"/>
+          <!-- Pravé tykadlo -->
+          <path d="M 36.5 4.5 C 40.5 3, 43 6, 43 9.5 L 43 12.5" fill="none" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
+          <rect x="41.7" y="9" width="2" height="7.5" rx="0.9" fill="#18181b" stroke="#0f172a" stroke-width="0.5"/>
+          <rect x="42.1" y="9.8" width="1.2" height="5.8" rx="0.4" fill="#334155" opacity="0.8"/>
+
+          <!-- STREŠNÝ BOX KLIMATIZÁCIE (kĺbový NB 18) -->
+          <rect x="13" y="1" width="18" height="2.2" rx="1" fill="#f8fafc" stroke="#0f172a" stroke-width="0.8"/>
+          <line x1="15" y1="2.1" x2="29" y2="2.1" stroke="#94a3b8" stroke-width="0.5"/>
+
+          <!-- HLAVNÁ KAROSÉRIA (kompaktnejšia, širšia silueta, modrá karoséria #0284c7) -->
+          <rect x="4.5" y="3.5" width="35" height="34.5" rx="3.5" fill="#0284c7" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" filter="url(#sor-nb18-shadow)"/>
+
+          <!-- 1. VRCHNÁ ŽLTÁ HRANA NAD ČELNÝM SKLOM -->
+          <path d="M 4.8 7.2 L 4.8 5.5 C 4.8 4.4 5.8 3.5 7 3.5 L 37 3.5 C 38.2 3.5 39.2 4.4 39.2 5.5 L 39.2 7.2 Z" fill="#facc15"/>
+          <!-- Displej v žltej streche -->
+          <rect x="13" y="4.2" width="18" height="2.2" rx="0.6" fill="#18181b" stroke="#27272a" stroke-width="0.4"/>
+          <line x1="15" y1="5.3" x2="29" y2="5.3" stroke="#f97316" stroke-width="0.5" stroke-dasharray="1 0.8"/>
+          <line x1="4.8" y1="7.2" x2="39.2" y2="7.2" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- 2. ČISTÉ BIELE ČELNÉ SKLO (fill="#ffffff") -->
+          <rect x="5.2" y="7.2" width="33.6" height="16.3" rx="1.5" fill="#ffffff" stroke="#0f172a" stroke-width="0.9"/>
+
+          <!-- DIAGONÁLNY POLOPRIEHLADNÝ BIELY/SVETLOSIVÝ ODLESK SKLA -->
+          <polygon points="25,7.2 30,7.2 21,23.5 16,23.5" fill="#e2e8f0" opacity="0.45"/>
+          <polygon points="32,7.2 34.5,7.2 27,23.5 24.5,23.5" fill="#e2e8f0" opacity="0.25"/>
+
+          <!-- 3. INDIKAČNÁ LIŠTA MEŠKANIA (v hornej časti bieleho skla na celú šírku) -->
+          <path class="veh-delay-bar" d="M 5.2 10.8 L 5.2 8.2 C 5.2 7.6 5.8 7.2 6.5 7.2 L 37.5 7.2 C 38.2 7.2 38.8 7.6 38.8 8.2 L 38.8 10.8 Z"
+                fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="5.2" y1="10.8" x2="38.8" y2="10.8" stroke="#0f172a" stroke-width="0.8"/>` : ''}
+
+          <!-- 4. VEĽKÉ TUČNÉ TMAVÉ ČÍSLO LINKY VYCENTROVANÉ V STREDE BIELÉHO SKLA -->
+          <text x="22" y="16.5" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- 5. TENKÝ ŽLTÝ PÁSIK POD SKLOM -->
+          <rect x="4.8" y="23.5" width="34.4" height="1.5" fill="#facc15" stroke="#ca8a04" stroke-width="0.3"/>
+
+          <!-- 6. SNEHOBIELY STREDNÝ PANEL S EVIDENČNÝM ČÍSLOM A LOGOM SOR -->
+          <rect x="4.8" y="25" width="34.4" height="5.5" fill="#ffffff"/>
+          <text x="22" y="27" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="3px"
+                fill="#0f172a" letter-spacing="0.2px">${displayEv}</text>
+          <!-- Logo SOR -->
+          <g transform="translate(22, 29.2)">
+            <rect x="-2.2" y="-0.7" width="4.4" height="1.4" rx="0.7" fill="#0f172a"/>
+            <ellipse cx="0" cy="0" rx="1.8" ry="0.5" fill="#f1f5f9"/>
+            <text x="0" y="0.1" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-weight="900" font-size="0.9px" fill="#b91c1c" letter-spacing="0.1px">SOR</text>
+          </g>
+
+          <!-- 7. SPODNÝ AZÚROVO-MODRÝ NÁRAZNÍK -->
+          <path d="M 4.8 30.5 L 39.2 30.5 L 39.2 34.5 C 39.2 36.5 37.8 38 35.5 38 L 8.5 38 C 6.2 38 4.8 36.5 4.8 34.5 Z" fill="#0284c7"/>
+          <line x1="4.8" y1="30.5" x2="39.2" y2="30.5" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- ELEGANTNÉ MENŠIE REALISTICKÉ SVETLOMETY (neutrálna biela / svetlosivá v tmavom kryte) -->
+          <!-- Ľavý svetlomet -->
+          <g>
+            <rect x="6.5" y="31.8" width="4.8" height="2.4" rx="0.6" fill="#0f172a" stroke="#1e293b" stroke-width="0.3"/>
+            <circle cx="7.8" cy="33" r="0.8" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.2"/>
+            <circle cx="10" cy="33" r="0.6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.2"/>
+          </g>
+          <!-- Pravý svetlomet -->
+          <g>
+            <rect x="32.7" y="31.8" width="4.8" height="2.4" rx="0.6" fill="#0f172a" stroke="#1e293b" stroke-width="0.3"/>
+            <circle cx="34" cy="33" r="0.6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.2"/>
+            <circle cx="36.2" cy="33" r="0.8" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.2"/>
+          </g>
+
+          <!-- MALÁ ŠPZ V STREDE NÁRAZNÍKA -->
+          <rect x="18" y="33.8" width="8" height="2.6" rx="0.5" fill="#ffffff" stroke="#0f172a" stroke-width="0.4"/>
+          <text x="22" y="35.1" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.5px"
+                fill="#0f172a" letter-spacing="0.2px">${cleanSpz}</text>
+        </svg>
+      `;
+    }
+
+    // Alias pre spätnú kompatibilitu
+    function renderSorNbSvg(line, delayColorOrMinutes = '', evNum = '4761', isArticulated = true) {
+      return isArticulated
+        ? renderSorNb18Svg(line, delayColorOrMinutes, evNum)
+        : renderSorNb12Svg(line, delayColorOrMinutes, evNum);
+    }
+
+    // 10. SOR NB 12 City - krátky štandardný sólo autobus podľa košickej predlohy:
+    // Kompaktná sólo karoséria (40×38 px, viditeľne menšia ako električky) bez klímy, zaoblené horné rohy,
+    // čisté BIELE čelné sklo (fill="#ffffff") s jemným odleskom, veľké tučné TMAVÉ číslo linky (#0f172a),
+    // horizontálna lišta meškania, tenký žltý pásik, biely stred s ev. číslom 5701 a logom SOR,
+    // tykadlá SOR, azúrovo-modrý nárazník s elegantnými svetlometmi a ŠPZ
+    function renderSorNb12Svg(line, delayColorOrMinutes = '', evNum = '5701') {
+      const safeLine = escapeXml(line || '19');
+      const displayEv = escapeXml(String(evNum || '5701').trim() || '5701');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 13 : (len === 2 ? 12 : (len === 3 ? 9.5 : 8));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const cleanSpz = 'KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv);
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 38" width="40" height="38" class="veh-front-svg veh-sor-nb12">
+          <defs>
+            <filter id="sor-nb12-shadow" x="-12%" y="-10%" width="124%" height="120%">
+              <feDropShadow dx="0" dy="1.3" stdDeviation="1" flood-color="#000000" flood-opacity="0.3"/>
+            </filter>
+          </defs>
+
+          <!-- KOLESÁ (pod nárazníkom) -->
+          <g fill="#0f172a">
+            <rect x="6" y="33.5" width="4" height="3.5" rx="1.2"/>
+            <rect x="30" y="33.5" width="4" height="3.5" rx="1.2"/>
+          </g>
+
+          <!-- TYPICKÉ SPÄTNÉ ZRKADLÁ SOR (TYKADLÁ) - prispôsobené menšiemu a kompaktnejšiemu tvaru -->
+          <!-- Ľavé tykadlo -->
+          <path d="M 7 4 C 3 2.5, 0.8 5, 0.8 8.5 L 0.8 11.5" fill="none" stroke="#0f172a" stroke-width="1.4" stroke-linecap="round"/>
+          <rect x="0.2" y="8" width="1.8" height="6.8" rx="0.8" fill="#18181b" stroke="#0f172a" stroke-width="0.5"/>
+          <rect x="0.5" y="8.8" width="1.1" height="5.2" rx="0.3" fill="#334155" opacity="0.8"/>
+          <!-- Pravé tykadlo -->
+          <path d="M 33 4 C 37 2.5, 39.2 5, 39.2 8.5 L 39.2 11.5" fill="none" stroke="#0f172a" stroke-width="1.4" stroke-linecap="round"/>
+          <rect x="38" y="8" width="1.8" height="6.8" rx="0.8" fill="#18181b" stroke="#0f172a" stroke-width="0.5"/>
+          <rect x="38.4" y="8.8" width="1.1" height="5.2" rx="0.3" fill="#334155" opacity="0.8"/>
+
+          <!-- HLAVNÁ KAROSÉRIA (SOR NB 12 - sólo kompaktná silueta, bez klímy, jemne zaoblené horné rohy) -->
+          <rect x="4.5" y="3.5" width="31" height="31" rx="3.2" fill="#0284c7" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" filter="url(#sor-nb12-shadow)"/>
+
+          <!-- 1. VRCHNÁ ŽLTÁ HRANA NAD ČELNÝM SKLOM -->
+          <path d="M 4.8 7.2 L 4.8 5.5 C 4.8 4.4 5.8 3.5 7 3.5 L 33 3.5 C 34.2 3.5 35.2 4.4 35.2 5.5 L 35.2 7.2 Z" fill="#facc15"/>
+          <!-- Displej v žltej streche -->
+          <rect x="12" y="4.2" width="16" height="2.2" rx="0.6" fill="#18181b" stroke="#27272a" stroke-width="0.4"/>
+          <line x1="13.5" y1="5.3" x2="26.5" y2="5.3" stroke="#f97316" stroke-width="0.5" stroke-dasharray="1 0.8"/>
+          <line x1="4.8" y1="7.2" x2="35.2" y2="7.2" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- 2. ČISTÉ BIELE ČELNÉ SKLO (fill="#ffffff") -->
+          <rect x="5.2" y="7.2" width="29.6" height="14.3" rx="1.4" fill="#ffffff" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- DIAGONÁLNY POLOPRIEHLADNÝ BIELY/SVETLOSIVÝ ODLESK SKLA -->
+          <polygon points="22,7.2 26.5,7.2 19,21.5 14.5,21.5" fill="#e2e8f0" opacity="0.45"/>
+          <polygon points="28,7.2 30.5,7.2 24.5,21.5 22,21.5" fill="#e2e8f0" opacity="0.25"/>
+
+          <!-- 3. INDIKAČNÁ LIŠTA MEŠKANIA (v hornej časti bieleho skla na celú šírku pod žltým pásikom) -->
+          <path class="veh-delay-bar" d="M 5.2 10.5 L 5.2 8.2 C 5.2 7.6 5.8 7.2 6.5 7.2 L 33.5 7.2 C 34.2 7.2 34.8 7.6 34.8 8.2 L 34.8 10.5 Z"
+                fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="5.2" y1="10.5" x2="34.8" y2="10.5" stroke="#0f172a" stroke-width="0.8"/>` : ''}
+
+          <!-- 4. VEĽKÉ TUČNÉ TMAVÉ ČÍSLO LINKY VYCENTROVANÉ V STREDE BIELÉHO SKLA -->
+          <text x="20" y="15.5" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- 5. TENKÝ ŽLTÝ PÁSIK POD SKLOM -->
+          <rect x="4.8" y="21.5" width="30.4" height="1.5" fill="#facc15" stroke="#ca8a04" stroke-width="0.3"/>
+
+          <!-- 6. SNEHOBIELY STREDNÝ PANEL S EVIDENČNÝM ČÍSLOM A LOGOM SOR -->
+          <rect x="4.8" y="23" width="30.4" height="5" fill="#ffffff"/>
+          <text x="20" y="24.8" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.7px"
+                fill="#0f172a" letter-spacing="0.2px">${displayEv}</text>
+          <!-- Logo SOR -->
+          <g transform="translate(20, 26.8)">
+            <rect x="-2" y="-0.6" width="4" height="1.2" rx="0.6" fill="#0f172a"/>
+            <ellipse cx="0" cy="0" rx="1.6" ry="0.45" fill="#f1f5f9"/>
+            <text x="0" y="0.1" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-weight="900" font-size="0.8px" fill="#b91c1c" letter-spacing="0.1px">SOR</text>
+          </g>
+
+          <!-- 7. SPODNÝ AZÚROVO-MODRÝ NÁRAZNÍK -->
+          <path d="M 4.8 28 L 35.2 28 L 35.2 31.5 C 35.2 33.2 33.8 34.5 31.8 34.5 L 8.2 34.5 C 6.2 34.5 4.8 33.2 4.8 31.5 Z" fill="#0284c7"/>
+          <line x1="4.8" y1="28" x2="35.2" y2="28" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- ELEGANTNÉ MENŠIE REALISTICKÉ SVETLOMETY (neutrálna biela / svetlosivá v tmavom kryte) -->
+          <!-- Ľavý svetlomet -->
+          <g>
+            <rect x="6.2" y="29" width="4.4" height="2.2" rx="0.5" fill="#0f172a" stroke="#1e293b" stroke-width="0.3"/>
+            <circle cx="7.4" cy="30.1" r="0.7" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.2"/>
+            <circle cx="9.4" cy="30.1" r="0.5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.2"/>
+          </g>
+          <!-- Pravý svetlomet -->
+          <g>
+            <rect x="29.4" y="29" width="4.4" height="2.2" rx="0.5" fill="#0f172a" stroke="#1e293b" stroke-width="0.3"/>
+            <circle cx="30.6" cy="30.1" r="0.5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.2"/>
+            <circle cx="32.6" cy="30.1" r="0.7" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.2"/>
+          </g>
+
+          <!-- MALÁ ŠPZ V STREDE NÁRAZNÍKA -->
+          <rect x="16.5" y="30.8" width="7" height="2.4" rx="0.5" fill="#ffffff" stroke="#0f172a" stroke-width="0.4"/>
+          <text x="20" y="32" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.4px"
+                fill="#0f172a" letter-spacing="0.2px">${cleanSpz}</text>
+        </svg>
+      `;
+    }
+
+    // 11. SOR NBG 12 City
+    function renderSorNbg12Svg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-nbg12-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 46" width="44" height="46" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><rect x="8" y="9" width="28" height="22" rx="4"/></clipPath></defs>
+        <path d="M 11 7 C 11 1.8, 33 1.8, 33 7 Z" fill="#0d9488" stroke="#14b8a6" stroke-width="1.5"/>
+        <rect x="7" y="39" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="31" y="39" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="5" y="6" width="34" height="35" rx="6" fill="#0f766e" stroke="#2dd4bf" stroke-width="2.5"/>
+        <rect x="1.5" y="11" width="3.5" height="8" rx="1.5" fill="#0f172a" stroke="#2dd4bf" stroke-width="1"/>
+        <rect x="39" y="11" width="3.5" height="8" rx="1.5" fill="#0f172a" stroke="#2dd4bf" stroke-width="1"/>
+        <rect x="8" y="9" width="28" height="22" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect class="veh-delay-bar" x="8" y="9" width="28" height="5.5" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="22" y="23" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="15" y="34" width="14" height="3.8" rx="1.8" fill="#0f172a"/>
+        <circle cx="9.5" cy="34.5" r="1.4" fill="#fef08a"/>
+        <circle cx="12.5" cy="34.5" r="1.4" fill="#fef08a"/>
+        <circle cx="31.5" cy="34.5" r="1.4" fill="#fef08a"/>
+        <circle cx="34.5" cy="34.5" r="1.4" fill="#fef08a"/>
+      </svg>`;
+    }
+
+    // 12. SOR BN 9,5 - mestský midibus 9,5m s ikonickým strešným hrbom a zúženou agilnou siluetou (36×38 px):
+    // Asymetrická oblená nadstavba/hrb na streche s lamelami (podľa fotky vozu 6705), zúžená karoséria (24 px šírka),
+    // žltá horná hrana s displejom, biele čelné sklo s obrovským tmavým číslom linky (#0f172a), integrovaná lišta meškania,
+    // biely stredný panel s ev. č. 6705 a logom SOR, azúrovo-modrý nárazník s neutrálnymi svetlami a tykadlá SOR
+    function renderSorBn95Svg(line, delayColorOrMinutes = '', evNum = '6705') {
+      const safeLine = escapeXml(line || '31');
+      const displayEv = escapeXml(String(evNum || '6705').trim() || '6705');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 11.5 : (len === 2 ? 11 : (len === 3 ? 8.5 : 7.2));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const cleanSpz = 'KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv);
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 38" width="36" height="38" class="veh-front-svg veh-sor-bn95">
+          <defs>
+            <filter id="sor-bn95-shadow" x="-12%" y="-10%" width="124%" height="120%">
+              <feDropShadow dx="0" dy="1.2" stdDeviation="0.9" flood-color="#000000" flood-opacity="0.3"/>
+            </filter>
+          </defs>
+
+          <!-- KOLESÁ (pod nárazníkom) -->
+          <g fill="#0f172a">
+            <rect x="7" y="34" width="3.6" height="3" rx="1"/>
+            <rect x="25.4" y="34" width="3.6" height="3" rx="1"/>
+          </g>
+
+          <!-- TYPICKÉ SPÄTNÉ ZRKADLÁ SOR (TYKADLÁ) - prispôsobené úzkej 36px karosérii -->
+          <!-- Ľavé tykadlo -->
+          <path d="M 6.8 6.5 C 3 4.8, 1 7.2, 1 10.5 L 1 13" fill="none" stroke="#0f172a" stroke-width="1.3" stroke-linecap="round"/>
+          <rect x="0.3" y="9.5" width="1.6" height="6.2" rx="0.7" fill="#18181b" stroke="#0f172a" stroke-width="0.4"/>
+          <rect x="0.6" y="10.2" width="1.0" height="4.8" rx="0.3" fill="#334155" opacity="0.8"/>
+          <!-- Pravé tykadlo -->
+          <path d="M 29.2 6.5 C 33 4.8, 35 7.2, 35 10.5 L 35 13" fill="none" stroke="#0f172a" stroke-width="1.3" stroke-linecap="round"/>
+          <rect x="34.1" y="9.5" width="1.6" height="6.2" rx="0.7" fill="#18181b" stroke="#0f172a" stroke-width="0.4"/>
+          <rect x="34.4" y="10.2" width="1.0" height="4.8" rx="0.3" fill="#334155" opacity="0.8"/>
+
+          <!-- IKONICKÝ STREŠNÝ HRB (asymetrická oblená nadstavba SOR BN 9.5 podľa fotky 6705) -->
+          <!-- Podkladová klenba strechy -->
+          <path d="M 7.5 5.5 C 7.5 3.0, 28.5 3.0, 28.5 5.5 Z" fill="#0284c7" stroke="#0f172a" stroke-width="1.1"/>
+          <!-- Vystupujúci aerodynamický hrb klimatizácie vľavo/v strede -->
+          <path d="M 7.5 5.5 C 7.5 0.8, 22.5 0.8, 23 5.5 Z" fill="#0284c7" stroke="#0f172a" stroke-width="1.3" stroke-linejoin="round"/>
+          <!-- Horizontálne lamely nasávania vzduchu v hrbe -->
+          <line x1="10.5" y1="2.5" x2="19.5" y2="2.5" stroke="#0f172a" stroke-width="0.7"/>
+          <line x1="11.5" y1="3.7" x2="18.5" y2="3.7" stroke="#0f172a" stroke-width="0.7"/>
+          <line x1="24.5" y1="4.2" x2="27" y2="4.2" stroke="#0f172a" stroke-width="0.5"/>
+
+          <!-- HLAVNÁ KAROSÉRIA - VÝRAZNE ZÚŽENÁ (šírka len 24px) -->
+          <rect x="6" y="5.5" width="24" height="29" rx="2.8" fill="#0284c7" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" filter="url(#sor-bn95-shadow)"/>
+
+          <!-- 1. VRCHNÁ ŽLTÁ HRANA NAD ČELNÝM SKLOM (strecha a čelo pod hrbom) -->
+          <path d="M 6.3 8.8 L 6.3 7.2 C 6.3 6.2 7.2 5.5 8.2 5.5 L 27.8 5.5 C 28.8 5.5 29.7 6.2 29.7 7.2 L 29.7 8.8 Z" fill="#facc15"/>
+          <!-- Displej v žltej streche -->
+          <rect x="10.5" y="6.1" width="15" height="2.1" rx="0.5" fill="#18181b" stroke="#27272a" stroke-width="0.4"/>
+          <line x1="12" y1="7.1" x2="24" y2="7.1" stroke="#f97316" stroke-width="0.5" stroke-dasharray="0.9 0.7"/>
+          <line x1="6.3" y1="8.8" x2="29.7" y2="8.8" stroke="#0f172a" stroke-width="0.7"/>
+
+          <!-- 2. ČISTÉ BIELE ČELNÉ SKLO (fill="#ffffff") - štíhlejšie a vyššie proporcie -->
+          <rect x="6.6" y="8.8" width="22.8" height="13.2" rx="1.2" fill="#ffffff" stroke="#0f172a" stroke-width="0.7"/>
+
+          <!-- DIAGONÁLNY POLOPRIEHLADNÝ BIELY/SVETLOSIVÝ ODLESK SKLA -->
+          <polygon points="19.5,8.8 23,8.8 17.5,22 14,22" fill="#e2e8f0" opacity="0.45"/>
+          <polygon points="24,8.8 26.2,8.8 21.8,22 19.6,22" fill="#e2e8f0" opacity="0.25"/>
+
+          <!-- 3. INDIKAČNÁ LIŠTA MEŠKANIA (v hornej časti okna) -->
+          <path class="veh-delay-bar" d="M 6.6 11.8 L 6.6 9.8 C 6.6 9.2 7.1 8.8 7.7 8.8 L 28.3 8.8 C 28.9 8.8 29.4 9.2 29.4 9.8 L 29.4 11.8 Z"
+                fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="6.6" y1="11.8" x2="29.4" y2="11.8" stroke="#0f172a" stroke-width="0.7"/>` : ''}
+
+          <!-- 4. VEĽKÉ TUČNÉ TMAVÉ ČÍSLO LINKY VYCENTROVANÉ V STREDE BIELEHO SKLA -->
+          <text x="18" y="16.5" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- 5. TENKÝ ŽLTÝ PÁSIK POD SKLOM -->
+          <rect x="6.3" y="22" width="23.4" height="1.3" fill="#facc15" stroke="#ca8a04" stroke-width="0.3"/>
+
+          <!-- 6. SNEHOBIELY STREDNÝ PANEL S EVIDENČNÝM ČÍSLOM A LOGOM SOR -->
+          <rect x="6.3" y="23.3" width="23.4" height="4.4" fill="#ffffff"/>
+          <text x="18" y="24.8" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.4px"
+                fill="#0f172a" letter-spacing="0.2px">${displayEv}</text>
+          <!-- Logo SOR -->
+          <g transform="translate(18, 26.5)">
+            <rect x="-1.7" y="-0.5" width="3.4" height="1.0" rx="0.5" fill="#0f172a"/>
+            <ellipse cx="0" cy="0" rx="1.3" ry="0.36" fill="#f1f5f9"/>
+            <text x="0" y="0.1" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-weight="900" font-size="0.7px" fill="#b91c1c" letter-spacing="0.1px">SOR</text>
+          </g>
+
+          <!-- 7. SPODNÝ AZÚROVO-MODRÝ NÁRAZNÍK -->
+          <path d="M 6.3 27.7 L 29.7 27.7 L 29.7 31.4 C 29.7 33 28.5 34.5 26.7 34.5 L 9.3 34.5 C 7.5 34.5 6.3 33 6.3 31.4 Z" fill="#0284c7"/>
+          <line x1="6.3" y1="27.7" x2="29.7" y2="27.7" stroke="#0f172a" stroke-width="0.7"/>
+
+          <!-- REALISTICKÉ SVETLOMETY (neutrálna biela / svetložltá v tmavom kryte, nereagujú na meškanie) -->
+          <!-- Ľavý svetlomet -->
+          <g>
+            <rect x="7.3" y="28.7" width="3.8" height="1.9" rx="0.4" fill="#0f172a" stroke="#1e293b" stroke-width="0.3"/>
+            <circle cx="8.3" cy="29.6" r="0.6" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.2"/>
+            <circle cx="9.9" cy="29.6" r="0.45" fill="#fef08a" stroke="#ca8a04" stroke-width="0.2"/>
+          </g>
+          <!-- Pravý svetlomet -->
+          <g>
+            <rect x="24.9" y="28.7" width="3.8" height="1.9" rx="0.4" fill="#0f172a" stroke="#1e293b" stroke-width="0.3"/>
+            <circle cx="26.1" cy="29.6" r="0.45" fill="#fef08a" stroke="#ca8a04" stroke-width="0.2"/>
+            <circle cx="27.7" cy="29.6" r="0.6" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.2"/>
+          </g>
+
+          <!-- ŠPZ V STREDE NÁRAZNÍKA -->
+          <rect x="15.2" y="30.4" width="5.6" height="2.1" rx="0.4" fill="#ffffff" stroke="#0f172a" stroke-width="0.3"/>
+          <text x="18" y="31.4" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.2px"
+                fill="#0f172a" letter-spacing="0.2px">${cleanSpz}</text>
+        </svg>
+      `;
+    }
+
+    // 13. SOR C 10,5
+    function renderSorC105Svg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-c105-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><rect x="8" y="7" width="28" height="20" rx="3.5"/></clipPath></defs>
+        <rect x="7" y="38" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="31" y="38" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="5" y="4" width="34" height="35" rx="5" fill="#475569" stroke="#94a3b8" stroke-width="2.3"/>
+        <rect x="1.5" y="9" width="3.5" height="8" rx="1.2" fill="#1e293b"/>
+        <rect x="39" y="9" width="3.5" height="8" rx="1.2" fill="#1e293b"/>
+        <rect x="8" y="7" width="28" height="20" rx="3.5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect class="veh-delay-bar" x="8" y="7" width="28" height="5.5" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="22" y="20" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="6" y="29.5" width="32" height="7.5" rx="1.5" fill="#1e293b"/>
+        <polygon points="9,33.5 13,32 13,35" fill="#fef08a"/>
+        <polygon points="35,33.5 31,32 31,35" fill="#fef08a"/>
+      </svg>`;
+    }
+
+    // 14. Solaris Urbino 18 & 18,75 III - masívny kĺbový autobus podľa autentickej 3. generácie:
+    // Kompaktnejšie a usadenejšie proporcie (44×42 px, viditeľne menší ako električky), bordová karoséria (#881337),
+    // čisté BIELE asymetrické čelné sklo (fill="#ffffff", spodná línia klesá šikmo vľavo) s jemným odleskom,
+    // veľké tučné TMAVÉ číslo linky (#0f172a), horizontálna lišta meškania na samom vrchu bieleho okna,
+    // minimalistické logo 'S' v ovále uprostred pod sklom a realistické stlmené svetlomety
+    function renderSolarisU18Svg(line, delayColorOrMinutes = '', isExtraLong = false, evNum = '') {
+      const safeLine = escapeXml(line || '71');
+      const defaultEv = isExtraLong ? '3901' : '3701';
+      const displayEv = escapeXml(String(evNum || defaultEv).trim() || defaultEv);
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const cleanSpz = 'KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv);
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 42" width="44" height="42" class="veh-front-svg veh-solaris-u18">
+          <defs>
+            <filter id="sol18-shadow" x="-12%" y="-10%" width="124%" height="120%">
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
+            </filter>
+          </defs>
+
+          <!-- KOLESÁ (tmavé, pod nárazníkom) -->
+          <g fill="#0f172a">
+            <rect x="6" y="37" width="4.5" height="3.5" rx="1.2"/>
+            <rect x="33.5" y="37" width="4.5" height="3.5" rx="1.2"/>
+          </g>
+
+          <!-- MASÍVNE, HRUBÉ ČIERNE SPÄTNÉ ZRKADLÁ PO BOKOCH HORNEJ ČASTI -->
+          <!-- Ľavé zrkadlo -->
+          <rect x="0.5" y="9" width="2.4" height="8" rx="1" fill="#0f172a" stroke="#18181b" stroke-width="0.6"/>
+          <rect x="0.9" y="9.8" width="1.4" height="6.4" rx="0.5" fill="#1e293b"/>
+          <line x1="2.9" y1="10.5" x2="4.5" y2="10.5" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="2.9" y1="14.5" x2="4.5" y2="14.5" stroke="#0f172a" stroke-width="1.3" stroke-linecap="round"/>
+          <!-- Pravé zrkadlo -->
+          <rect x="41.1" y="9" width="2.4" height="8" rx="1" fill="#0f172a" stroke="#18181b" stroke-width="0.6"/>
+          <rect x="41.7" y="9.8" width="1.4" height="6.4" rx="0.5" fill="#1e293b"/>
+          <line x1="41.1" y1="10.5" x2="39.5" y2="10.5" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="41.1" y1="14.5" x2="39.5" y2="14.5" stroke="#0f172a" stroke-width="1.3" stroke-linecap="round"/>
+
+          <!-- STREŠNÝ BOX KLIMATIZÁCIE (masívny kĺbový Solaris Urbino 18) -->
+          <rect x="13" y="1" width="18" height="2.2" rx="0.9" fill="#f8fafc" stroke="#0f172a" stroke-width="0.8"/>
+          <line x1="15" y1="2.1" x2="29" y2="2.1" stroke="#94a3b8" stroke-width="0.5"/>
+
+          <!-- HLAVNÁ KAROSÉRIA (kompaktnejšia, širšia silueta, bordová farba #881337) -->
+          <rect x="4.5" y="3.5" width="35" height="34.5" rx="2.5" fill="#881337" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" filter="url(#sol18-shadow)"/>
+
+          <!-- HORNÁ HRANA NAD ČELNÝM SKLOM A DISPLEJ TRASY -->
+          <path d="M 4.8 7.2 L 4.8 5.4 C 4.8 4.3 5.7 3.5 6.8 3.5 L 37.2 3.5 C 38.3 3.5 39.2 4.3 39.2 5.4 L 39.2 7.2 Z" fill="#881337"/>
+          <rect x="11.5" y="4.2" width="21" height="2.2" rx="0.6" fill="#18181b" stroke="#27272a" stroke-width="0.4"/>
+          <line x1="13.5" y1="5.3" x2="30.5" y2="5.3" stroke="#f97316" stroke-width="0.5" stroke-dasharray="1 0.8"/>
+          <line x1="4.8" y1="7.2" x2="39.2" y2="7.2" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- AUTENTICKÉ ASYMETRICKÉ ČELNÉ SKLO SOLARIS GEN III:
+               Čisté BIELE pozadie (fill="#ffffff"), spodná línia skla klesá šikmo zprava (y=22) doľava (y=29.5) -->
+          <path d="M 5 7.2 L 39 7.2 L 39 22 L 5 29.5 Z"
+                fill="#ffffff" stroke="#0f172a" stroke-width="1.2" stroke-linejoin="round"/>
+
+          <!-- REALISTICKÝ DIAGONÁLNY POLOPRIEHLADNÝ BIELY/SVETLOSIVÝ ODLESK SKLA -->
+          <polygon points="25,7.2 30,7.2 19,25.5 14,26.5" fill="#e2e8f0" opacity="0.45"/>
+          <polygon points="32,7.2 34.5,7.2 26,23.8 23.5,24.5" fill="#e2e8f0" opacity="0.25"/>
+
+          <!-- INDIKAČNÁ LIŠTA MEŠKANIA (na samom vrchu bieleho skla na celú šírku) -->
+          <path class="veh-delay-bar" d="M 5 10.8 L 5 8 C 5 7.4 5.6 7.2 6.4 7.2 L 37.6 7.2 C 38.4 7.2 39 7.4 39 8 L 39 10.8 Z"
+                fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="5" y1="10.8" x2="39" y2="10.8" stroke="#0f172a" stroke-width="0.8"/>` : ''}
+
+          <!-- OBROVSKÉ, TUČNÉ A STRIKTNE TMAVÉ ČÍSLO LINKY VYCENTROVANÉ V STREDE BIELÉHO SKLA -->
+          <text x="22" y="16.5" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- PREDNÁ MASKA POD ASYMETRICKÝM SKLOM -->
+          <path d="M 4.8 29.5 L 5 29.5 L 39 22 L 39.2 22 L 39.2 31.5 L 4.8 31.5 Z" fill="#9f1239"/>
+
+          <!-- MINIMALISTICKÉ ELEGANTNÉ LOGO SOLARIS (OVÁL S PÍSMENOM 'S') UPROSTRED -->
+          <g transform="translate(22, 27.8)">
+            <ellipse cx="0" cy="0" rx="2.8" ry="1.5" fill="#18181b" stroke="#cbd5e1" stroke-width="0.5"/>
+            <text x="0" y="0.2" text-anchor="middle" dominant-baseline="central"
+                  font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.9px"
+                  class="veh-text-white" fill="#ffffff" style="fill: #ffffff !important; color: #ffffff !important;">S</text>
+          </g>
+
+          <!-- SPODNÝ NÁRAZNÍK V BORDOVEJ FARBE (#881337) -->
+          <path d="M 4.8 31.5 L 39.2 31.5 L 39.2 36.5 C 39.2 38 37.8 39 35.5 39 L 8.5 39 C 6.2 39 4.8 38 4.8 36.5 Z" fill="#881337"/>
+          <line x1="4.8" y1="31.5" x2="39.2" y2="31.5" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- REALISTICKÉ MENŠIE A STLMENÉ SVETLOMETY:
+               3 malé kruhové svetlá na každej strane so sivým okrajom a neutrálnym svetlým vnútrom -->
+          <!-- Ľavý zhluk 3 svetiel -->
+          <g>
+            <rect x="6.5" y="32.8" width="6.2" height="2.6" rx="0.7" fill="#0f172a" stroke="#334155" stroke-width="0.3"/>
+            <circle cx="7.6" cy="34.1" r="0.7" fill="#f8fafc" stroke="#64748b" stroke-width="0.25"/>
+            <circle cx="9.6" cy="34.1" r="0.65" fill="#f1f5f9" stroke="#64748b" stroke-width="0.25"/>
+            <circle cx="11.6" cy="34.1" r="0.6" fill="#f8fafc" stroke="#64748b" stroke-width="0.25"/>
+          </g>
+          <!-- Pravý zhluk 3 svetiel -->
+          <g>
+            <rect x="31.3" y="32.8" width="6.2" height="2.6" rx="0.7" fill="#0f172a" stroke="#334155" stroke-width="0.3"/>
+            <circle cx="32.4" cy="34.1" r="0.6" fill="#f8fafc" stroke="#64748b" stroke-width="0.25"/>
+            <circle cx="34.4" cy="34.1" r="0.65" fill="#f1f5f9" stroke="#64748b" stroke-width="0.25"/>
+            <circle cx="36.4" cy="34.1" r="0.7" fill="#f8fafc" stroke="#64748b" stroke-width="0.25"/>
+          </g>
+
+          <!-- MALÁ ŠPZ V STREDE NÁRAZNÍKA -->
+          <rect x="17.5" y="35" width="9" height="2.5" rx="0.5" fill="#ffffff" stroke="#0f172a" stroke-width="0.4"/>
+          <text x="22" y="36.2" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.4px"
+                fill="#0f172a">${cleanSpz}</text>
+        </svg>
+      `;
+    }
+
+    // 15. Solaris Urbino 15
+    function renderSolarisU15Svg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-sol-u15-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 45" width="46" height="45" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><path d="M 8 7 L 38 7 L 38 31 L 26 31 L 26 28 L 8 28 Z"/></clipPath></defs>
+        <rect x="7" y="38" width="6.5" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="32.5" y="38" width="6.5" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="5" y="4" width="36" height="36" rx="6" fill="#dc2626" stroke="#f59e0b" stroke-width="2.5"/>
+        <rect x="1.5" y="9" width="3.5" height="8.5" rx="1.5" fill="#0f172a" stroke="#f59e0b" stroke-width="1"/>
+        <rect x="41" y="9" width="3.5" height="8.5" rx="1.5" fill="#0f172a" stroke="#f59e0b" stroke-width="1"/>
+        <path d="M 8 7 L 38 7 L 38 31 L 26 31 L 26 28 L 8 28 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect class="veh-delay-bar" x="8" y="7" width="30" height="6" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="22" y="20" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="15" y="32" width="16" height="4" rx="2" fill="#0f172a"/>
+        <circle cx="10" cy="32" r="1.5" fill="#fef08a"/>
+        <circle cx="10" cy="34.5" r="1.3" fill="#fef08a"/>
+        <circle cx="36" cy="32" r="1.5" fill="#fef08a"/>
+        <circle cx="36" cy="34.5" r="1.3" fill="#fef08a"/>
+      </svg>`;
+    }
+
+    // 16. Solaris Urbino 12 IV (New Urbino) - ostré agresívne línie 4. generácie, sýto červená karoséria (#dc2626),
+    // žltá strecha, čisté BIELE hranaté čelné sklo (fill="#ffffff") s veľkým tučným ČIERNYM číslom linky (#0f172a),
+    // horná lišta meškania, 3 pruhy pod sklom (žltý-biely-červený), zelený jazvečík (Solaris Jamnik),
+    // strieborné logo 'S' a číslo 5108, šikmé klinové agresívne svetlomety v červenom nárazníku
+    function renderSolarisU12IvSvg(line, delayColorOrMinutes = '', evNum = '5108') {
+      const safeLine = escapeXml(line || '19');
+      const displayEv = escapeXml(String(evNum || '5108').trim() || '5108');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const cleanSpz = 'KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv);
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 42" width="44" height="42" class="veh-front-svg veh-solaris-u12-iv">
+          <defs>
+            <filter id="sol12iv-shadow" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
+            </filter>
+          </defs>
+
+          <!-- KOLESÁ (tmavé, pod nárazníkom) -->
+          <g fill="#0f172a">
+            <rect x="6.5" y="37" width="4.5" height="3.5" rx="0.8"/>
+            <rect x="33" y="37" width="4.5" height="3.5" rx="0.8"/>
+          </g>
+
+          <!-- ŠTANDARDNÉ MODERNÉ SPÄTNÉ ZRKADLÁ GEN IV (ostré bočné úchyty) -->
+          <!-- Ľavé zrkadlo -->
+          <rect x="0.6" y="9.5" width="2.5" height="7.8" rx="0.5" fill="#18181b" stroke="#0f172a" stroke-width="0.7"/>
+          <line x1="3.1" y1="11" x2="4.8" y2="11" stroke="#0f172a" stroke-width="1.3" stroke-linecap="round"/>
+          <line x1="3.1" y1="14.5" x2="4.8" y2="14.5" stroke="#0f172a" stroke-width="1.1" stroke-linecap="round"/>
+          <!-- Pravé zrkadlo -->
+          <rect x="40.9" y="9.5" width="2.5" height="7.8" rx="0.5" fill="#18181b" stroke="#0f172a" stroke-width="0.7"/>
+          <line x1="40.9" y1="11" x2="39.2" y2="11" stroke="#0f172a" stroke-width="1.3" stroke-linecap="round"/>
+          <line x1="40.9" y1="14.5" x2="39.2" y2="14.5" stroke="#0f172a" stroke-width="1.1" stroke-linecap="round"/>
+
+          <!-- HLAVNÁ KAROSÉRIA (Solaris Urbino IV - ostrá, agresívna, hranatá silueta, sýto červená #dc2626) -->
+          <rect x="4.8" y="3.5" width="34.4" height="34" rx="0.8" fill="#dc2626" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" filter="url(#sol12iv-shadow)"/>
+
+          <!-- 1. ÚPLNÝ VRCH: SÝTO ŽLTÝ STREŠNÝ PRUH S OSTRÝMI LÍNIAMI A DISPLEJOM -->
+          <polygon points="5,3.6 39,3.6 39,7.2 5,7.2" fill="#facc15"/>
+          <!-- Tmavý strešný displej / linková tabuľa v žltej streche -->
+          <rect x="11.5" y="4.2" width="21" height="2.2" rx="0.4" fill="#18181b" stroke="#27272a" stroke-width="0.3"/>
+          <line x1="13.5" y1="5.3" x2="30.5" y2="5.3" stroke="#f97316" stroke-width="0.5" stroke-dasharray="1 0.8"/>
+          <line x1="5" y1="7.2" x2="39" y2="7.2" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- 2. ČISTÉ BIELE ČELNÉ SKLO (fill="#ffffff") S OSTRÝMI HRANATÝMI LÍNIAMI -->
+          <rect x="5.2" y="7.2" width="33.6" height="17.3" rx="0.5" fill="#ffffff" stroke="#0f172a" stroke-width="1.2"/>
+
+          <!-- REALISTICKÝ DIAGONÁLNY SVETLOSIVÝ ODLESK SKLA -->
+          <polygon points="27,7.2 32,7.2 22,24.5 17,24.5" fill="#e2e8f0" opacity="0.45"/>
+          <polygon points="34,7.2 36.5,7.2 29,24.5 26.5,24.5" fill="#e2e8f0" opacity="0.25"/>
+
+          <!-- 3. INDIKAČNÁ LIŠTA MEŠKANIA (na samom vrchu bieleho skla na celú šírku) -->
+          <rect class="veh-delay-bar" x="5.2" y="7.2" width="33.6" height="3.6"
+                fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="5.2" y1="10.8" x2="38.8" y2="10.8" stroke="#0f172a" stroke-width="0.8"/>` : ''}
+
+          <!-- ČÍSLO LINKY (vycentrované v strede bieleho okna, striktne tučné a TMAVÉ ČIERNE) -->
+          <text x="22" y="17.5" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- 4.1 TENKÝ ŽLTÝ PRUH (priamo pod čelným oknom) -->
+          <rect x="5" y="24.5" width="34" height="1.6" fill="#facc15" stroke="#ca8a04" stroke-width="0.3"/>
+
+          <!-- 4.2 ŠIRŠÍ SNEHOBIELY PRUH (stred prednej masky) -->
+          <rect x="5" y="26.1" width="34" height="5.7" fill="#ffffff"/>
+
+          <!-- IKONICKÝ DETAIL: ZELENÝ JAZVEČÍK SOLARIS (Jamnik) NA PRAVEJ STRANE BIELEHO PRUHU -->
+          <g transform="translate(34.2, 28.9)" title="Solaris Jamnik">
+            <rect x="-2.6" y="-0.5" width="4.2" height="1.2" rx="0.5" fill="#16a34a"/>
+            <circle cx="1.9" cy="-0.2" r="0.7" fill="#16a34a"/>
+            <ellipse cx="2.1" cy="-0.7" rx="0.4" ry="0.6" fill="#15803d"/>
+            <line x1="-1.9" y1="0.5" x2="-1.9" y2="1.1" stroke="#16a34a" stroke-width="0.5" stroke-linecap="round"/>
+            <line x1="1.2" y1="0.5" x2="1.2" y2="1.1" stroke="#16a34a" stroke-width="0.5" stroke-linecap="round"/>
+            <path d="M -2.6 0.2 Q -3.3 -0.4 -3 -0.8" fill="none" stroke="#16a34a" stroke-width="0.5" stroke-linecap="round"/>
+          </g>
+
+          <!-- STRIEBORNÉ LOGO SOLARIS ('S' V OVÁLE) A EVIDENČNÉ ČÍSLO V STREDE BIELEHO PRUHU -->
+          <g transform="translate(19.2, 28.9)">
+            <ellipse cx="0" cy="0" rx="2.4" ry="1.4" fill="#334155" stroke="#94a3b8" stroke-width="0.4"/>
+            <text x="0" y="0.2" text-anchor="middle" dominant-baseline="central"
+                  font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.8px"
+                  class="veh-text-white" fill="#ffffff" style="fill: #ffffff !important; color: #ffffff !important;">S</text>
+          </g>
+          <!-- Drobné evidenčné číslo vozidla (napr. 5108) -->
+          <text x="23" y="28.9" text-anchor="start" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.6px"
+                fill="#0f172a" letter-spacing="0.1px">${displayEv}</text>
+
+          <!-- 4.3 SÝTO ČERVENÝ SPODNÝ NÁRAZNÍK S OSTRÝMI AGRESÍVNYMI LÍNIAMI GEN IV -->
+          <polygon points="5,31.8 39,31.8 39,37.5 5,37.5" fill="#dc2626"/>
+          <line x1="5" y1="31.8" x2="39" y2="31.8" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- AGRESÍVNE ŠIKMÉ (KLINOVÉ) ČIERNE KRYTY SVETLOMETOV V ČERVENOM NÁRAZNÍKU -->
+          <!-- Ľavý svetlomet (šikmý klinový kryt zbiehajúci sa do stredu) -->
+          <g>
+            <polygon points="6.2,32.8 13.4,32.8 12.2,36.5 6.6,36.5" fill="#0f172a" stroke="#1e293b" stroke-width="0.3"/>
+            <!-- Šikmá LED linka denného svietenia -->
+            <line x1="6.6" y1="33.4" x2="13.0" y2="33.4" stroke="#fef08a" stroke-width="0.5"/>
+            <!-- Malé okrúhle bielo-žlté svetlá (permanentne neutrálne) -->
+            <circle cx="7.8" cy="34.8" r="0.75" fill="#ffffff" stroke="#ca8a04" stroke-width="0.25"/>
+            <circle cx="9.8" cy="34.8" r="0.7" fill="#fef08a" stroke="#ca8a04" stroke-width="0.25"/>
+            <circle cx="11.6" cy="34.8" r="0.55" fill="#ffffff" stroke="#ca8a04" stroke-width="0.2"/>
+          </g>
+          <!-- Pravý svetlomet (šikmý klinový kryt zbiehajúci sa do stredu) -->
+          <g>
+            <polygon points="37.8,32.8 30.6,32.8 31.8,36.5 37.4,36.5" fill="#0f172a" stroke="#1e293b" stroke-width="0.3"/>
+            <!-- Šikmá LED linka denného svietenia -->
+            <line x1="37.4" y1="33.4" x2="31.0" y2="33.4" stroke="#fef08a" stroke-width="0.5"/>
+            <!-- Malé okrúhle bielo-žlté svetlá (permanentne neutrálne) -->
+            <circle cx="36.2" cy="34.8" r="0.75" fill="#ffffff" stroke="#ca8a04" stroke-width="0.25"/>
+            <circle cx="34.2" cy="34.8" r="0.7" fill="#fef08a" stroke="#ca8a04" stroke-width="0.25"/>
+            <circle cx="32.4" cy="34.8" r="0.55" fill="#ffffff" stroke="#ca8a04" stroke-width="0.2"/>
+          </g>
+
+          <!-- MALÁ ŠPZ V STREDE ČERVENÉHO NÁRAZNÍKA -->
+          <rect x="17.2" y="34.5" width="9.6" height="2.5" rx="0.4" fill="#ffffff" stroke="#0f172a" stroke-width="0.4"/>
+          <text x="22" y="35.7" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.4px"
+                fill="#0f172a">${cleanSpz}</text>
+        </svg>
+      `;
+    }
+
+    // 17. Solaris Urbino 12 III Hybrid
+    function renderSolarisU12HybridSvg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-sol-hyb-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 46" width="44" height="46" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><path d="M 8 9 L 36 9 L 36 33 L 25 33 L 25 30 L 8 30 Z"/></clipPath></defs>
+        <rect x="12" y="1.5" width="20" height="4.5" rx="2" fill="#16a34a" stroke="#0f172a" stroke-width="1"/>
+        <line x1="15" y1="3.5" x2="29" y2="3.5" stroke="#86efac" stroke-width="1.2" stroke-linecap="round"/>
+        <rect x="7" y="39" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="31" y="39" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="5" y="6" width="34" height="34" rx="6" fill="#dc2626" stroke="#16a34a" stroke-width="2.5"/>
+        <rect x="1.5" y="10" width="3.5" height="8" rx="1.5" fill="#0f172a" stroke="#16a34a" stroke-width="1"/>
+        <rect x="39" y="10" width="3.5" height="8" rx="1.5" fill="#0f172a" stroke="#16a34a" stroke-width="1"/>
+        <path d="M 8 9 L 36 9 L 36 33 L 25 33 L 25 30 L 8 30 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect class="veh-delay-bar" x="8" y="9" width="28" height="6" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="21" y="22" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="15" y="32.5" width="14" height="4" rx="1.8" fill="#0f172a"/>
+        <circle cx="10" cy="32.5" r="1.5" fill="#fef08a"/>
+        <circle cx="10" cy="35" r="1.3" fill="#fef08a"/>
+        <circle cx="34" cy="32.5" r="1.5" fill="#fef08a"/>
+        <circle cx="34" cy="35" r="1.3" fill="#fef08a"/>
+      </svg>`;
+    }
+
+    // 18. Solaris Urbino 12 III
+    function renderSolarisU12Svg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-sol-u12-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><path d="M 8 7 L 36 7 L 36 31 L 25 31 L 25 28 L 8 28 Z"/></clipPath></defs>
+        <rect x="7" y="38" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="31" y="38" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="5" y="4" width="34" height="35" rx="6" fill="#dc2626" stroke="#991b1b" stroke-width="2.5"/>
+        <rect x="1.5" y="9" width="3.5" height="8" rx="1.5" fill="#0f172a" stroke="#991b1b" stroke-width="1"/>
+        <rect x="39" y="9" width="3.5" height="8" rx="1.5" fill="#0f172a" stroke="#991b1b" stroke-width="1"/>
+        <path d="M 8 7 L 36 7 L 36 31 L 25 31 L 25 28 L 8 28 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect class="veh-delay-bar" x="8" y="7" width="28" height="6" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="21" y="20" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="15" y="31.5" width="14" height="4" rx="1.8" fill="#0f172a"/>
+        <circle cx="10" cy="31.5" r="1.5" fill="#fef08a"/>
+        <circle cx="10" cy="34" r="1.3" fill="#fef08a"/>
+        <circle cx="34" cy="31.5" r="1.5" fill="#fef08a"/>
+        <circle cx="34" cy="34" r="1.3" fill="#fef08a"/>
+      </svg>`;
+    }
+
+    // 19. Iveco Rosero First FCLLI
+    function renderRoseroSvg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-rosero-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 44" width="40" height="44" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><rect x="7" y="7" width="26" height="21" rx="3.5"/></clipPath></defs>
+        <rect x="6" y="37" width="5.5" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="28.5" y="37" width="5.5" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="5" y="4" width="30" height="34" rx="5" fill="#0284c7" stroke="#38bdf8" stroke-width="2.3"/>
+        <rect x="1.5" y="9" width="3.5" height="8" rx="1.2" fill="#0f172a"/>
+        <rect x="35" y="9" width="3.5" height="8" rx="1.2" fill="#0f172a"/>
+        <rect x="7" y="7" width="26" height="21" rx="3.5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect class="veh-delay-bar" x="7" y="7" width="26" height="5.5" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="20" y="20" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="13" y="30.5" width="14" height="4.5" rx="1.5" fill="#1e293b"/>
+        <line x1="15" y1="32" x2="25" y2="32" stroke="#94a3b8" stroke-width="0.8"/>
+        <line x1="15" y1="33.5" x2="25" y2="33.5" stroke="#94a3b8" stroke-width="0.8"/>
+        <polygon points="8,32 12,30.8 12,33.5" fill="#fef08a"/>
+        <polygon points="32,32 28,30.8 28,33.5" fill="#fef08a"/>
+      </svg>`;
+    }
+
+    // 20. Ikarus 280.08/A
+    function renderIkarus280Svg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-ikarus-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 44" width="48" height="44" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><g><rect x="8" y="7" width="14.5" height="23" rx="2"/><rect x="25.5" y="7" width="14.5" height="23" rx="2"/></g></clipPath></defs>
+        <rect x="15" y="2" width="6" height="2" rx="0.5" fill="#b45309"/>
+        <rect x="27" y="2" width="6" height="2" rx="0.5" fill="#b45309"/>
+        <rect x="7" y="38" width="7" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="34" y="38" width="7" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="5" y="4" width="38" height="35" rx="3" fill="#78350f" stroke="#f59e0b" stroke-width="2.5"/>
+        <rect x="1" y="9" width="3.5" height="8" rx="1" fill="#0f172a"/>
+        <rect x="43.5" y="9" width="3.5" height="8" rx="1" fill="#0f172a"/>
+        <rect x="8" y="7" width="14.5" height="23" rx="2" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect x="25.5" y="7" width="14.5" height="23" rx="2" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect x="23" y="6" width="2" height="25" fill="#0f172a"/>
+        <rect class="veh-delay-bar" x="8" y="7" width="32" height="6" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="24" y="21.5" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="16" y="31.5" width="16" height="4.5" rx="1" fill="#0f172a"/>
+        <line x1="18" y1="33" x2="30" y2="33" stroke="#cbd5e1" stroke-width="0.8"/>
+        <circle cx="11" cy="33.5" r="2.2" fill="#fef08a" stroke="#ca8a04" stroke-width="0.8"/>
+        <circle cx="8" cy="33.5" r="1.1" fill="#f97316"/>
+        <circle cx="37" cy="33.5" r="2.2" fill="#fef08a" stroke="#ca8a04" stroke-width="0.8"/>
+        <circle cx="40" cy="33.5" r="1.1" fill="#f97316"/>
+      </svg>`;
+    }
+
+    // 21. Karosa B 832.1654
+    function renderKarosaB832Svg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-karosa-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><rect x="8" y="7" width="28" height="21" rx="2"/></clipPath></defs>
+        <rect x="7" y="38" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="31" y="38" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="5" y="4" width="34" height="35" rx="3" fill="#c2410c" stroke="#ffffff" stroke-width="2.5"/>
+        <rect x="1.5" y="9" width="3" height="8" rx="1" fill="#0f172a"/>
+        <rect x="39.5" y="9" width="3" height="8" rx="1" fill="#0f172a"/>
+        <rect x="8" y="7" width="28" height="21" rx="2" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect class="veh-delay-bar" x="8" y="7" width="28" height="5.5" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="22" y="20" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="5" y="30" width="34" height="7.5" rx="1" fill="#0f172a"/>
+        <rect x="8" y="31.5" width="4.5" height="3" rx="0.5" fill="#fef08a" stroke="#ca8a04" stroke-width="0.6"/>
+        <rect x="13" y="32" width="2" height="2" rx="0.3" fill="#f97316"/>
+        <rect x="31.5" y="31.5" width="4.5" height="3" rx="0.5" fill="#fef08a" stroke="#ca8a04" stroke-width="0.6"/>
+        <rect x="29" y="32" width="2" height="2" rx="0.3" fill="#f97316"/>
+      </svg>`;
+    }
+
+    // 22. Autobus DPMK všeobecný
+    function renderGeneralBusSvg(line, delayColorOrMinutes = '') {
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const fontSize = getLineFontSize(line);
+      const safeLine = escapeXml(line);
+      const clipId = 'ws-clip-gbus-' + Math.random().toString(36).substr(2, 7);
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44" class="veh-front-svg">
+        <defs><clipPath id="${clipId}"><rect x="8" y="7" width="28" height="23" rx="4"/></clipPath></defs>
+        <rect x="7" y="38" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="31" y="38" width="6" height="4" rx="1.5" fill="#0f172a"/>
+        <rect x="5" y="4" width="34" height="35" rx="6" fill="#2563eb" stroke="#60a5fa" stroke-width="2.5"/>
+        <rect x="1.5" y="9" width="3.5" height="8" rx="1.5" fill="#1e293b" stroke="#60a5fa" stroke-width="1"/>
+        <rect x="39" y="9" width="3.5" height="8" rx="1.5" fill="#1e293b" stroke="#60a5fa" stroke-width="1"/>
+        <rect x="8" y="7" width="28" height="23" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+        <rect class="veh-delay-bar" x="8" y="7" width="28" height="6" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
+        <text x="22" y="21.5" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
+        <rect x="15" y="32" width="14" height="4" rx="2" fill="#0f172a"/>
+        <rect x="8.5" y="32" width="4.5" height="3.5" rx="1.5" fill="#fef08a" stroke="#ca8a04" stroke-width="0.8"/>
+        <rect x="31" y="32" width="4.5" height="3.5" rx="1.5" fill="#fef08a" stroke="#ca8a04" stroke-width="0.8"/>
+      </svg>`;
+    }
+
+    // Definícia všetkých modelov a ich metadát
+    const VEHICLE_MODELS = [
+      {
+        id: 'tram-vario',
+        name: 'Vario LF2+ / Vario LF',
+        sub: 'Pragoimex • DPMK Livery (č. 826)',
+        category: 'tram',
+        tagText: 'Električka',
+        tagClass: 'tag-tram',
+        dimensions: '46 × 58 px',
+        render: (l, d) => renderVarioLfSvg(l, d, '826'),
+        features: [
+          '3-farebná DPMK livery (sýto žltá hore, biela v strede, azúrovo-modrá dole)',
+          'Drobné evidenčné číslo 826 v bielom pruhu nad nárazníkom',
+          'Kompaktný kovový jednoramenný polopantograf na streche',
+          'Veľké čelné sklo s tučným číslom linky 19 a šikmé halogény'
+        ]
+      },
+      {
+        id: 'tram-kt8',
+        name: 'ČKD Tatra KT8D5',
+        sub: 'ČKD Tatra Smíchov • Trojčlánková obojsmerná (č. 525)',
+        category: 'tram',
+        tagText: 'Električka',
+        tagClass: 'tag-tram',
+        dimensions: '46 × 50 px',
+        render: (l, d) => renderKt8d5Svg(l, d, '525'),
+        features: [
+          'Hranatý retro krabicový dizajn legendárnej obojsmernej električky',
+          'Košická schéma: azúrová strecha a nárazník, sýto žlté stĺpiky a čelné sklo',
+          'Ikonický žltý zaoblený „podbradník“ (polmesiac) pod oknom s číslom 525 v bielom paneli',
+          'Dva veľké okrúhle retro svetlomety so strieborným orámovaním a neutrálnym svetlom',
+          'Vyčnievajúce mechanické spriahadlo (coupler), koľajový podvozok a diamantový pantograf s pätkou'
+        ]
+      },
+      {
+        id: 'tram-t6',
+        name: 'ČKD Tatra T6A5',
+        sub: 'ČKD Tatra • Klasická sólo električka (ev. č. 622)',
+        category: 'tram',
+        tagText: 'Električka',
+        tagClass: 'tag-tram',
+        dimensions: '44 × 48 px',
+        render: (l, d) => renderT6a5Svg(l, d, '622'),
+        features: [
+          'Hranatý nadčasový boxy dizajn klasickej električky',
+          'Košické modro-žlté vlnky na bielom strednom paneli s logom ČKD a číslom 622',
+          'Azúrovo-modrá hrana strechy a masívny spodný nárazník',
+          'Žlté čelné sklo s obrovským čiernym číslom linky a integrovanou lištou meškania',
+          'Dva okrúhle svetlomety na rozhraní bieleho panela a nárazníka s neutrálnym svitom',
+          'Tmavé mechanické spriahadlo (coupler), koľajový podvozok a elegantný žltý pantograf s pätkou'
+        ]
+      },
+      {
+        id: 'tram-gen',
+        name: 'Električka DPMK (všeobecná)',
+        sub: 'Fallback model pre električkovú sieť',
+        category: 'tram',
+        tagText: 'Električka',
+        tagClass: 'tag-tram',
+        dimensions: '44 × 48 px',
+        render: (l, d) => renderGeneralTramSvg(l, d),
+        features: [
+          'Univerzálna električková predná maska',
+          'Žltý DPMK lak a strešný zberač',
+          'Univerzálne kruhové svetlomety'
+        ]
+      },
+      {
+        id: 'sor-nb18',
+        name: 'SOR NB 18 City',
+        sub: 'SOR Libchavy • Kĺbový mestský autobus (Košická livery č. 4761)',
+        category: 'articulated',
+        tagText: 'Kĺbový 18m',
+        tagClass: 'tag-articulated',
+        dimensions: '44 × 42 px',
+        render: (l, d) => renderSorNb18Svg(l, d, '4761'),
+        features: [
+          'Kompaktnejšia a usadenejšia geometria (44×42 px), viditeľne menšia ako električky',
+          'Čisté BIELE čelné sklo (fill="#ffffff") s jemným odleskom',
+          'Veľké tučné TMAVÉ číslo linky uprostred bieleho okna pre maximálny kontrast',
+          'Tykadlá SOR po bokoch prispôsobené kompaktnejšiemu tvaru a strešná klíma',
+          'Košická livery (žltá strecha, biely panel s č. 4761 a logom, modrý nárazník)'
+        ]
+      },
+      {
+        id: 'sor-nsg18',
+        name: 'SOR NSG 18',
+        sub: 'SOR Libchavy • Kĺbový plynový autobus (ev. č. 4801)',
+        category: 'articulated',
+        tagText: 'Kĺbový CNG',
+        tagClass: 'tag-cng',
+        dimensions: '44 × 42 px',
+        render: (l, d) => renderSorNsg18Svg(l, d, '4801'),
+        features: [
+          'Moderná aerodynamická geometria Kotas s elegantnými proporciami (44 × 42 px)',
+          'Tmavá / čierna strešná klenba CNG krytu nádrží na streche',
+          'Žlté oblúky v horných rohoch a stĺpiky, azúrovo-modré boky',
+          'Smerom nadol plynule zaoblený čierny štít (<path>) s ev. č. 4801 a znakom SOR',
+          'Tenká žltá zakrivená línia („úsmev“) prepájajúca stĺpiky tesne pod štítom',
+          'Nárazník so snehobielym stredom a azúrovo-modrými rohmi so šikmými (klinovými) svetlometmi',
+          'Čisté biele čelné sklo s obrovským čiernym číslom linky a integrovanou lištou meškania'
+        ]
+      },
+      {
+        id: 'sor-ns18-el',
+        name: 'SOR NS 18 Electric',
+        sub: 'SOR Libchavy • Kĺbový veľkokapacitný elektrobus (č. 6801)',
+        category: 'articulated',
+        tagText: 'Elektrobus 18m',
+        tagClass: 'tag-electric',
+        dimensions: '44 × 42 px',
+        render: (l, d) => renderSorNs18ElectricSvg(l, d, '6801'),
+        features: [
+          'Plynulá aerodynamická Kotas geometria karosérie z reálnej predlohy (<path>)',
+          'Kompaktný kovový nabíjací pantograf OppCharge (⚡) na strešnom batériovom boxe',
+          'Tmavé stĺpiky s ikonickým bielym lemovaním (Kotas swoosh oblúky) po bokoch',
+          'Čisté BIELE čelné sklo (fill="#ffffff") s veľkým tučným ČIERNYM číslom linky (#0f172a)',
+          'Strieborné bočné panely so šikmými bodovými LED svetlami a spodný tyrkysový nárazník'
+        ]
+      },
+      {
+        id: 'solaris-u18',
+        name: 'Solaris Urbino 18 III',
+        sub: 'Solaris Bus & Coach • Kĺbový veľkokapacitný (č. 3701)',
+        category: 'articulated',
+        tagText: 'Kĺbový 18m',
+        tagClass: 'tag-articulated',
+        dimensions: '44 × 42 px',
+        render: (l, d) => renderSolarisU18Svg(l, d, false, '3701'),
+        features: [
+          'Kompaktnejšie proporcie (44 × 42 px), usadenejší a viditeľne menší ako električka',
+          'Autentické ASYMETRICKÉ čelné sklo (spodná línia klesá šikmo vľavo)',
+          'Čisté BIELE pozadie skla (#ffffff) s veľkým tučným TMAVÝM číslom linky (#0f172a)',
+          'Predná maska a nárazník v bordovej farbe (#881337) s oválnym logom S',
+          'Realistické stlmené svetlomety (3 malé kruhové svetlá), spätné zrkadlá a lišta meškania'
+        ]
+      },
+      {
+        id: 'solaris-u1875',
+        name: 'Solaris Urbino 18,75 III',
+        sub: 'Solaris Bus & Coach • Extra dlhý gigant (č. 3901)',
+        category: 'articulated',
+        tagText: 'Kĺbový 18,75m',
+        tagClass: 'tag-articulated',
+        dimensions: '44 × 42 px',
+        render: (l, d) => renderSolarisU18Svg(l, d, true, '3901'),
+        features: [
+          'Predĺžená 18,75 m veľkokapacitná verzia (ev. č. 3901) pre nosné linky',
+          'Kompaktnejšie proporcie (44 × 42 px) s čistým BIELYM asymetrickým sklom',
+          'Veľké tučné striktne TMAVÉ číslo linky (#0f172a) na bielom podklade',
+          'Bordová karoséria (#881337) s minimalistickým logom S a stlmenými svetlometmi',
+          'Strešný box klimatizácie a horná indikačná lišta meškania'
+        ]
+      },
+      {
+        id: 'ikarus-280',
+        name: 'Ikarus 280.08/A',
+        sub: 'Ikarus Budapešť • Legendárny historický kĺbový autobus',
+        category: 'historic',
+        tagText: 'Historický kĺbový',
+        tagClass: 'tag-historic',
+        dimensions: '48 × 44 px',
+        render: (l, d) => renderIkarus280Svg(l, d),
+        features: [
+          'Klasické DELENÉ DVOJDIELNE čelné sklo so zvislým stĺpikom',
+          'Dva vetracie poklopy na streche',
+          'Klasický hnedo-oranžový historický náter',
+          'Veľké okrúhle žlté svetlomety s bočnými smerovkami'
+        ]
+      },
+      {
+        id: 'sor-nb12',
+        name: 'SOR NB 12 City',
+        sub: 'SOR Libchavy • Štandardný sólo autobus (Košická livery č. 5701)',
+        category: 'standard',
+        tagText: 'Sólo 12m',
+        tagClass: 'tag-standard',
+        dimensions: '40 × 38 px',
+        render: (l, d) => renderSorNb12Svg(l, d, '5701'),
+        features: [
+          'Kompaktná sólo karoséria (40×38 px) bez klímy, viditeľne menšia ako električky',
+          'Čisté BIELE čelné sklo (fill="#ffffff") s jemným odleskom',
+          'Veľké tučné TMAVÉ číslo linky uprostred bieleho okna pre maximálny kontrast',
+          'Kompaktné tykadlá SOR, žltá strecha, biely panel (ev. č. 5701 a logo)',
+          'Azúrovo-modrý spodný nárazník a integrovaná lišta meškania'
+        ]
+      },
+      {
+        id: 'sor-nbg12',
+        name: 'SOR NBG 12 City',
+        sub: 'SOR Libchavy • Štandardný plynový sólo autobus',
+        category: 'standard',
+        tagText: 'Sólo CNG',
+        tagClass: 'tag-cng',
+        dimensions: '44 × 46 px',
+        render: (l, d) => renderSorNbg12Svg(l, d),
+        features: [
+          'Plynový pohon CNG s výrazným hrbom na streche',
+          'Tyrkysovo-zelený eko lak',
+          '4 žlté svetlomety v dvoch radoch',
+          'Kompaktná sólo dĺžka'
+        ]
+      },
+      {
+        id: 'sor-nsg12',
+        name: 'SOR NSG 12',
+        sub: 'SOR Libchavy • Nová generácia plynového sólo autobusu',
+        category: 'standard',
+        tagText: 'Sólo CNG',
+        tagClass: 'tag-cng',
+        dimensions: '44 × 46 px',
+        render: (l, d) => renderSorNsg12Svg(l, d),
+        features: [
+          'Aerodynamický tvar novej generácie NS (Patrik Kotas)',
+          'Zaoblená strešná kapotáž plynových fliaš',
+          'Úzke LED linky denného svietenia',
+          'Sýtomodrá farba s modrým obrysom'
+        ]
+      },
+      {
+        id: 'solaris-u12-iii',
+        name: 'Solaris Urbino 12 III',
+        sub: 'Solaris Bus & Coach • Štandardný sólo autobus',
+        category: 'standard',
+        tagText: 'Sólo 12m',
+        tagClass: 'tag-standard',
+        dimensions: '44 × 44 px',
+        render: (l, d) => renderSolarisU12Svg(l, d),
+        features: [
+          'Asymetrické čelné sklo zlepšujúce výhľad na nástupište',
+          'Červený lak s tmavočerveným obrysom',
+          'Dvojice vertikálnych šošovkových svetiel',
+          'Tradičný mestský model 3. generácie'
+        ]
+      },
+      {
+        id: 'solaris-u12-iv',
+        name: 'Solaris Urbino 12 IV (New Urbino)',
+        sub: 'Solaris Bus & Coach • Ostrá 4. generácia (č. 5108)',
+        category: 'standard',
+        tagText: 'Sólo 12m (Gen IV)',
+        tagClass: 'tag-standard',
+        dimensions: '44 × 42 px',
+        render: (l, d) => renderSolarisU12IvSvg(l, d, '5108'),
+        features: [
+          'Ostré agresívne hranaté línie karosérie 4. generácie New Urbino',
+          'Sýto červená karoséria a nárazník (#dc2626) podľa CSS rodiny Solaris',
+          'Čisté BIELE čelné sklo s vycentrovaným tučným čiernym číslom linky (#0f172a)',
+          'Šikmé klinové kryty svetlometov v nárazníku s LED pásikmi a neutrálnymi svetlami',
+          'Žltá strecha, snehobiely stredný pruh so siluetou zeleného jazvečíka (Jamnik) a logo S'
+        ]
+      },
+      {
+        id: 'solaris-u12-hyb',
+        name: 'Solaris Urbino 12 III Hybrid',
+        sub: 'Solaris Bus & Coach • Hybridný mestský autobus',
+        category: 'standard',
+        tagText: 'Hybrid 12m',
+        tagClass: 'tag-electric',
+        dimensions: '44 × 46 px',
+        render: (l, d) => renderSolarisU12HybridSvg(l, d),
+        features: [
+          'Hybridná strešná nadstavba s batériami a meničom',
+          'Zelený eko lem symbolizujúci hybridný pohon',
+          'Asymetrické čelné sklo Urbino III',
+          'Dvojité zvislé projektory'
+        ]
+      },
+      {
+        id: 'solaris-u15',
+        name: 'Solaris Urbino 15 II / III',
+        sub: 'Solaris Bus & Coach • Trojnápravový sólo 15 m',
+        category: 'standard',
+        tagText: '15m (3 nápravy)',
+        tagClass: 'tag-standard',
+        dimensions: '46 × 45 px',
+        render: (l, d) => renderSolarisU15Svg(l, d),
+        features: [
+          'Trojnápravový predĺžený sólo autobus (46px šírka)',
+          'Zlaté lemovanie špecifické pre kapacitný model',
+          'Asymetrické sklo s klesaním doprava',
+          'Vysoká prepravná kapacita bez kĺbu'
+        ]
+      },
+      {
+        id: 'sor-ebn',
+        name: 'SOR EBN 10.5 & 11',
+        sub: 'SOR Libchavy • Mestský elektrobus so strešným hrbom (č. 6701)',
+        category: 'electric-cng',
+        tagText: 'Elektrobus',
+        tagClass: 'tag-electric',
+        dimensions: '44 × 42 px',
+        render: (l, d) => renderSorEbnSvg(l, d, '6701'),
+        features: [
+          'Kompaktnejšie proporcie (44 × 42 px) s čistým BIELYM čelným sklom a tmavým číslom linky',
+          'Ikonický vysoký zaoblený "hrb" na streche s bleskom ⚡',
+          'Smaragdovo-zelená / tyrkysová maska a nárazník (#059669)',
+          'Tmavé kryty s neutrálnymi bielo-žltými svetlami, tykadlá SOR a evidenčné číslo 6701'
+        ]
+      },
+      {
+        id: 'sor-bn95',
+        name: 'SOR BN 9,5',
+        sub: 'SOR Libchavy • Nízkopodlažný mestský midibus (č. 6705)',
+        category: 'midibus',
+        tagText: 'Midibus 9,5m',
+        tagClass: 'tag-midibus',
+        dimensions: '36 × 38 px',
+        render: (l, d) => renderSorBn95Svg(l, d, '6705'),
+        features: [
+          'Výrazne zúžená karoséria (36 × 38 px, šírka len 24 px) pre agilný 9.5m midibus',
+          'Ikonický strešný hrb rozbíjajúci plochú siluetu (asymetrická nadstavba s lamelami podľa fotky 6705)',
+          'Klasická košická trikolóra: žltá strecha s displejom, biely pás a azúrový nárazník',
+          'Čisté BIELE čelné sklo s vycentrovaným veľkým tučným tmavým číslom linky (#0f172a)',
+          'Evidenčné číslo 6705 a logo SOR na strednom bielom páse, tykadlá SOR a neutrálne svetlomety'
+        ]
+      },
+      {
+        id: 'sor-c105',
+        name: 'SOR C 10,5',
+        sub: 'SOR Libchavy • Linkový / Prímestský autobus',
+        category: 'midibus',
+        tagText: 'Prímestský',
+        tagClass: 'tag-midibus',
+        dimensions: '44 × 44 px',
+        render: (l, d) => renderSorC105Svg(l, d),
+        features: [
+          'Sivomodrá vysokopodlažná linková karoséria',
+          'Vysoký masívny nárazník s integrovanými svetlami',
+          'Šikmé bočné trojuholníkové svetlomety',
+          'Vyšší posed vodiča a cestujúcich'
+        ]
+      },
+      {
+        id: 'rosero',
+        name: 'Iveco Rosero First FCLLI',
+        sub: 'Rosero-P / Iveco • Minibus na podvozku Daily',
+        category: 'midibus',
+        tagText: 'Minibus',
+        tagClass: 'tag-midibus',
+        dimensions: '40 × 44 px',
+        render: (l, d) => renderRoseroSvg(l, d),
+        features: [
+          'Kompaktný minibus (40px) pre obsluhu sídlisk a okrajov',
+          'Predná maska úžitkového vozidla Iveco Daily',
+          'Chrómové vodorovné lamely v maske chladiča',
+          'Šikmé svetlomety moderného Daily dizajnu'
+        ]
+      },
+      {
+        id: 'karosa-b832',
+        name: 'Karosa B 832.1654',
+        sub: 'Karosa Vysoké Mýto • Hranatý historický autobus',
+        category: 'historic',
+        tagText: 'Historický',
+        tagClass: 'tag-historic',
+        dimensions: '44 × 44 px',
+        render: (l, d) => renderKarosaB832Svg(l, d),
+        features: [
+          'Prísne geometrická hranatá tehlovočervená karoséria',
+          'Biely kontrastný lem nárazníka a strechy',
+          'Široká čierna predná maska s obdĺžnikovými svetlami',
+          'Retro zástupca autobusovej legendy 90. rokov'
+        ]
+      },
+      {
+        id: 'gen-bus',
+        name: 'Autobus DPMK (všeobecný)',
+        sub: 'DPMK Košice • Štandardný fallback mestského autobusu',
+        category: 'standard',
+        tagText: 'Univerzálny',
+        tagClass: 'tag-standard',
+        dimensions: '44 × 44 px',
+        render: (l, d) => renderGeneralBusSvg(l, d),
+        features: [
+          'Univerzálna predná maska mestského autobusu',
+          'Mestská modrá farba karosérie DPMK so svetlým obrysom',
+          'Dvojica obdĺžnikových svetiel v nárazníku',
+          'Používa sa ako fallback pri nerozpoznanom modeli'
+        ]
+      }
+    ];
+
+    let currentDelay = 0;
+    let currentCategory = 'all';
+
+    function renderModels() {
+      const grid = document.getElementById('models-grid');
+      const line = document.getElementById('global-line-input').value.trim() || '19';
+      const search = (document.getElementById('model-search').value || '').toLowerCase().trim();
+
+      const filtered = VEHICLE_MODELS.filter(m => {
+        // Kategória
+        if (currentCategory !== 'all') {
+          if (currentCategory === 'electric-cng') {
+            if (m.category !== 'electric-cng' && !m.tagClass.includes('cng') && !m.tagClass.includes('electric')) return false;
+          } else if (m.category !== currentCategory) {
+            return false;
+          }
+        }
+        // Hľadanie textu
+        if (search) {
+          const matchName = m.name.toLowerCase().includes(search);
+          const matchSub = m.sub.toLowerCase().includes(search);
+          const matchTag = m.tagText.toLowerCase().includes(search);
+          const matchFeat = m.features.some(f => f.toLowerCase().includes(search));
+          if (!matchName && !matchSub && !matchTag && !matchFeat) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px; color: #94a3b8;">
+            <div style="font-size: 2.5rem; margin-bottom: 12px;">🔍</div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: #f8fafc;">Žiadny model nezodpovedá filtru</div>
+            <div style="font-size: 0.85rem; margin-top: 6px;">Skúste zmeniť text vyhľadávania alebo vybrať inú kategóriu.</div>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(m => {
+        const svgContent = m.render(line, currentDelay);
+        return `
+          <div class="model-card" id="card-${m.id}">
+            <div class="model-card-header">
+              <span class="model-tag ${m.tagClass}">${m.tagText}</span>
+              <span style="font-size: 0.7rem; color: #64748b; font-family: 'JetBrains Mono', monospace;">#${m.id}</span>
+            </div>
+
+            <div class="icon-stage">
+              <div class="icon-render-box" id="svg-box-${m.id}">
+                ${svgContent}
+              </div>
+              <span class="icon-dim-badge">${m.dimensions}</span>
+            </div>
+
+            <div class="model-title">${m.name}</div>
+            <div class="model-subtitle">${m.sub}</div>
+
+            <div class="model-desc-box">
+              <ul class="model-features">
+                ${m.features.map(f => `
+                  <li>
+                    <span class="feature-bullet">▸</span>
+                    <span>${f}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+
+            <div class="model-card-footer">
+              <button class="btn-copy-svg" onclick="copySvgCode('${m.id}')" title="Kopírovať SVG kód tohto modelu">
+                <span>📋</span>
+                <span>Kopírovať SVG</span>
+              </button>
+              <a href="/mapa" class="btn-copy-svg" style="text-decoration: none;" title="Zobraziť na živej mape">
+                <span>📍 Na mapu →</span>
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateAllIcons() {
+      renderModels();
+    }
+
+    function setDelaySim(delayVal, btn) {
+      currentDelay = delayVal;
+      document.querySelectorAll('.delay-pill').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderModels();
+    }
+
+    function setCategoryFilter(cat, btn) {
+      currentCategory = cat;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderModels();
+    }
+
+    function filterModels() {
+      renderModels();
+    }
+
+    function copySvgCode(modelId) {
+      const box = document.getElementById(`svg-box-${modelId}`);
+      if (!box) return;
+      const svg = box.querySelector('svg');
+      if (!svg) return;
+      const serializer = new XMLSerializer();
+      const str = serializer.serializeToString(svg);
+
+      navigator.clipboard.writeText(str).then(() => {
+        showToast('SVG kód skopírovaný do schránky! ✅');
+      }).catch(() => {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = str;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('SVG kód skopírovaný do schránky! ✅');
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    // Inicializácia pri načítaní
+    window.addEventListener('DOMContentLoaded', () => {
+      renderModels();
+    });
+  </script>
+</body>
+</html>

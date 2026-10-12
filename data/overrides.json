@@ -1,0 +1,725 @@
+{
+  "6703": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "6703",
+    "spz": "KE-090IY"
+  },
+  "1276703": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "6703",
+    "spz": "KE-090IY"
+  },
+  "1276497": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4771",
+    "spz": null
+  },
+  "1276312": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "5753",
+    "spz": null
+  },
+  "3912": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "3912",
+    "spz": null
+  },
+  "1277912": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "3912",
+    "spz": null
+  },
+  "4901": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4901",
+    "spz": null
+  },
+  "1276491": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4901",
+    "spz": null
+  },
+  "1276350": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "5750",
+    "spz": null
+  },
+  "1276381": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "819",
+    "spz": null
+  },
+  "4761": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "4761",
+    "spz": "KE-656LY"
+  },
+  "1276461": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "4761",
+    "spz": "KE-656LY"
+  },
+  "3917": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "3917",
+    "spz": "KE-438IY"
+  },
+  "1277917": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "3917",
+    "spz": "KE-438IY"
+  },
+  "4909": {
+    "model": "SOR NS 18 Electric",
+    "evidencne_cislo": "4909",
+    "spz": null
+  },
+  "1276499": {
+    "model": "SOR EBN 10.5",
+    "evidencne_cislo": "4909",
+    "spz": null
+  },
+  "1276257": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5112",
+    "spz": null
+  },
+  "4905": {
+    "model": "SOR NS 18 Electric",
+    "evidencne_cislo": "4905",
+    "spz": "EL-737CC"
+  },
+  "1276495": {
+    "model": "SOR EBN 10.5",
+    "evidencne_cislo": "4905",
+    "spz": null
+  },
+  "1403385": {
+    "model": "SOR NS 18 Electric",
+    "evidencne_cislo": "4905",
+    "spz": null
+  },
+  "1403389": {
+    "model": "SOR NS 18 Electric",
+    "evidencne_cislo": "4909",
+    "spz": null
+  },
+  "3918": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "3918",
+    "spz": null
+  },
+  "1277918": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "3918",
+    "spz": null
+  },
+  "1276288": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4722",
+    "spz": null
+  },
+  "1276668": {
+    "model": "Solaris Urbino 18,75 III",
+    "evidencne_cislo": "4768",
+    "spz": null
+  },
+  "5701": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5701",
+    "spz": null,
+    "verified": true
+  },
+  "1276500": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5106",
+    "spz": "KE-181NY",
+    "verified": true
+  },
+  "5728": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5728",
+    "spz": "XX-XXXX1"
+  },
+  "1276469": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5728",
+    "spz": "XX-XXXX1"
+  },
+  "4759": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4759",
+    "spz": null
+  },
+  "1276375": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4759",
+    "spz": null
+  },
+  "4709": {
+    "model": "Solaris Urbino 18,75 III",
+    "evidencne_cislo": "4709",
+    "spz": "KE-705IY"
+  },
+  "1276409": {
+    "model": "Solaris Urbino 18,75 III",
+    "evidencne_cislo": "4709",
+    "spz": "KE-705IY"
+  },
+  "5759": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5759",
+    "spz": "KE-621IY"
+  },
+  "1276451": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5759",
+    "spz": "KE-621IY"
+  },
+  "5118": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5118",
+    "spz": "KE-664NY"
+  },
+  "1276352": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5118",
+    "spz": "KE-664NY"
+  },
+  "1403386": {
+    "model": "SOR NS 18 Electric",
+    "evidencne_cislo": "4906",
+    "spz": "EL-737CC"
+  },
+  "5743": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5743",
+    "spz": null
+  },
+  "1276299": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5743",
+    "spz": "KE-420IY",
+    "verified": true
+  },
+  "3911": {
+    "model": "Solaris Urbino 18,75 III",
+    "evidencne_cislo": "3911",
+    "spz": null
+  },
+  "4737": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4737",
+    "spz": null,
+    "verified": true
+  },
+  "1276437": {
+    "model": "Solaris Urbino 18,75 III",
+    "evidencne_cislo": "3911",
+    "spz": null
+  },
+  "4771": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4771",
+    "spz": null
+  },
+  "6911": {
+    "model": "SOR EBN 11",
+    "evidencne_cislo": "6911",
+    "spz": null
+  },
+  "1277459": {
+    "model": "SOR EBN 11",
+    "evidencne_cislo": "6911",
+    "spz": null
+  },
+  "5754": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5754",
+    "spz": null
+  },
+  "1276309": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5754",
+    "spz": null
+  },
+  "6903": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "6903",
+    "spz": null
+  },
+  "1276306": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "6903",
+    "spz": null
+  },
+  "4749": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4749",
+    "spz": null
+  },
+  "1278230": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4749",
+    "spz": null
+  },
+  "4724": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4724",
+    "spz": "KE-163JD"
+  },
+  "4781": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4781",
+    "spz": null
+  },
+  "1276481": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4724",
+    "spz": "KE-163JD"
+  },
+  "4722": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4722",
+    "spz": null
+  },
+  "4770": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4770",
+    "spz": "ASI"
+  },
+  "1276403": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4770",
+    "spz": "ASI"
+  },
+  "5116": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5116",
+    "spz": null
+  },
+  "1276550": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5116",
+    "spz": null
+  },
+  "1276544": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4711",
+    "spz": null
+  },
+  "3920": {
+    "model": "Solaris Urbino 18,75 III",
+    "evidencne_cislo": "3920",
+    "spz": null
+  },
+  "1402220": {
+    "model": "Autobus DPMK",
+    "evidencne_cislo": "3920",
+    "spz": "AA-267TY"
+  },
+  "4743": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4743",
+    "spz": null
+  },
+  "1276477": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4743",
+    "spz": null
+  },
+  "4763": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4763",
+    "spz": null
+  },
+  "1276305": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4763",
+    "spz": null
+  },
+  "4782": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4782",
+    "spz": null
+  },
+  "1276435": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4782",
+    "spz": null
+  },
+  "5753": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "5753",
+    "spz": null
+  },
+  "4766": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4766",
+    "spz": null
+  },
+  "1276408": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4766",
+    "spz": null
+  },
+  "4778": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4778",
+    "spz": null
+  },
+  "1276364": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4764",
+    "spz": null
+  },
+  "5108": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5108",
+    "spz": null
+  },
+  "1276410": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5108",
+    "spz": null
+  },
+  "5742": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5742",
+    "spz": "KE-233OD"
+  },
+  "1276485": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5742",
+    "spz": "KE-233OD"
+  },
+  "1278180": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4752",
+    "spz": null
+  },
+  "1276526": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4781",
+    "spz": null
+  },
+  "1276144": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "4739",
+    "spz": null
+  },
+  "4754": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4754",
+    "spz": null
+  },
+  "1276444": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4754",
+    "spz": null
+  },
+  "817": {
+    "model": "Vario lf2+",
+    "evidencne_cislo": "817",
+    "spz": null
+  },
+  "1276359": {
+    "model": "Vario lf2+",
+    "evidencne_cislo": "817",
+    "spz": null
+  },
+  "828": {
+    "model": "Vario lf2+",
+    "evidencne_cislo": "828",
+    "spz": null
+  },
+  "1276483": {
+    "model": "Vario lf2+",
+    "evidencne_cislo": "828",
+    "spz": null
+  },
+  "824": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "824",
+    "spz": null
+  },
+  "1276264": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "824",
+    "spz": null
+  },
+  "4911": {
+    "model": "SOR NS 18 Electric",
+    "evidencne_cislo": "4911",
+    "spz": null
+  },
+  "1403391": {
+    "model": "SOR NS 18 Electric",
+    "evidencne_cislo": "4911",
+    "spz": null
+  },
+  "1276377": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4780",
+    "spz": null
+  },
+  "1276396": {
+    "model": "Solaris Urbino 18,75 III",
+    "evidencne_cislo": "3916",
+    "spz": null
+  },
+  "1276464": {
+    "model": "Solaris Urbino 12 III Hybrid",
+    "evidencne_cislo": "4778",
+    "spz": "ČIERNA PERLA"
+  },
+  "1276748": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4737",
+    "spz": null,
+    "verified": true
+  },
+  "811": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "811",
+    "spz": null
+  },
+  "1277890": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "811",
+    "spz": null
+  },
+  "5104": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5104",
+    "spz": null
+  },
+  "1277927": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5104",
+    "spz": null
+  },
+  "837": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "837",
+    "spz": null
+  },
+  "1276406": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "806",
+    "spz": null
+  },
+  "1276365": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4774",
+    "spz": "KE-9940C",
+    "verified": true
+  },
+  "803": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "803",
+    "spz": null
+  },
+  "1278174": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "803",
+    "spz": null
+  },
+  "819": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "819",
+    "spz": null
+  },
+  "836": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "836",
+    "spz": null
+  },
+  "1276603": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "836",
+    "spz": null
+  },
+  "1276750": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "837",
+    "spz": null
+  },
+  "829": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "829",
+    "spz": null
+  },
+  "1276752": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "829",
+    "spz": null
+  },
+  "3916": {
+    "model": "Solaris Urbino 18,75 III",
+    "evidencne_cislo": "3916",
+    "spz": null
+  },
+  "5761": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5761",
+    "spz": null
+  },
+  "1276527": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5761",
+    "spz": null
+  },
+  "808": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "808",
+    "spz": "NAY POLEP"
+  },
+  "1278135": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "808",
+    "spz": "NAY POLEP"
+  },
+  "5707": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5707",
+    "spz": null
+  },
+  "1276552": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5707",
+    "spz": null
+  },
+  "509": {
+    "model": "ČKD Tatra KT8D5.RN2",
+    "evidencne_cislo": "509",
+    "spz": "STARA"
+  },
+  "1276290": {
+    "model": "ČKD Tatra KT8D5.RN2",
+    "evidencne_cislo": "509",
+    "spz": "STARA"
+  },
+  "1276330": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "806",
+    "spz": null
+  },
+  "809": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "809",
+    "spz": null
+  },
+  "1276345": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "809",
+    "spz": null
+  },
+  "806": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "806",
+    "spz": null
+  },
+  "839": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "839",
+    "spz": null
+  },
+  "1276445": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "839",
+    "spz": null
+  },
+  "4745": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4745",
+    "spz": null
+  },
+  "1276657": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4745",
+    "spz": null
+  },
+  "4784": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4784",
+    "spz": null
+  },
+  "1276274": {
+    "model": "SOR NB 18 City",
+    "evidencne_cislo": "4784",
+    "spz": null
+  },
+  "999999_test": {
+    "model": "Autobus DPMK",
+    "evidencne_cislo": "999999_test",
+    "spz": null,
+    "verified": false
+  },
+  "1276317": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "5701",
+    "spz": "KE-707IY",
+    "verified": true
+  },
+  "1276388": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "814",
+    "spz": null,
+    "verified": true
+  },
+  "1276590": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "844",
+    "spz": null,
+    "verified": true
+  },
+  "1276508": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "508",
+    "spz": null,
+    "verified": true
+  },
+  "1403388": {
+    "model": "SOR NS 18 Electric",
+    "evidencne_cislo": "4903",
+    "spz": "EL-739CC",
+    "verified": true
+  },
+  "1276368": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "4768",
+    "spz": "KE-084OB",
+    "verified": false
+  },
+  "1276611": {
+    "model": "SOR NB 12 City",
+    "evidencne_cislo": "4711",
+    "spz": "KE-688IY",
+    "verified": false
+  },
+  "1276522": {
+    "model": "SOR BN 9,5",
+    "evidencne_cislo": "6702",
+    "spz": "KE-988JE",
+    "verified": true
+  },
+  "1276303": {
+    "model": "SOR BN 9,5",
+    "evidencne_cislo": "5703",
+    "spz": "KE-840NM",
+    "verified": true
+  },
+  "1276543": {
+    "model": "Solaris Urbino 12 IV",
+    "evidencne_cislo": "5111",
+    "spz": "KE-588OV",
+    "verified": false
+  },
+  "1276398": {
+    "model": "Vario LF2+",
+    "evidencne_cislo": "801",
+    "spz": null,
+    "verified": true
+  }
+}
