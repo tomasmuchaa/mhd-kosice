@@ -580,7 +580,7 @@
     /* Solaris krátke */
     .legend-chip.solaris-u12,
     .legend-chip.solaris-std { background: #dc2626; border-color: #991b1b; }
-    .legend-chip.solaris-u12-hybrid { background: #dc2626; border-color: #16a34a; }
+    .legend-chip.solaris-u12-hybrid { background: #dc2626; border-color: #0f172a; }
     /* Solaris dlhé */
     .legend-chip.solaris-u1875 { background: #881337; border-color: #000000; }
     .legend-chip.solaris-u18 { background: #881337; border-color: #94a3b8; }
@@ -5004,7 +5004,7 @@
         </div>
         <div class="legend-row">
           <span class="legend-chip solaris-u12-hybrid"></span>
-          <span><strong>Solaris Urbino 12 Hybrid</strong> (červená • eko pruh)</span>
+          <span><strong>Solaris Urbino 12 Hybrid</strong> (červená / žltá • hybrid box)</span>
         </div>
         <!-- Historické -->
         <div class="legend-row">
@@ -5975,7 +5975,7 @@
       { id: 'sor-nsg12', name: 'SOR NSG 12', cat: 'standard', catLabel: 'Sólo CNG', tagClass: 'tag-cng', dim: '44×46px', render: (l, d) => renderSorNsg12Svg(l, d), desc: 'Zaoblená klenba nádrží CNG, moderná karoséria NS, tenké LED linky' },
       { id: 'solaris-u12', name: 'Solaris Urbino 12 III', cat: 'standard', catLabel: 'Sólo 12m', tagClass: 'tag-standard', dim: '44×44px', render: (l, d) => renderSolarisU12Svg(l, d), desc: 'Červený mestský štandard, asymetrické okno klesajúce doprava, zvislé svetlá' },
       { id: 'solaris-u12-iv', name: 'Solaris Urbino 12 IV', cat: 'standard', catLabel: 'Sólo Gen IV', tagClass: 'tag-standard', dim: '44×42px', render: (l, d) => renderSolarisU12IvSvg(l, d, '5108'), desc: 'Ostré agresívne línie 4. generácie New Urbino, sýto červená karoséria, biele sklo s čiernym číslom, klinové svetlomety a jazvečík' },
-      { id: 'solaris-u12-hyb', name: 'Solaris Urbino 12 Hybrid', cat: 'standard', catLabel: 'Hybrid 12m', tagClass: 'tag-electric', dim: '44×46px', render: (l, d) => renderSolarisU12HybridSvg(l, d, '5119'), desc: 'Solaris Urbino 12 III Hybrid (5119), asymetrické čelné sklo klesajúce doprava, hybridná strešná nadstavba so zeleným lemovaním, biele sklo s tmavým číslom linky, žltá maska a červený nárazník' },
+      { id: 'solaris-u12-hyb', name: 'Solaris Urbino 12 Hybrid', cat: 'standard', catLabel: 'Hybrid 12m', tagClass: 'tag-electric', dim: '44×46px', render: (l, d) => renderSolarisU12HybridSvg(l, d, '5119'), desc: 'Solaris Urbino 12 III Hybrid (5119), asymetrické čelné sklo klesajúce doprava, tmavý hybridný strešný box, biele sklo s tmavým číslom linky, žltá maska a červený nárazník' },
       { id: 'solaris-u15', name: 'Solaris Urbino 15', cat: 'standard', catLabel: '15m (3 nápravy)', tagClass: 'tag-standard', dim: '46×45px', render: (l, d) => renderSolarisU15Svg(l, d), desc: 'Trojnápravový sólo gigant (46px), zlatý lem, asymetrické sklo' },
       { id: 'sor-ebn', name: 'SOR EBN 10.5 & 11', cat: 'standard', catLabel: 'Elektrobus', tagClass: 'tag-electric', dim: '44×42px', render: (l, d) => renderSorEbnSvg(l, d, '6701'), desc: 'Elektrobus s oblým strešným hrbom so symbolom ⚡, tyrkysová maska, biele sklo s tmavým číslom linky' },
       { id: 'sor-bn95', name: 'SOR BN 9,5', cat: 'midibus', catLabel: 'Midibus 9,5m', tagClass: 'tag-midibus', dim: '36×38px', render: (l, d) => renderSorBn95Svg(l, d, '6705'), desc: 'Agilný midibus (36×38px), výrazne zúžená karoséria, ikonický strešný hrb rozbíjajúci plochú siluetu (nadstavba z fotky 6705), biele sklo s tmavým číslom a tykadlá SOR' },
@@ -6677,7 +6677,7 @@
             name: 'Solaris Urbino 12 III Hybrid',
             icon: '🚌',
             color: '#dc2626',
-            borderColor: '#16a34a',
+            borderColor: '#0f172a',
             badgeClass: 'veh-cat-solaris-u12-hybrid',
             textColor: '#ffffff',
             title: 'Solaris Urbino 12 III Hybrid'
@@ -9064,7 +9064,7 @@
       `;
     }
 
-    // 17. Solaris Urbino 12 III Hybrid - asymetrické čelné sklo (mierne znížené vľavo), zelený obrys, tmavý hybridný box, biele sklo s tmavým číslom linky, žltá maska a červený nárazník
+    // 17. Solaris Urbino 12 III Hybrid - asymetrické čelné sklo (mierne znížené vľavo), tmavý bridlicový obrys, tmavý hybridný box, biele sklo s tmavým číslom linky, žltá maska a červený nárazník
     function renderSolarisU12HybridSvg(line, delayColorOrMinutes = '', evNum = '5119') {
       const safeLine = escapeXml(line || '19');
       const displayEv = escapeXml(String(evNum || '5119').trim() || '5119');
@@ -9106,11 +9106,11 @@
           <rect x="42.5" y="11.8" width="0.7" height="6.8" rx="0.3" fill="#38bdf8" opacity="0.6"/>
 
           <!-- 3. HYBRIDNÝ BOX NA STRECHE (Tmavý/čierny s eko linkou) -->
-          <rect x="11.0" y="1.5" width="22.0" height="4.5" rx="2.0" fill="#0f172a" stroke="#16a34a" stroke-width="1.4"/>
+          <rect x="11.0" y="1.5" width="22.0" height="4.5" rx="2.0" fill="#0f172a" stroke="#0f172a" stroke-width="1.4"/>
           <line x1="14.5" y1="3.8" x2="29.5" y2="3.8" stroke="#22c55e" stroke-width="1.2" stroke-linecap="round"/>
 
-          <!-- 4. HLAVNÁ ŽLTÁ KAROSÉRIA SO SÝTYM ZELENÝM OBYSOM -->
-          <rect x="5.5" y="5.5" width="33.0" height="34.5" rx="4.0" fill="#facc15" stroke="#16a34a" stroke-width="2.2" stroke-linejoin="round" filter="url(#sol12hyb-shadow)"/>
+          <!-- 4. HLAVNÁ ŽLTÁ KAROSÉRIA S TMAVÝM BRIDLICOVÝM OBRYSOM -->
+          <rect x="5.5" y="5.5" width="33.0" height="34.5" rx="4.0" fill="#facc15" stroke="#0f172a" stroke-width="2.2" stroke-linejoin="round" filter="url(#sol12hyb-shadow)"/>
 
           <!-- 5. STREŠNÝ CIEĽOVÝ TRANSPARENT / DISPLEJ -->
           <rect x="10.0" y="6.3" width="24.0" height="2.8" rx="0.6" fill="#0f172a"/>
