@@ -1601,6 +1601,7 @@
     /* Custom Leaflet Popup - Apple Liquid Glass */
     .leaflet-popup {
       pointer-events: auto !important;
+      max-width: 85vw !important;
     }
     .leaflet-popup-content-wrapper {
       background: rgba(15, 23, 42, 0.85) !important;
@@ -1612,6 +1613,9 @@
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
       padding: 4px !important;
       pointer-events: auto !important;
+      max-height: 60dvh !important;
+      max-width: 85vw !important;
+      box-sizing: border-box !important;
     }
     .leaflet-popup-tip {
       background: rgba(15, 23, 42, 0.85) !important;
@@ -1650,7 +1654,7 @@
       max-width: 85vw !important;
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
-      box-sizing: border-box;
+      box-sizing: border-box !important;
     }
     .leaflet-popup-content::-webkit-scrollbar {
       width: 5px;
@@ -9793,12 +9797,13 @@
       const popupContent = buildPopupHtml(v);
       const marker = L.marker([v.latitude, v.longitude], { icon: icon });
       // Leaflet AutoPan: zohľadnenie UI prvkov (horná lišta 60px, spodná lišta 90px)
-      // Pri extrémnom zoome (dostupná výška okna < 480px) dočasne vypíname autoPan, aby popup neodskakoval
-      const isExtremeZoom = (window.innerHeight < 480 || (window.devicePixelRatio && window.devicePixelRatio > 1.25 && window.innerHeight < 600));
+      // Pri extrémnom zoome (výška okna < 360px) dočasne vypíname autoPan, inak plne aktívne s paddingom
+      const isExtremeZoom = (window.innerHeight < 360);
       marker.bindPopup(popupContent, {
+        autoPan: !isExtremeZoom,
         autoPanPaddingTopLeft: [10, 60],
         autoPanPaddingBottomRight: [10, 90],
-        autoPan: !isExtremeZoom
+        closeButton: true
       });
       marker.on('click', () => {
         startFollowingVehicle(v);
@@ -9807,7 +9812,7 @@
       marker.on('popupopen', (e) => {
         const popup = e.popup;
         if (popup && popup.options) {
-          const isExtreme = (window.innerHeight < 480 || (window.devicePixelRatio && window.devicePixelRatio > 1.25 && window.innerHeight < 600));
+          const isExtreme = (window.innerHeight < 360);
           popup.options.autoPan = !isExtreme;
           popup.options.autoPanPaddingTopLeft = [10, 60];
           popup.options.autoPanPaddingBottomRight = [10, 90];
@@ -10505,7 +10510,9 @@
 
       const popup = L.popup({
         maxWidth: 420,
-        className: 'custom-board-popup'
+        className: 'custom-board-popup',
+        autoPanPaddingTopLeft: [10, 60],
+        autoPanPaddingBottomRight: [10, 90]
       })
       .setLatLng(latLng)
       .setContent(loadingHtml)
