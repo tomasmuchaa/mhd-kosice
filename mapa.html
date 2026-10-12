@@ -109,9 +109,9 @@
 
     /* Ľavý prehľadový panel (Stats & Status) */
     .dashboard-panel {
-      position: absolute;
-      top: 14px;
-      left: 14px;
+      position: fixed !important;
+      top: 14px !important;
+      left: 14px !important;
       z-index: 1000;
       padding: 14px 18px;
       max-width: 340px;
@@ -122,6 +122,8 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 20px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      flex-wrap: wrap !important;
+      box-sizing: border-box !important;
     }
 
     .dashboard-title {
@@ -1613,8 +1615,10 @@
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
       padding: 4px !important;
       pointer-events: auto !important;
-      max-height: 60dvh !important;
       max-width: 85vw !important;
+      max-height: 50dvh !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
       box-sizing: border-box !important;
     }
     .leaflet-popup-tip {
@@ -1650,10 +1654,10 @@
       margin: 12px 14px;
       line-height: 1.45;
       pointer-events: auto !important;
-      max-height: 60dvh !important;
       max-width: 85vw !important;
+      max-height: 50dvh !important;
       overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
+      -webkit-overflow-scrolling: touch !important;
       box-sizing: border-box !important;
     }
     .leaflet-popup-content::-webkit-scrollbar {
@@ -3178,12 +3182,13 @@
 
       /* Kompaktný hlavičkový panel na mobile - neprekrýva mapu */
       .dashboard-panel {
-        top: 12px;
-        left: 12px;
-        right: 62px; /* miesto pre hamburger */
-        bottom: auto;
-        width: auto;
-        max-width: none;
+        position: fixed !important;
+        top: 12px !important;
+        left: 12px !important;
+        right: 62px !important; /* miesto pre hamburger */
+        bottom: auto !important;
+        width: auto !important;
+        max-width: calc(100vw - 74px) !important;
         padding: 10px 14px;
         border-radius: 16px;
         background: rgba(15, 23, 42, 0.75);
@@ -3194,6 +3199,8 @@
         z-index: 1000;
         display: flex;
         flex-direction: column;
+        flex-wrap: wrap !important;
+        box-sizing: border-box !important;
         gap: 4px;
       }
       .dashboard-title {
@@ -3450,10 +3457,10 @@
 
     /* Čistý mapový stavový badge - Apple VisionOS Capsule */
     .map-live-pill {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      z-index: 900;
+      position: fixed !important;
+      top: 12px !important;
+      left: 12px !important;
+      z-index: 10040 !important;
       background: rgba(15, 23, 42, 0.75);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
@@ -3469,9 +3476,9 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       user-select: none;
       transition: transform 0.15s, background-color 0.2s;
-      max-width: 100%;
-      flex-wrap: wrap;
-      box-sizing: border-box;
+      max-width: calc(100vw - 70px) !important;
+      flex-wrap: wrap !important;
+      box-sizing: border-box !important;
     }
     .map-live-pill:hover {
       background: rgba(30, 41, 59, 0.85);
@@ -3491,12 +3498,13 @@
 
     /* Spodná Navigačná Lišta (Bottom Navigation Bar - Pevne ukotvená k spodnej hrane) */
     .bottom-nav-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
-      height: calc(60px + env(safe-area-inset-bottom, 0px));
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      max-width: 100vw !important;
+      height: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
       background: rgba(15, 23, 42, 0.85);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
@@ -3509,10 +3517,10 @@
       align-items: flex-start;
       padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px)) 12px;
       box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
-      z-index: 10000;
-      margin: 0;
-      transform: none;
-      box-sizing: border-box;
+      z-index: 10035 !important;
+      margin: 0 !important;
+      transform: none !important;
+      box-sizing: border-box !important;
     }
 
     /* Posuvný indikátor záložky (Apple VisionOS Translucent Segment - 4 Záložky) */
@@ -4518,6 +4526,25 @@
     }
     body.dark-mode .theme-status-text {
       color: #94a3b8;
+    }
+
+    /* Agresívne CSS limity s najvyššou prioritou: bublina sa prispôsobí a nepretečie */
+    .leaflet-popup-content-wrapper {
+      max-width: 85vw !important;
+      max-height: 50dvh !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      box-sizing: border-box !important;
+    }
+    .leaflet-popup-content {
+      max-width: 85vw !important;
+      max-height: 50dvh !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      box-sizing: border-box !important;
+    }
+    .leaflet-popup {
+      max-width: 85vw !important;
     }
   </style>
 </head>
@@ -9790,32 +9817,88 @@
     }
     window.reportVehicleOccupancy = reportVehicleOccupancy;
 
+    // Otvorenie detailov vozidla priamo v existujúcom spodnom paneli (Bottom Sheet pre mobily < 768px)
+    function openVehicleDetailBottomSheet(v) {
+      if (!v) return;
+      if (typeof closeMobileDrawer === 'function') {
+        closeMobileDrawer();
+      }
+      const panel = document.getElementById('history-bottom-sheet') || document.getElementById('vehicle-history-panel');
+      if (!panel) return;
+      const backdrop = document.getElementById('history-bottom-sheet-backdrop') || 
+                       document.getElementById('history-sheet-backdrop') || 
+                       document.getElementById('vehicle-history-backdrop');
+      const titleEl = document.getElementById('veh-hist-title');
+      const subtitleEl = document.getElementById('veh-hist-subtitle');
+      const typeIconEl = document.getElementById('veh-hist-type-icon');
+      const bodyEl = document.getElementById('history-sheet-body') || document.getElementById('veh-hist-body');
+
+      const fleet = v.fleet_info || {};
+      const cat = getVehicleCategory(v);
+      const cleanEv = String(fleet.evidencne_cislo || '').trim();
+      const displayEv = cleanEv || (v.vehicle_id ? '#' + v.vehicle_id : 'Neznáme');
+      const safeLine = v.line ? `Linka ${v.line}` : 'MHD';
+
+      if (titleEl) {
+        titleEl.innerHTML = `${safeLine} • #${displayEv}`;
+      }
+      if (subtitleEl) {
+        subtitleEl.innerText = `${fleet.model || 'DPMK Košice'} • Smer ${v.destination || 'Neznámy'}`;
+      }
+      if (typeIconEl) {
+        typeIconEl.innerText = cat.icon || '🚌';
+      }
+
+      const devContainer = document.getElementById('veh-hist-dev-btn-container');
+      if (devContainer) {
+        devContainer.style.display = 'none';
+        devContainer.innerHTML = '';
+      }
+
+      if (bodyEl) {
+        bodyEl.innerHTML = `<div class="vehicle-bottom-sheet-content" style="padding: 4px 6px 14px 6px;">` + buildPopupHtml(v) + `</div>`;
+      }
+
+      // Okamžité vysunutie existujúceho spodného panela
+      panel.classList.add('open');
+      panel.classList.add('active');
+      if (backdrop) {
+        backdrop.classList.add('open');
+        backdrop.classList.add('active');
+      }
+    }
+    window.openVehicleDetailBottomSheet = openVehicleDetailBottomSheet;
+
     // Tvorba kompletného Leaflet markera pre vozidlo (ikona, popup, interakcie)
     function createVehicleMarker(v) {
       const comm = formatLastCommunication(v.last_communication);
       const icon = createVehicleMarkerIcon(v, comm.isStale);
       const popupContent = buildPopupHtml(v);
       const marker = L.marker([v.latitude, v.longitude], { icon: icon });
-      // Leaflet AutoPan: zohľadnenie UI prvkov (horná lišta 60px, spodná lišta 90px)
-      // Pri extrémnom zoome (výška okna < 360px) dočasne vypíname autoPan, inak plne aktívne s paddingom
-      const isExtremeZoom = (window.innerHeight < 360);
+      // Vypnutie Leaflet AutoPan: striktne autoPan: false, aby mapa pri kliknutí neodskakovala
       marker.bindPopup(popupContent, {
-        autoPan: !isExtremeZoom,
-        autoPanPaddingTopLeft: [10, 60],
-        autoPanPaddingBottomRight: [10, 90],
+        autoPan: false,
         closeButton: true
       });
       marker.on('click', () => {
         startFollowingVehicle(v);
         if (v.trip_id) loadAndDrawTripRoute(v.trip_id);
+        if (window.innerWidth <= 768) {
+          setTimeout(() => {
+            marker.closePopup();
+            openVehicleDetailBottomSheet(v);
+          }, 0);
+        }
       });
       marker.on('popupopen', (e) => {
         const popup = e.popup;
         if (popup && popup.options) {
-          const isExtreme = (window.innerHeight < 360);
-          popup.options.autoPan = !isExtreme;
-          popup.options.autoPanPaddingTopLeft = [10, 60];
-          popup.options.autoPanPaddingBottomRight = [10, 90];
+          popup.options.autoPan = false;
+        }
+        if (window.innerWidth <= 768) {
+          marker.closePopup();
+          openVehicleDetailBottomSheet(v);
+          return;
         }
         const popupEl = e.popup.getElement();
         if (popupEl) {
@@ -10338,7 +10421,7 @@
               <div style="font-size: 0.68rem; color: #64748b; margin-top: 6px;">Rýchlosť chôdze 5 km/h (12 min/km)</div>
             </div>
           `;
-          polyline.bindPopup(detailPopup, { maxWidth: 280 });
+          polyline.bindPopup(detailPopup, { maxWidth: 280, autoPan: false });
 
           // Cieľová značka prestupu (zelený bod na plátne Canvas)
           const targetMarker = L.circleMarker(toCoords, {
@@ -10511,8 +10594,7 @@
       const popup = L.popup({
         maxWidth: 420,
         className: 'custom-board-popup',
-        autoPanPaddingTopLeft: [10, 60],
-        autoPanPaddingBottomRight: [10, 90]
+        autoPan: false
       })
       .setLatLng(latLng)
       .setContent(loadingHtml)
@@ -12151,7 +12233,7 @@
         allCoords.push(startPt);
         const startMarker = L.marker(startPt, {
           icon: createJourneyPin('🟢', '#10b981', 'Štart cesty')
-        }).bindPopup(`<b>Štart cesty:</b><br>${f.name}`);
+        }).bindPopup(`<b>Štart cesty:</b><br>${f.name}`, { autoPan: false });
         journeyLayer.addLayer(startMarker);
       }
 
@@ -12162,7 +12244,7 @@
           allCoords.push(st.coords);
           const transferMarker = L.marker(st.coords, {
             icon: createJourneyPin('🔄', '#f59e0b', `Prestup na linku ${st.line}`)
-          }).bindPopup(`<b>Prestup na linku ${st.line}</b><br>${st.stop_name || ''}<br><span style="color:#fbbf24; font-weight:600;">Čakanie: ${st.wait_minutes} min</span>`);
+          }).bindPopup(`<b>Prestup na linku ${st.line}</b><br>${st.stop_name || ''}<br><span style="color:#fbbf24; font-weight:600;">Čakanie: ${st.wait_minutes} min</span>`, { autoPan: false });
           journeyLayer.addLayer(transferMarker);
         }
       });
@@ -12174,7 +12256,7 @@
         allCoords.push(endPt);
         const endMarker = L.marker(endPt, {
           icon: createJourneyPin('🏁', '#a855f7', 'Cieľ cesty')
-        }).bindPopup(`<b>Cieľ cesty:</b><br>${t.name}`);
+        }).bindPopup(`<b>Cieľ cesty:</b><br>${t.name}`, { autoPan: false });
         journeyLayer.addLayer(endMarker);
       }
 
