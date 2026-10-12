@@ -1,6 +1,6 @@
 {
-  "name": "MHD Košice Live",
-  "short_name": "MHD KE",
+  "name": "Nexigo - Live MHD Košice",
+  "short_name": "Nexigo",
   "description": "Živá mapa, telemetria a vyhľadávač spojov MHD Košice",
   "start_url": "/mapa",
   "scope": "/",
