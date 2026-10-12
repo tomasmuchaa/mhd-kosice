@@ -1,8 +1,9 @@
-const CACHE_NAME = 'mhd-kosice-cache-v4';
+const CACHE_NAME = 'nexigo-cache-v5';
 const STATIC_ASSETS = [
   '/manifest.json',
-  '/static/icons/icon-192.png',
-  '/static/icons/icon-512.png',
+  '/static/icons/favicon.png?v=2',
+  '/static/icons/icon-192.png?v=2',
+  '/static/icons/icon-512.png?v=2',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap'

@@ -222,12 +222,21 @@ def get_icon(icon_name: str):
         return FileResponse(icon_path, media_type="image/png")
     raise HTTPException(status_code=404, detail="Ikona nebola nájdená.")
 
+@app.get("/favicon.ico")
+@app.get("/favicon.png")
+def get_favicon():
+    """Hlavná favicona aplikácie Nexigo."""
+    fav_path = os.path.join(STATIC_ICONS_DIR, "favicon.png")
+    if os.path.exists(fav_path):
+        return FileResponse(fav_path, media_type="image/png", headers={"Cache-Control": "no-cache"})
+    raise HTTPException(status_code=404, detail="Favicon nebola nájdená.")
+
 @app.get("/static/icons/{icon_name}")
 def get_static_icon(icon_name: str):
     """PWA Ikony aplikácie v static/icons/."""
     icon_path = os.path.join(STATIC_ICONS_DIR, icon_name)
     if os.path.exists(icon_path):
-        return FileResponse(icon_path, media_type="image/png")
+        return FileResponse(icon_path, media_type="image/png", headers={"Cache-Control": "no-cache"})
     raise HTTPException(status_code=404, detail="Ikona nebola nájdená.")
 
 @app.get("/api/v1/trip/{trip_id}")
