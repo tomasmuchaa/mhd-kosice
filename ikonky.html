@@ -2164,30 +2164,125 @@
       `;
     }
 
-    // 17. Solaris Urbino 12 III Hybrid
-    function renderSolarisU12HybridSvg(line, delayColorOrMinutes = '') {
+    // 17. Solaris Urbino 12 III Hybrid - asymetrické čelné sklo klesajúce doprava, hybridná strešná nadstavba so zeleným lemovaním, biele sklo s tmavým číslom linky, žltá maska s logom Solaris a ev. číslom 5119, červený nárazník
+    function renderSolarisU12HybridSvg(line, delayColorOrMinutes = '', evNum = '5119') {
+      const safeLine = escapeXml(line || '19');
+      const displayEv = escapeXml(String(evNum || '5119').trim() || '5119');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
+
       const delayColor = getDelayBarColor(delayColorOrMinutes);
-      const fontSize = getLineFontSize(line);
-      const safeLine = escapeXml(line);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
       const clipId = 'ws-clip-sol-hyb-' + Math.random().toString(36).substr(2, 7);
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 46" width="44" height="46" class="veh-front-svg">
-        <defs><clipPath id="${clipId}"><path d="M 8 9 L 36 9 L 36 33 L 25 33 L 25 30 L 8 30 Z"/></clipPath></defs>
-        <rect x="12" y="1.5" width="20" height="4.5" rx="2" fill="#16a34a" stroke="#0f172a" stroke-width="1"/>
-        <line x1="15" y1="3.5" x2="29" y2="3.5" stroke="#86efac" stroke-width="1.2" stroke-linecap="round"/>
-        <rect x="7" y="39" width="6" height="4" rx="1.5" fill="#0f172a"/>
-        <rect x="31" y="39" width="6" height="4" rx="1.5" fill="#0f172a"/>
-        <rect x="5" y="6" width="34" height="34" rx="6" fill="#dc2626" stroke="#16a34a" stroke-width="2.5"/>
-        <rect x="1.5" y="10" width="3.5" height="8" rx="1.5" fill="#0f172a" stroke="#16a34a" stroke-width="1"/>
-        <rect x="39" y="10" width="3.5" height="8" rx="1.5" fill="#0f172a" stroke="#16a34a" stroke-width="1"/>
-        <path d="M 8 9 L 36 9 L 36 33 L 25 33 L 25 30 L 8 30 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
-        <rect class="veh-delay-bar" x="8" y="9" width="28" height="6" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
-        <text x="21" y="22" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" letter-spacing="-0.5px">${safeLine}</text>
-        <rect x="15" y="32.5" width="14" height="4" rx="1.8" fill="#0f172a"/>
-        <circle cx="10" cy="32.5" r="1.5" fill="#fef08a"/>
-        <circle cx="10" cy="35" r="1.3" fill="#fef08a"/>
-        <circle cx="34" cy="32.5" r="1.5" fill="#fef08a"/>
-        <circle cx="34" cy="35" r="1.3" fill="#fef08a"/>
-      </svg>`;
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 46" width="44" height="46" class="veh-front-svg veh-solaris-u12-hybrid">
+          <defs>
+            <filter id="sol12hyb-shadow" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
+            </filter>
+            <!-- ASYMETRICKÉ ČELNÉ SKLO URBINO III: z pohľadu diváka na ľavej strane klesá šikmo nižšie -->
+            <clipPath id="${clipId}">
+              <path d="M 7.2 10.2 L 36.8 10.2 L 36.8 23.2 L 22.5 23.2 L 13.5 27.2 L 7.2 27.2 Z"/>
+            </clipPath>
+          </defs>
+
+          <!-- 1. PODVOZOK A KOLESÁ (tmavé pneumatiky pod nárazníkom) -->
+          <g fill="#0f172a">
+            <rect x="6.5" y="39.5" width="4.5" height="4.2" rx="1"/>
+            <rect x="33.0" y="39.5" width="4.5" height="4.2" rx="1"/>
+          </g>
+          <line x1="6.5" y1="43" x2="11.0" y2="43" stroke="#334155" stroke-width="0.8"/>
+          <line x1="33.0" y1="43" x2="37.5" y2="43" stroke="#334155" stroke-width="0.8"/>
+
+          <!-- 2. MASÍVNE DLHÉ ČIERNE SPÄTNÉ ZRKADLÁ PO BOKOCH -->
+          <!-- Ľavé zrkadlo (na strane dverí / diváka vľavo) -->
+          <path d="M 5.2 7.8 C 2.5 7.5, 1.2 9.0, 1.4 12.0" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>
+          <rect x="0.6" y="11.5" width="2.8" height="9.0" rx="1.0" fill="#18181b" stroke="#0f172a" stroke-width="0.6"/>
+          <rect x="0.8" y="12.2" width="0.8" height="7.6" rx="0.3" fill="#38bdf8" opacity="0.6"/>
+
+          <!-- Pravé zrkadlo (na strane vodiča / diváka vpravo) -->
+          <path d="M 38.8 8.0 C 41.5 7.8, 42.8 9.0, 42.6 12.0" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>
+          <rect x="40.6" y="11.5" width="2.8" height="9.0" rx="1.0" fill="#18181b" stroke="#0f172a" stroke-width="0.6"/>
+          <rect x="42.4" y="12.2" width="0.8" height="7.6" rx="0.3" fill="#38bdf8" opacity="0.6"/>
+
+          <!-- 3. HYBRIDNÁ STREŠNÁ NADSTAVBA (batériový/superkondenzátorový box jemne presahujúci strechu) -->
+          <polygon points="8.2,6.2 9.5,2.8 11.5,6.2" fill="#0f172a"/>
+          <polygon points="35.8,6.2 34.5,2.8 32.5,6.2" fill="#0f172a"/>
+          <rect x="9.5" y="1.8" width="25.0" height="4.6" rx="1.8" fill="#1e293b" stroke="#16a34a" stroke-width="1.8"/>
+          <!-- Chladiace žalúzie a zelený eko pásik na hybridnom boxe -->
+          <line x1="13.5" y1="3.1" x2="30.5" y2="3.1" stroke="#475569" stroke-width="0.6"/>
+          <line x1="13.5" y1="4.9" x2="30.5" y2="4.9" stroke="#475569" stroke-width="0.6"/>
+          <line x1="14.5" y1="4.0" x2="29.5" y2="4.0" stroke="#22c55e" stroke-width="1.1" stroke-linecap="round"/>
+
+          <!-- 4. HLAVNÁ KAROSÉRIA SO SÝTYM ZELENÝM OBYSOM (HYBRIDNÝ OKRAJ) -->
+          <rect x="5.2" y="6.0" width="33.6" height="34.5" rx="3.0" fill="#dc2626" stroke="#16a34a" stroke-width="2.2" stroke-linejoin="round" filter="url(#sol12hyb-shadow)"/>
+
+          <!-- 5. STRECHA A ČIERNY LINKOVÝ DISPLEJ -->
+          <path d="M 5.2 6.0 L 38.8 6.0 L 38.8 10.2 L 5.2 10.2 Z" fill="#facc15"/>
+          <rect x="9.5" y="6.6" width="25.0" height="3.2" rx="0.6" fill="#0f172a" stroke="#27272a" stroke-width="0.4"/>
+          <line x1="12.0" y1="8.2" x2="32.0" y2="8.2" stroke="#f97316" stroke-width="0.7" stroke-dasharray="1.2 0.8"/>
+          <line x1="5.2" y1="10.2" x2="38.8" y2="10.2" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- 6. ASYMETRICKÉ ČISTÉ BIELE ČELNÉ SKLO (fill="#ffffff") -->
+          <path d="M 7.2 10.2 L 36.8 10.2 L 36.8 23.2 L 22.5 23.2 L 13.5 27.2 L 7.2 27.2 Z" fill="#ffffff" stroke="#0f172a" stroke-width="1.2" stroke-linejoin="round"/>
+
+          <!-- Diagonálny realistický odlesk skla -->
+          <polygon points="26.0,10.2 30.0,10.2 20.5,23.2 16.5,23.2" fill="#e2e8f0" opacity="0.5" clip-path="url(#${clipId})"/>
+          <polygon points="33.0,10.2 35.5,10.2 28.0,23.2 25.5,23.2" fill="#e2e8f0" opacity="0.25" clip-path="url(#${clipId})"/>
+
+          <!-- 7. INDIKAČNÁ LIŠTA MEŠKANIA (v hornej časti asymetrického skla cez clipPath) -->
+          <rect class="veh-delay-bar" x="7.2" y="10.2" width="29.6" height="4.0" fill="${delayFill}" clip-path="url(#${clipId})" style="fill: ${delayFill} !important; ${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="7.2" y1="14.2" x2="36.8" y2="14.2" stroke="#0f172a" stroke-width="0.8" clip-path="url(#${clipId})"/>` : ''}
+
+          <!-- 8. ČÍSLO LINKY (vycentrované, obrovské, tučné a čierne pre maximálny kontrast) -->
+          <text x="22.0" y="18.8" text-anchor="middle" dominant-baseline="central" alignment-baseline="central" font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" style="fill: #0f172a !important; font-size: ${fontSize}px !important; font-weight: 900 !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- Stierače čelného skla -->
+          <line x1="16.5" y1="27.0" x2="26.0" y2="15.0" stroke="#1e293b" stroke-width="0.8" stroke-linecap="round"/>
+          <line x1="26.5" y1="23.4" x2="34.5" y2="14.0" stroke="#1e293b" stroke-width="0.8" stroke-linecap="round"/>
+
+          <!-- 9. ŽLTÝ PANEL MASKY POD ASYMETRICKÝM OKNOM -->
+          <path d="M 5.2 27.2 L 13.5 27.2 L 22.5 23.2 L 38.8 23.2 L 38.8 33.2 L 5.2 33.2 Z" fill="#facc15" stroke="#ca8a04" stroke-width="0.4"/>
+
+          <!-- Drobné evidenčné číslo v žltej ploche (5119) -->
+          <text x="22.0" y="26.8" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.7px" fill="#0f172a" letter-spacing="0.2px">${displayEv}</text>
+
+          <!-- Strieborné logo Solaris (ovál s 'S') vycentrované pod číslom -->
+          <g transform="translate(22.0, 30.2)">
+            <ellipse cx="0" cy="0" rx="3.0" ry="1.6" fill="#475569" stroke="#cbd5e1" stroke-width="0.4"/>
+            <path d="M 1.5 -0.6 C 0.9 -1.2, -1.0 -1.0, -1.2 -0.3 C -1.5 0.5, 1.5 0.3, 1.2 1.0 C 0.9 1.5, -1.0 1.5, -1.5 0.8" fill="none" stroke="#ffffff" stroke-width="0.55" stroke-linecap="round"/>
+          </g>
+
+          <!-- 10. STRIEBORNÝ PÁS S NÁPISOM SOLARIS -->
+          <rect x="5.2" y="33.2" width="33.6" height="1.4" fill="#94a3b8" stroke="#64748b" stroke-width="0.3"/>
+          <text x="22.0" y="33.9" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.1px" fill="#0f172a" letter-spacing="0.8px">SOLARIS</text>
+
+          <!-- 11. SÝTO ČERVENÝ NÁRAZNÍK SO SVETLOMETMI A ŠPZ -->
+          <path d="M 5.2 34.6 L 38.8 34.6 L 38.8 39.5 Q 38.8 40.5 37.2 40.5 L 6.8 40.5 Q 5.2 40.5 5.2 39.5 Z" fill="#dc2626"/>
+          <line x1="5.2" y1="34.6" x2="38.8" y2="34.6" stroke="#0f172a" stroke-width="0.6"/>
+
+          <!-- Ľavé svetlomety v červenom nárazníku -->
+          <rect x="6.8" y="35.3" width="7.8" height="2.8" rx="1.0" fill="#b91c1c" stroke="#991b1b" stroke-width="0.3"/>
+          <circle cx="8.0" cy="36.7" r="0.75" fill="#e2e8f0" stroke="#475569" stroke-width="0.25"/>
+          <circle cx="10.0" cy="36.7" r="0.75" fill="#e2e8f0" stroke="#475569" stroke-width="0.25"/>
+          <circle cx="12.6" cy="36.7" r="1.5" fill="#fffbeb" stroke="#fef08a" stroke-width="0.5"/>
+          <circle cx="12.6" cy="36.7" r="2.2" fill="#fef08a" opacity="0.25"/>
+
+          <!-- Pravé svetlomety v červenom nárazníku -->
+          <rect x="29.4" y="35.3" width="7.8" height="2.8" rx="1.0" fill="#b91c1c" stroke="#991b1b" stroke-width="0.3"/>
+          <circle cx="31.4" cy="36.7" r="1.5" fill="#fffbeb" stroke="#fef08a" stroke-width="0.5"/>
+          <circle cx="31.4" cy="36.7" r="2.2" fill="#fef08a" opacity="0.25"/>
+          <circle cx="34.0" cy="36.7" r="0.75" fill="#e2e8f0" stroke="#475569" stroke-width="0.25"/>
+          <circle cx="36.0" cy="36.7" r="0.75" fill="#e2e8f0" stroke="#475569" stroke-width="0.25"/>
+
+          <!-- Košická ŠPZ podľa referenčnej fotky AA 921ZS -->
+          <rect x="17.0" y="38.0" width="10.0" height="2.2" rx="0.4" fill="#ffffff" stroke="#0f172a" stroke-width="0.35"/>
+          <rect x="17.0" y="38.0" width="1.8" height="2.2" fill="#2563eb"/>
+          <text x="22.2" y="39.1" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.3px" fill="#0f172a" letter-spacing="0.2px">AA·921ZS</text>
+        </svg>
+      `;
     }
 
     // 18. Solaris Urbino 12 III
@@ -2574,12 +2669,14 @@
         tagText: 'Hybrid 12m',
         tagClass: 'tag-electric',
         dimensions: '44 × 46 px',
-        render: (l, d) => renderSolarisU12HybridSvg(l, d),
+        render: (l, d) => renderSolarisU12HybridSvg(l, d, '5119'),
         features: [
-          'Hybridná strešná nadstavba s batériami a meničom',
-          'Zelený eko lem symbolizujúci hybridný pohon',
-          'Asymetrické čelné sklo Urbino III',
-          'Dvojité zvislé projektory'
+          'Hybridná strešná nadstavba s batériami a eko pásikom',
+          'Sýty zelený okraj karosérie (hybrid)',
+          'Asymetrické čelné sklo Urbino III (vľavo klesajúce)',
+          'Biele sklo s tmavým číslom linky a lištou meškania',
+          'Žltá maska s logom Solaris a číslom 5119',
+          'Červený nárazník so svetlometmi a ŠPZ AA 921ZS'
         ]
       },
       {
