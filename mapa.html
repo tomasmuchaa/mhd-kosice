@@ -5981,7 +5981,7 @@
     const IG_MODELS = [
       { id: 'tram-vario', name: 'Vario LF2+ / Vario LF', cat: 'tram', catLabel: 'Električka', tagClass: 'tag-tram', dim: '46×58px', render: (l, d) => renderVarioLfSvg(l, d, '826'), desc: '3-farebná DPMK livery (žltá-biela-azúrová), vysoký polopantograf, číslo 826, halogény' },
       { id: 'tram-kt8', name: 'ČKD Tatra KT8D5', cat: 'tram', catLabel: 'Električka', tagClass: 'tag-tram', dim: '46×50px', render: (l, d) => renderKt8d5Svg(l, d, '525'), desc: 'Hranatý retro dizajn obojsmernej električky (č. 525), žltý zaoblený podbradník pod oknom, 2 veľké okrúhle svetlomety, spriahadlo a diamantový pantograf' },
-      { id: 'tram-t6', name: 'ČKD Tatra T6A5', cat: 'tram', catLabel: 'Električka', tagClass: 'tag-tram', dim: '44×48px', render: (l, d) => renderT6a5Svg(l, d, '622'), desc: 'Hranatý dizajn T6A5 (č. 622), košické modro-žlté vlnky na bielom paneli, azúrový nárazník a strecha, žlté stĺpiky, žlté čelné sklo s čiernym číslom linky, okrúhle svetlomety a elegantný pantograf' },
+      { id: 'tram-t6', name: 'ČKD Tatra T6A5', cat: 'tram', catLabel: 'Električka', tagClass: 'tag-tram', dim: '44×48px', render: (l, d) => renderT6a5Svg(l, d, '622'), desc: 'Hranatý dizajn T6A5 (č. 622), košické modro-žlté vlnky na bielom paneli, azúrový nárazník a strecha, žlté stĺpiky, biele čelné sklo s čiernym číslom linky, okrúhle svetlomety a elegantný pantograf' },
       { id: 'tram-gen', name: 'Električka DPMK všeobecná', cat: 'tram', catLabel: 'Električka', tagClass: 'tag-tram', dim: '44×48px', render: (l, d) => renderGeneralTramSvg(l, d), desc: 'Univerzálny model električky so zberačom prúdu' },
       { id: 'sor-nb18', name: 'SOR NB 18 City', cat: 'articulated', catLabel: 'Kĺbový 18m', tagClass: 'tag-articulated', dim: '44×42px', render: (l, d) => renderSorNb18Svg(l, d, '4761'), desc: 'Košická livery (č. 4761), čisté biele sklo s tmavým číslom linky, tykadlá SOR, klíma' },
       { id: 'sor-nsg18', name: 'SOR NSG 18', cat: 'articulated', catLabel: 'Kĺbový CNG', tagClass: 'tag-cng', dim: '44×42px', render: (l, d) => renderSorNsg18Svg(l, d, '4801'), desc: 'Košický kĺbový CNG autobus (č. 4801), aerodynamická Kotas geometria, tmavá CNG strecha, žlté oblúky, čierny zaoblený štít so žltým úsmevom, bielo-modrý nárazník a klinové svetlá' },
@@ -7766,7 +7766,7 @@
     // 3. ČKD Tatra T6A5 - klasická hranatá sólo električka (44×48 px) podľa košickej predlohy (č. 622):
     // Prísne hranatý boxy dizajn, úzka azúrovo-modrá hrana strechy a spodný nárazník, sýto žlté stĺpiky,
     // snehobiely panel s košickými žltými a modrými vlnkami/oblúkmi, ev. č. 622 a logom ČKD,
-    // veľké hranaté žlté čelné sklo (fill="#facc15") s obrovským čiernym číslom linky (#0f172a),
+    // veľké hranaté biele čelné sklo (fill="#ffffff") s obrovským čiernym číslom linky (#0f172a),
     // integrovaná horizontálna lišta meškania (0 min = transparentná, <=3 = žltá, 3-5 = oranžová, >5 = červená),
     // 2 okrúhle svetlomety na bielo-modrom rozhraní, tmavé spriahadlo (coupler), koľajové kolesá a elegantný žltý pantograf s pätkou
     function renderT6a5Svg(line, delayColorOrMinutes = '', evNum = '622') {
@@ -7830,17 +7830,17 @@
           <rect x="6" y="11.8" width="2.5" height="16.7" fill="#facc15"/>
           <rect x="35.5" y="11.8" width="2.5" height="16.7" fill="#facc15"/>
 
-          <!-- 3. VEĽKÉ HRANATÉ ČELNÉ SKLO SO ŽLTOU VÝPLŇOU (fill="#facc15") -->
-          <rect x="8.5" y="14.3" width="27" height="14.2" rx="0.6" fill="#facc15" stroke="#0f172a" stroke-width="0.9"/>
+          <!-- 3. VEĽKÉ HRANATÉ ČELNÉ SKLO (ČISTÁ BIELA fill="#ffffff") -->
+          <rect x="8.5" y="14.3" width="27" height="14.2" rx="0.6" fill="#ffffff" stroke="#0f172a" stroke-width="0.9"/>
 
           <!-- JEMNÝ DIAGONÁLNY ODLESK SKLA -->
-          <polygon points="26,14.3 30,14.3 22,28.5 18,28.5" fill="#ffffff" opacity="0.28"/>
+          <polygon points="26,14.3 30,14.3 22,28.5 18,28.5" fill="#0f172a" opacity="0.05"/>
 
           <!-- 4. HORIZONTÁLNA INDIKAČNÁ LIŠTA MEŠKANIA -->
           <rect class="veh-delay-bar" x="8.5" y="14.3" width="27" height="3.2" rx="0.5" fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
           ${isDelayed ? `<line x1="8.5" y1="17.5" x2="35.5" y2="17.5" stroke="#0f172a" stroke-width="0.7"/>` : ''}
 
-          <!-- 5. OBROVSKÉ TUČNÉ ČIERNE ČÍSLO LINKY VYCENTROVANÉ V ŽLTOM SKLE -->
+          <!-- 5. OBROVSKÉ TUČNÉ ČIERNE ČÍSLO LINKY VYCENTROVANÉ V BIELOM SKLE -->
           <text x="22" y="22.8" text-anchor="middle" dominant-baseline="central"
                 font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
                 fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
