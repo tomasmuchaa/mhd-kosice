@@ -3,7 +3,8 @@ import json
 import time
 import uuid
 import unicodedata
-from datetime import datetime
+import requests
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Union, Tuple
 from fastapi import FastAPI, Query, HTTPException, Request, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +29,10 @@ DEBUG_MODE = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "dpmkadmin")
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "120"))
 FEEDBACK_LIMIT_PER_5MIN = int(os.getenv("FEEDBACK_LIMIT_PER_5MIN", "5"))
+DISCORD_WEBHOOK_URL = os.getenv(
+    "DISCORD_WEBHOOK_URL",
+    "https://discord.com/api/webhooks/1559217074398568599/fnOJCLsrS85Jrd2lce_fWjSh0gCJayXWWf-fn95d38XrvRHhFo9Yd_lxPQFAlH21DEe8"
+)
 
 # Cesty k súborom
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1085,8 +1090,8 @@ async def submit_feedback(
 ):
     """
     Verejný endpoint pre zber spätnej väzby a hlásenie chýb od používateľov imhd.sk.
-    Prijíma multipart/form-data so screenshotom (max 5 MB) a technickými diagnostickými údajmi.
-    Záznam sa ukladá do súboru data/feedback/feedback.json a obrázky do data/feedback/images/.
+    Odosiela štruktúrovaný Discord Embed so screenshotom priamo na dispečerský Discord webhook.
+    Záznam sa zároveň zálohuje lokálne do súboru data/feedback/feedback.json.
     """
     msg = (message or "").strip()
     if not msg or len(msg) < 3:
@@ -1095,6 +1100,8 @@ async def submit_feedback(
         raise HTTPException(status_code=400, detail="Správa je príliš dlhá (max 3000 znakov).")
 
     image_filename = None
+    image_content = None
+    image_mime = "image/png"
     image_url = None
 
     if image and image.filename:
@@ -1105,21 +1112,28 @@ async def submit_feedback(
                 detail=f"Nepodporovaný formát obrázka. Povolené formáty: {', '.join(sorted(ALLOWED_IMAGE_EXTS))}"
             )
 
-        content = await image.read()
-        if len(content) > MAX_IMAGE_SIZE:
+        image_content = await image.read()
+        if len(image_content) > MAX_IMAGE_SIZE:
             raise HTTPException(
                 status_code=400,
                 detail="Priložený obrázok presahuje maximálnu povolenú veľkosť 5 MB."
             )
 
-        image_filename = f"feedback_{int(time.time())}_{uuid.uuid4().hex[:8]}{ext}"
+        if ext in (".jpg", ".jpeg"):
+            image_mime = "image/jpeg"
+        elif ext == ".webp":
+            image_mime = "image/webp"
+
+        image_filename = f"feedback_{int(time.time())}_{uuid.uuid4().hex[:6]}{ext}"
+
+        # Uložíme kópiu lokálne pre archiváciu
         saved_path = os.path.join(FEEDBACK_IMAGES_DIR, image_filename)
         try:
             with open(saved_path, "wb") as f:
-                f.write(content)
+                f.write(image_content)
             image_url = f"/api/v1/feedback/images/{image_filename}"
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Chyba pri ukladaní obrázka: {e}")
+            print(f"Warning: lokálne uloženie obrázka zlyhalo: {e}")
 
     client_ip = get_client_ip(request)
     browser_ua = (user_agent or "").strip() or request.headers.get("user-agent", "")
@@ -1131,10 +1145,93 @@ async def submit_feedback(
     if screen_height and str(screen_height).isdigit():
         s_h = int(screen_height)
 
+    clean_category = (category or "Iné").strip()
+
+    # Príprava farebného akcentu embedu podľa kategórie
+    color_map = {
+        "Nesprávny model / ŠPZ": 0xef4444,  # Červená
+        "Chyba plánovača trás": 0x3b82f6,   # Modrá
+        "Chyba mapy alebo GPS": 0x10b981,   # Smaragdová
+        "Nápad na vylepšenie": 0xf59e0b,    # Jantárová
+        "Iné": 0x64748b                      # Bridlicová
+    }
+    embed_color = color_map.get(clean_category, 0x0ea5e9)
+
+    contact_val = contact.strip() if (contact and contact.strip()) else "Anonym / Neuvedený"
+    resolution_val = f"{s_w} × {s_h} px" if (s_w and s_h) else "Neuvedené"
+    device_val = browser_ua if browser_ua else "Neuvedené"
+
+    embed = {
+        "title": f"💬 Nová spätná väzba: {clean_category}",
+        "color": embed_color,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "fields": [
+            {
+                "name": "👤 Používateľ / Kontakt",
+                "value": contact_val,
+                "inline": True
+            },
+            {
+                "name": "📱 Rozlíšenie obrazovky",
+                "value": resolution_val,
+                "inline": True
+            },
+            {
+                "name": "📝 Popis chyby",
+                "value": msg[:1024],
+                "inline": False
+            },
+            {
+                "name": "🌐 Prehliadač / Zariadenie",
+                "value": f"`{device_val[:350]}`" if len(device_val) <= 350 else f"`{device_val[:350]}...`",
+                "inline": False
+            }
+        ],
+        "footer": {
+            "text": f"MHD Košice • Klient IP: {client_ip}"
+        }
+    }
+
+    if image_content and image_filename:
+        embed["image"] = {
+            "url": f"attachment://{image_filename}"
+        }
+
+    discord_payload = {
+        "username": "MHD Košice Dispečing",
+        "embeds": [embed]
+    }
+
+    # 1. Odoslanie na Discord Webhook
+    discord_sent = False
+    discord_error = None
+    if DISCORD_WEBHOOK_URL:
+        try:
+            if image_content and image_filename:
+                files = {
+                    "files[0]": (image_filename, image_content, image_mime)
+                }
+                data = {
+                    "payload_json": json.dumps(discord_payload)
+                }
+                resp = requests.post(DISCORD_WEBHOOK_URL, data=data, files=files, timeout=12)
+            else:
+                resp = requests.post(DISCORD_WEBHOOK_URL, json=discord_payload, timeout=10)
+
+            if resp.status_code in (200, 204):
+                discord_sent = True
+            else:
+                discord_error = f"HTTP {resp.status_code}: {resp.text}"
+                print(f"Discord webhook error: {discord_error}")
+        except Exception as e:
+            discord_error = str(e)
+            print(f"Chyba pri odosielaní na Discord Webhook: {e}")
+
+    # 2. Lokálne zálohovanie do feedback.json
     entry = {
         "id": f"fb_{int(time.time())}_{uuid.uuid4().hex[:6]}",
         "timestamp": datetime.now().isoformat(),
-        "category": (category or "Iné").strip(),
+        "category": clean_category,
         "message": msg,
         "contact": contact.strip() if contact else None,
         "client_ip": client_ip,
@@ -1143,41 +1240,34 @@ async def submit_feedback(
         "screen_height": s_h,
         "screen_resolution": f"{s_w}x{s_h}" if (s_w and s_h) else None,
         "image_filename": image_filename,
-        "image_url": image_url
+        "image_url": image_url,
+        "discord_sent": discord_sent
     }
 
-    feedback_list = []
-    target_file = FEEDBACK_FILE
-    if os.path.exists(target_file):
-        try:
-            with open(target_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    feedback_list = data
-        except Exception:
-            feedback_list = []
-    elif os.path.exists(FEEDBACK_LEGACY_FILE):
-        try:
-            with open(FEEDBACK_LEGACY_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    feedback_list = data
-        except Exception:
-            feedback_list = []
-
-    feedback_list.append(entry)
     try:
+        feedback_list = []
+        target_file = FEEDBACK_FILE
+        if os.path.exists(target_file):
+            try:
+                with open(target_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        feedback_list = data
+            except Exception:
+                feedback_list = []
+
+        feedback_list.append(entry)
         with open(FEEDBACK_FILE, "w", encoding="utf-8") as f:
             json.dump(feedback_list, f, ensure_ascii=False, indent=2)
-        # Zrkadlenie do legacy súboru pre spätnú kompatibilitu
         with open(FEEDBACK_LEGACY_FILE, "w", encoding="utf-8") as f:
             json.dump(feedback_list, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chyba pri ukladaní spätnej väzby: {e}")
+        print(f"Chyba pri lokálnom zápise feedback.json: {e}")
 
     return {
         "status": "ok",
         "message": "Ďakujeme za vašu spätnú väzbu! Pomáha nám zlepšovať systém MHD Košice.",
+        "discord_sent": discord_sent,
         "image_uploaded": bool(image_filename),
         "image_url": image_url
     }
