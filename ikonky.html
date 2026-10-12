@@ -2164,12 +2164,12 @@
       `;
     }
 
-    // 17. Solaris Urbino 12 III Hybrid - asymetrické čelné sklo klesajúce doprava, hybridná strešná nadstavba so zeleným lemovaním, biele sklo s tmavým číslom linky, žltá maska s logom Solaris a ev. číslom 5119, červený nárazník
+    // 17. Solaris Urbino 12 III Hybrid - asymetrické čelné sklo (mierne znížené vľavo), zelený obrys, tmavý hybridný box, biele sklo s tmavým číslom linky, žltá maska a červený nárazník
     function renderSolarisU12HybridSvg(line, delayColorOrMinutes = '', evNum = '5119') {
       const safeLine = escapeXml(line || '19');
       const displayEv = escapeXml(String(evNum || '5119').trim() || '5119');
       const len = safeLine.length;
-      const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
+      const fontSize = len <= 1 ? 12.5 : (len === 2 ? 11.5 : (len === 3 ? 9.2 : 7.5));
 
       const delayColor = getDelayBarColor(delayColorOrMinutes);
       const isDelayed = (delayColor && delayColor !== 'transparent');
@@ -2182,105 +2182,71 @@
             <filter id="sol12hyb-shadow" x="-10%" y="-10%" width="120%" height="120%">
               <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
             </filter>
-            <!-- ASYMETRICKÉ ČELNÉ SKLO URBINO III: z pohľadu diváka na ľavej strane klesá šikmo nižšie -->
+            <!-- ASYMETRICKÉ ČELNÉ SKLO URBINO III: spodná hrana vľavo klesá o 2.5 px nižšie -->
             <clipPath id="${clipId}">
-              <path d="M 7.2 10.2 L 36.8 10.2 L 36.8 23.2 L 22.5 23.2 L 13.5 27.2 L 7.2 27.2 Z"/>
+              <path d="M 7.5 9.5 L 36.5 9.5 L 36.5 23.5 L 22.0 23.5 L 15.0 26.0 L 7.5 26.0 Z"/>
             </clipPath>
           </defs>
 
-          <!-- 1. PODVOZOK A KOLESÁ (tmavé pneumatiky pod nárazníkom) -->
+          <!-- 1. PODVOZOK A KOLESÁ -->
           <g fill="#0f172a">
-            <rect x="6.5" y="39.5" width="4.5" height="4.2" rx="1"/>
-            <rect x="33.0" y="39.5" width="4.5" height="4.2" rx="1"/>
-          </g>
-          <line x1="6.5" y1="43" x2="11.0" y2="43" stroke="#334155" stroke-width="0.8"/>
-          <line x1="33.0" y1="43" x2="37.5" y2="43" stroke="#334155" stroke-width="0.8"/>
-
-          <!-- 2. MASÍVNE DLHÉ ČIERNE SPÄTNÉ ZRKADLÁ PO BOKOCH -->
-          <!-- Ľavé zrkadlo (na strane dverí / diváka vľavo) -->
-          <path d="M 5.2 7.8 C 2.5 7.5, 1.2 9.0, 1.4 12.0" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>
-          <rect x="0.6" y="11.5" width="2.8" height="9.0" rx="1.0" fill="#18181b" stroke="#0f172a" stroke-width="0.6"/>
-          <rect x="0.8" y="12.2" width="0.8" height="7.6" rx="0.3" fill="#38bdf8" opacity="0.6"/>
-
-          <!-- Pravé zrkadlo (na strane vodiča / diváka vpravo) -->
-          <path d="M 38.8 8.0 C 41.5 7.8, 42.8 9.0, 42.6 12.0" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>
-          <rect x="40.6" y="11.5" width="2.8" height="9.0" rx="1.0" fill="#18181b" stroke="#0f172a" stroke-width="0.6"/>
-          <rect x="42.4" y="12.2" width="0.8" height="7.6" rx="0.3" fill="#38bdf8" opacity="0.6"/>
-
-          <!-- 3. HYBRIDNÁ STREŠNÁ NADSTAVBA (batériový/superkondenzátorový box jemne presahujúci strechu) -->
-          <polygon points="8.2,6.2 9.5,2.8 11.5,6.2" fill="#0f172a"/>
-          <polygon points="35.8,6.2 34.5,2.8 32.5,6.2" fill="#0f172a"/>
-          <rect x="9.5" y="1.8" width="25.0" height="4.6" rx="1.8" fill="#1e293b" stroke="#16a34a" stroke-width="1.8"/>
-          <!-- Chladiace žalúzie a zelený eko pásik na hybridnom boxe -->
-          <line x1="13.5" y1="3.1" x2="30.5" y2="3.1" stroke="#475569" stroke-width="0.6"/>
-          <line x1="13.5" y1="4.9" x2="30.5" y2="4.9" stroke="#475569" stroke-width="0.6"/>
-          <line x1="14.5" y1="4.0" x2="29.5" y2="4.0" stroke="#22c55e" stroke-width="1.1" stroke-linecap="round"/>
-
-          <!-- 4. HLAVNÁ KAROSÉRIA SO SÝTYM ZELENÝM OBYSOM (HYBRIDNÝ OKRAJ) -->
-          <rect x="5.2" y="6.0" width="33.6" height="34.5" rx="3.0" fill="#dc2626" stroke="#16a34a" stroke-width="2.2" stroke-linejoin="round" filter="url(#sol12hyb-shadow)"/>
-
-          <!-- 5. STRECHA A ČIERNY LINKOVÝ DISPLEJ -->
-          <path d="M 5.2 6.0 L 38.8 6.0 L 38.8 10.2 L 5.2 10.2 Z" fill="#facc15"/>
-          <rect x="9.5" y="6.6" width="25.0" height="3.2" rx="0.6" fill="#0f172a" stroke="#27272a" stroke-width="0.4"/>
-          <line x1="12.0" y1="8.2" x2="32.0" y2="8.2" stroke="#f97316" stroke-width="0.7" stroke-dasharray="1.2 0.8"/>
-          <line x1="5.2" y1="10.2" x2="38.8" y2="10.2" stroke="#0f172a" stroke-width="0.8"/>
-
-          <!-- 6. ASYMETRICKÉ ČISTÉ BIELE ČELNÉ SKLO (fill="#ffffff") -->
-          <path d="M 7.2 10.2 L 36.8 10.2 L 36.8 23.2 L 22.5 23.2 L 13.5 27.2 L 7.2 27.2 Z" fill="#ffffff" stroke="#0f172a" stroke-width="1.2" stroke-linejoin="round"/>
-
-          <!-- Diagonálny realistický odlesk skla -->
-          <polygon points="26.0,10.2 30.0,10.2 20.5,23.2 16.5,23.2" fill="#e2e8f0" opacity="0.5" clip-path="url(#${clipId})"/>
-          <polygon points="33.0,10.2 35.5,10.2 28.0,23.2 25.5,23.2" fill="#e2e8f0" opacity="0.25" clip-path="url(#${clipId})"/>
-
-          <!-- 7. INDIKAČNÁ LIŠTA MEŠKANIA (v hornej časti asymetrického skla cez clipPath) -->
-          <rect class="veh-delay-bar" x="7.2" y="10.2" width="29.6" height="4.0" fill="${delayFill}" clip-path="url(#${clipId})" style="fill: ${delayFill} !important; ${isDelayed ? '' : 'display: none;'}"/>
-          ${isDelayed ? `<line x1="7.2" y1="14.2" x2="36.8" y2="14.2" stroke="#0f172a" stroke-width="0.8" clip-path="url(#${clipId})"/>` : ''}
-
-          <!-- 8. ČÍSLO LINKY (vycentrované, obrovské, tučné a čierne pre maximálny kontrast) -->
-          <text x="22.0" y="18.8" text-anchor="middle" dominant-baseline="central" alignment-baseline="central" font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" style="fill: #0f172a !important; font-size: ${fontSize}px !important; font-weight: 900 !important;" letter-spacing="-0.5px">${safeLine}</text>
-
-          <!-- Stierače čelného skla -->
-          <line x1="16.5" y1="27.0" x2="26.0" y2="15.0" stroke="#1e293b" stroke-width="0.8" stroke-linecap="round"/>
-          <line x1="26.5" y1="23.4" x2="34.5" y2="14.0" stroke="#1e293b" stroke-width="0.8" stroke-linecap="round"/>
-
-          <!-- 9. ŽLTÝ PANEL MASKY POD ASYMETRICKÝM OKNOM -->
-          <path d="M 5.2 27.2 L 13.5 27.2 L 22.5 23.2 L 38.8 23.2 L 38.8 33.2 L 5.2 33.2 Z" fill="#facc15" stroke="#ca8a04" stroke-width="0.4"/>
-
-          <!-- Drobné evidenčné číslo v žltej ploche (5119) -->
-          <text x="22.0" y="26.8" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.7px" fill="#0f172a" letter-spacing="0.2px">${displayEv}</text>
-
-          <!-- Strieborné logo Solaris (ovál s 'S') vycentrované pod číslom -->
-          <g transform="translate(22.0, 30.2)">
-            <ellipse cx="0" cy="0" rx="3.0" ry="1.6" fill="#475569" stroke="#cbd5e1" stroke-width="0.4"/>
-            <path d="M 1.5 -0.6 C 0.9 -1.2, -1.0 -1.0, -1.2 -0.3 C -1.5 0.5, 1.5 0.3, 1.2 1.0 C 0.9 1.5, -1.0 1.5, -1.5 0.8" fill="none" stroke="#ffffff" stroke-width="0.55" stroke-linecap="round"/>
+            <rect x="7.0" y="40.0" width="5.0" height="4.0" rx="1"/>
+            <rect x="32.0" y="40.0" width="5.0" height="4.0" rx="1"/>
           </g>
 
-          <!-- 10. STRIEBORNÝ PÁS S NÁPISOM SOLARIS -->
-          <rect x="5.2" y="33.2" width="33.6" height="1.4" fill="#94a3b8" stroke="#64748b" stroke-width="0.3"/>
-          <text x="22.0" y="33.9" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.1px" fill="#0f172a" letter-spacing="0.8px">SOLARIS</text>
+          <!-- 2. SPÄTNÉ ZRKADLÁ PO BOKOCH -->
+          <!-- Ľavé zrkadlo -->
+          <path d="M 5.5 8.0 C 2.8 8.0, 1.4 9.5, 1.4 12.0" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>
+          <rect x="0.6" y="11.0" width="2.8" height="8.5" rx="1.0" fill="#0f172a"/>
+          <rect x="0.8" y="11.8" width="0.7" height="6.8" rx="0.3" fill="#38bdf8" opacity="0.6"/>
 
-          <!-- 11. SÝTO ČERVENÝ NÁRAZNÍK SO SVETLOMETMI A ŠPZ -->
-          <path d="M 5.2 34.6 L 38.8 34.6 L 38.8 39.5 Q 38.8 40.5 37.2 40.5 L 6.8 40.5 Q 5.2 40.5 5.2 39.5 Z" fill="#dc2626"/>
-          <line x1="5.2" y1="34.6" x2="38.8" y2="34.6" stroke="#0f172a" stroke-width="0.6"/>
+          <!-- Pravé zrkadlo -->
+          <path d="M 38.5 8.0 C 41.2 8.0, 42.6 9.5, 42.6 12.0" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>
+          <rect x="40.6" y="11.0" width="2.8" height="8.5" rx="1.0" fill="#0f172a"/>
+          <rect x="42.5" y="11.8" width="0.7" height="6.8" rx="0.3" fill="#38bdf8" opacity="0.6"/>
 
-          <!-- Ľavé svetlomety v červenom nárazníku -->
-          <rect x="6.8" y="35.3" width="7.8" height="2.8" rx="1.0" fill="#b91c1c" stroke="#991b1b" stroke-width="0.3"/>
-          <circle cx="8.0" cy="36.7" r="0.75" fill="#e2e8f0" stroke="#475569" stroke-width="0.25"/>
-          <circle cx="10.0" cy="36.7" r="0.75" fill="#e2e8f0" stroke="#475569" stroke-width="0.25"/>
-          <circle cx="12.6" cy="36.7" r="1.5" fill="#fffbeb" stroke="#fef08a" stroke-width="0.5"/>
-          <circle cx="12.6" cy="36.7" r="2.2" fill="#fef08a" opacity="0.25"/>
+          <!-- 3. HYBRIDNÝ BOX NA STRECHE (Tmavý/čierny s eko linkou) -->
+          <rect x="11.0" y="1.5" width="22.0" height="4.5" rx="2.0" fill="#0f172a" stroke="#16a34a" stroke-width="1.4"/>
+          <line x1="14.5" y1="3.8" x2="29.5" y2="3.8" stroke="#22c55e" stroke-width="1.2" stroke-linecap="round"/>
 
-          <!-- Pravé svetlomety v červenom nárazníku -->
-          <rect x="29.4" y="35.3" width="7.8" height="2.8" rx="1.0" fill="#b91c1c" stroke="#991b1b" stroke-width="0.3"/>
-          <circle cx="31.4" cy="36.7" r="1.5" fill="#fffbeb" stroke="#fef08a" stroke-width="0.5"/>
-          <circle cx="31.4" cy="36.7" r="2.2" fill="#fef08a" opacity="0.25"/>
-          <circle cx="34.0" cy="36.7" r="0.75" fill="#e2e8f0" stroke="#475569" stroke-width="0.25"/>
-          <circle cx="36.0" cy="36.7" r="0.75" fill="#e2e8f0" stroke="#475569" stroke-width="0.25"/>
+          <!-- 4. HLAVNÁ ŽLTÁ KAROSÉRIA SO SÝTYM ZELENÝM OBYSOM -->
+          <rect x="5.5" y="5.5" width="33.0" height="34.5" rx="4.0" fill="#facc15" stroke="#16a34a" stroke-width="2.2" stroke-linejoin="round" filter="url(#sol12hyb-shadow)"/>
 
-          <!-- Košická ŠPZ podľa referenčnej fotky AA 921ZS -->
-          <rect x="17.0" y="38.0" width="10.0" height="2.2" rx="0.4" fill="#ffffff" stroke="#0f172a" stroke-width="0.35"/>
-          <rect x="17.0" y="38.0" width="1.8" height="2.2" fill="#2563eb"/>
-          <text x="22.2" y="39.1" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.3px" fill="#0f172a" letter-spacing="0.2px">AA·921ZS</text>
+          <!-- 5. STREŠNÝ CIEĽOVÝ TRANSPARENT / DISPLEJ -->
+          <rect x="10.0" y="6.3" width="24.0" height="2.8" rx="0.6" fill="#0f172a"/>
+          <line x1="12.5" y1="7.7" x2="31.5" y2="7.7" stroke="#f97316" stroke-width="0.7" stroke-dasharray="1.2 0.8"/>
+
+          <!-- 6. ČERVENÝ NÁRAZNÍK S OKRÚHLYMI SVETLAMI A ŠPZ -->
+          <path d="M 5.5 32.5 L 38.5 32.5 L 38.5 36.0 C 38.5 38.2, 36.8 40.0, 34.5 40.0 L 9.5 40.0 C 7.2 40.0, 5.5 38.2, 5.5 36.0 Z" fill="#dc2626"/>
+          <line x1="5.5" y1="32.5" x2="38.5" y2="32.5" stroke="#0f172a" stroke-width="0.6"/>
+
+          <!-- Svetlomety v červenom nárazníku -->
+          <circle cx="9.0" cy="35.0" r="1.3" fill="#ffffff" stroke="#94a3b8" stroke-width="0.3"/>
+          <circle cx="12.0" cy="35.0" r="1.6" fill="#fffbeb" stroke="#fef08a" stroke-width="0.5"/>
+          <circle cx="32.0" cy="35.0" r="1.6" fill="#fffbeb" stroke="#fef08a" stroke-width="0.5"/>
+          <circle cx="35.0" cy="35.0" r="1.3" fill="#ffffff" stroke="#94a3b8" stroke-width="0.3"/>
+
+          <!-- ŠPZ v strede nárazníka -->
+          <rect x="17.0" y="36.5" width="10.0" height="2.2" rx="0.4" fill="#ffffff" stroke="#0f172a" stroke-width="0.35"/>
+          <rect x="17.0" y="36.5" width="1.8" height="2.2" fill="#2563eb"/>
+          <text x="22.2" y="37.6" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.2px" fill="#0f172a" letter-spacing="0.2px">AA·921ZS</text>
+
+          <!-- 7. ŽLTÁ MASKA POD OKNOM: EVIDENČNÉ ČÍSLO A LOGO SOLARIS -->
+          <text x="22.0" y="28.5" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="2.6px" fill="#0f172a" letter-spacing="0.2px">${displayEv}</text>
+          <g transform="translate(22.0, 31.0)">
+            <ellipse cx="0" cy="0" rx="2.5" ry="1.2" fill="#475569" stroke="#cbd5e1" stroke-width="0.35"/>
+            <text x="0" y="0.1" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-weight="900" font-size="1.3px" fill="#ffffff">S</text>
+          </g>
+
+          <!-- 8. BIELE ASYMETRICKÉ ČELNÉ SKLO (Kreslené navrch, nič ho neprekrýva!) -->
+          <path d="M 7.5 9.5 L 36.5 9.5 L 36.5 23.5 L 22.0 23.5 L 15.0 26.0 L 7.5 26.0 Z" fill="#ffffff" stroke="#0f172a" stroke-width="1.2" stroke-linejoin="round"/>
+
+          <!-- 9. INDIKAČNÁ LIŠTA MEŠKANIA (v hornej časti skla cez clipPath) -->
+          <rect class="veh-delay-bar" x="7.5" y="9.5" width="29.0" height="3.8" fill="${delayFill}" clip-path="url(#${clipId})" style="fill: ${delayFill} !important; ${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="7.5" y1="13.3" x2="36.5" y2="13.3" stroke="#0f172a" stroke-width="0.7" clip-path="url(#${clipId})"/>` : ''}
+
+          <!-- 10. ČÍSLO LINKY (NAVÝŠŠIA VRSTVA, DOKONALE VYCENTROVANÉ V STREDE OKNA) -->
+          <text x="22.0" y="18.5" text-anchor="middle" dominant-baseline="central" alignment-baseline="central" font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" style="fill: #0f172a !important; font-size: ${fontSize}px !important; font-weight: 900 !important;" letter-spacing="-0.5px">${safeLine}</text>
         </svg>
       `;
     }
