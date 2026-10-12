@@ -5,7 +5,7 @@ import uuid
 import unicodedata
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Union, Tuple
-from fastapi import FastAPI, Query, HTTPException, Request
+from fastapi import FastAPI, Query, HTTPException, Request, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel
@@ -39,7 +39,14 @@ MANIFEST_PATH = os.path.join(PROJECT_DIR, "manifest.json")
 SERVICE_WORKER_PATH = os.path.join(PROJECT_DIR, "service-worker.js")
 ICONS_DIR = os.path.join(PROJECT_DIR, "data", "icons")
 STATIC_ICONS_DIR = os.path.join(PROJECT_DIR, "static", "icons")
-FEEDBACK_FILE = os.path.join(PROJECT_DIR, "data", "feedback.json")
+FEEDBACK_DIR = os.path.join(PROJECT_DIR, "data", "feedback")
+FEEDBACK_FILE = os.path.join(FEEDBACK_DIR, "feedback.json")
+FEEDBACK_LEGACY_FILE = os.path.join(PROJECT_DIR, "data", "feedback.json")
+FEEDBACK_IMAGES_DIR = os.path.join(FEEDBACK_DIR, "images")
+os.makedirs(FEEDBACK_DIR, exist_ok=True)
+os.makedirs(FEEDBACK_IMAGES_DIR, exist_ok=True)
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
+ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 
 # FastAPI aplikácia s vypnutým Swagger/Docs na produkcii (ochrana pred odhalením endpointov)
 app = FastAPI(
@@ -1060,36 +1067,98 @@ class FeedbackRequest(BaseModel):
     message: str
     category: Optional[str] = "Iné"
     contact: Optional[str] = None
+    screen_width: Optional[str] = None
+    screen_height: Optional[str] = None
+    user_agent: Optional[str] = None
 
 
 @app.post("/api/v1/feedback")
-def submit_feedback(req: FeedbackRequest, request: Request):
+async def submit_feedback(
+    request: Request,
+    message: str = Form(...),
+    category: Optional[str] = Form("Iné"),
+    contact: Optional[str] = Form(None),
+    screen_width: Optional[str] = Form(None),
+    screen_height: Optional[str] = Form(None),
+    user_agent: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None)
+):
     """
     Verejný endpoint pre zber spätnej väzby a hlásenie chýb od používateľov imhd.sk.
-    Záznam sa ukladá do súboru data/feedback.json s časovou pečiatkou a kategóriou.
+    Prijíma multipart/form-data so screenshotom (max 5 MB) a technickými diagnostickými údajmi.
+    Záznam sa ukladá do súboru data/feedback/feedback.json a obrázky do data/feedback/images/.
     """
-    msg = req.message.strip()
+    msg = (message or "").strip()
     if not msg or len(msg) < 3:
         raise HTTPException(status_code=400, detail="Správa musí obsahovať aspoň 3 znaky.")
     if len(msg) > 3000:
         raise HTTPException(status_code=400, detail="Správa je príliš dlhá (max 3000 znakov).")
 
+    image_filename = None
+    image_url = None
+
+    if image and image.filename:
+        ext = os.path.splitext(image.filename)[1].lower()
+        if ext not in ALLOWED_IMAGE_EXTS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Nepodporovaný formát obrázka. Povolené formáty: {', '.join(sorted(ALLOWED_IMAGE_EXTS))}"
+            )
+
+        content = await image.read()
+        if len(content) > MAX_IMAGE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail="Priložený obrázok presahuje maximálnu povolenú veľkosť 5 MB."
+            )
+
+        image_filename = f"feedback_{int(time.time())}_{uuid.uuid4().hex[:8]}{ext}"
+        saved_path = os.path.join(FEEDBACK_IMAGES_DIR, image_filename)
+        try:
+            with open(saved_path, "wb") as f:
+                f.write(content)
+            image_url = f"/api/v1/feedback/images/{image_filename}"
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Chyba pri ukladaní obrázka: {e}")
+
     client_ip = get_client_ip(request)
+    browser_ua = (user_agent or "").strip() or request.headers.get("user-agent", "")
+
+    s_w = None
+    s_h = None
+    if screen_width and str(screen_width).isdigit():
+        s_w = int(screen_width)
+    if screen_height and str(screen_height).isdigit():
+        s_h = int(screen_height)
+
     entry = {
         "id": f"fb_{int(time.time())}_{uuid.uuid4().hex[:6]}",
         "timestamp": datetime.now().isoformat(),
-        "category": (req.category or "Iné").strip(),
+        "category": (category or "Iné").strip(),
         "message": msg,
-        "contact": req.contact.strip() if req.contact else None,
+        "contact": contact.strip() if contact else None,
         "client_ip": client_ip,
-        "user_agent": request.headers.get("user-agent", "")
+        "user_agent": browser_ua,
+        "screen_width": s_w,
+        "screen_height": s_h,
+        "screen_resolution": f"{s_w}x{s_h}" if (s_w and s_h) else None,
+        "image_filename": image_filename,
+        "image_url": image_url
     }
 
-    os.makedirs(os.path.dirname(FEEDBACK_FILE), exist_ok=True)
     feedback_list = []
-    if os.path.exists(FEEDBACK_FILE):
+    target_file = FEEDBACK_FILE
+    if os.path.exists(target_file):
         try:
-            with open(FEEDBACK_FILE, "r", encoding="utf-8") as f:
+            with open(target_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    feedback_list = data
+        except Exception:
+            feedback_list = []
+    elif os.path.exists(FEEDBACK_LEGACY_FILE):
+        try:
+            with open(FEEDBACK_LEGACY_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, list):
                     feedback_list = data
@@ -1100,13 +1169,28 @@ def submit_feedback(req: FeedbackRequest, request: Request):
     try:
         with open(FEEDBACK_FILE, "w", encoding="utf-8") as f:
             json.dump(feedback_list, f, ensure_ascii=False, indent=2)
+        # Zrkadlenie do legacy súboru pre spätnú kompatibilitu
+        with open(FEEDBACK_LEGACY_FILE, "w", encoding="utf-8") as f:
+            json.dump(feedback_list, f, ensure_ascii=False, indent=2)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chyba pri ukladaní spätnej väzby: {e}")
 
     return {
         "status": "ok",
-        "message": "Ďakujeme za vašu spätnú väzbu! Pomáha nám zlepšovať systém MHD Košice."
+        "message": "Ďakujeme za vašu spätnú väzbu! Pomáha nám zlepšovať systém MHD Košice.",
+        "image_uploaded": bool(image_filename),
+        "image_url": image_url
     }
+
+
+@app.get("/api/v1/feedback/images/{filename}")
+def get_feedback_image(filename: str):
+    """Bezpečné zobrazenie priloženého screenshotu zo spätnej väzby."""
+    safe_filename = os.path.basename(filename)
+    file_path = os.path.join(FEEDBACK_IMAGES_DIR, safe_filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Obrázok nebol nájdený.")
+    return FileResponse(file_path)
 
 
 @app.get("/api/v1/admin/feedback")
@@ -1114,9 +1198,10 @@ def get_all_feedback(request: Request):
     """Zoznam doručenej spätnej väzby (vyžaduje X-Admin-Token)."""
     verify_admin_token(request)
     feedback_list = []
-    if os.path.exists(FEEDBACK_FILE):
+    target_file = FEEDBACK_FILE if os.path.exists(FEEDBACK_FILE) else FEEDBACK_LEGACY_FILE
+    if os.path.exists(target_file):
         try:
-            with open(FEEDBACK_FILE, "r", encoding="utf-8") as f:
+            with open(target_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, list):
                     feedback_list = data
@@ -1127,6 +1212,7 @@ def get_all_feedback(request: Request):
         "total": len(feedback_list),
         "feedback": feedback_list
     }
+
 
 
 

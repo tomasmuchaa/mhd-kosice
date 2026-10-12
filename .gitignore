@@ -25,3 +25,8 @@ cloudflared.exe
 .idea/
 .DS_Store
 Thumbs.db
+
+# User uploaded feedback images
+data/feedback/images/*
+!data/feedback/images/.gitkeep
+

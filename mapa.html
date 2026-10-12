@@ -1197,6 +1197,113 @@
       transform: translateY(0);
     }
 
+    /* Priloženie screenshotu (max 5 MB) */
+    #feedback-modal .feedback-file-dropzone {
+      border: 1.5px dashed #cbd5e1;
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #feedback-modal .feedback-file-dropzone:hover {
+      border-color: #10b981;
+      background: #f0fdf4;
+    }
+    body.dark-mode #feedback-modal .feedback-file-dropzone {
+      border-color: #334155;
+      background: rgba(15, 23, 42, 0.6);
+    }
+    body.dark-mode #feedback-modal .feedback-file-dropzone:hover {
+      border-color: #34d399;
+      background: rgba(16, 185, 129, 0.08);
+    }
+    #feedback-modal .feedback-file-empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      text-align: center;
+      pointer-events: none;
+    }
+    #feedback-modal .feedback-file-icon {
+      font-size: 1.35rem;
+    }
+    #feedback-modal .feedback-file-hint {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    body.dark-mode #feedback-modal .feedback-file-hint {
+      color: #cbd5e1;
+    }
+    #feedback-modal .feedback-file-subhint {
+      font-size: 0.72rem;
+      color: #94a3b8;
+    }
+    #feedback-modal .feedback-file-preview-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+    #feedback-modal .feedback-file-preview-img {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+    }
+    body.dark-mode #feedback-modal .feedback-file-preview-img {
+      border-color: #475569;
+    }
+    #feedback-modal .feedback-file-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    #feedback-modal .feedback-file-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    body.dark-mode #feedback-modal .feedback-file-name {
+      color: #f8fafc;
+    }
+    #feedback-modal .feedback-file-size {
+      font-size: 0.72rem;
+      color: #64748b;
+    }
+    body.dark-mode #feedback-modal .feedback-file-size {
+      color: #94a3b8;
+    }
+    #feedback-modal .feedback-file-remove-btn {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #ef4444;
+      border-radius: 6px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.15s ease;
+    }
+    #feedback-modal .feedback-file-remove-btn:hover {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
     /* Modálne okno Katalóg & Galéria SVG ikoniek */
     .icon-gallery-modal {
       position: fixed;
@@ -5173,6 +5280,26 @@
           <textarea id="feedback-message" class="feedback-input" rows="4" style="height: auto; min-height: 95px; resize: vertical;" placeholder="Napíšte napríklad: Linka 19 na zastávke Mier mala zle zobrazený typ vozidla, alebo návrh na zlepšenie..." required></textarea>
         </div>
 
+        <div style="margin-bottom: 14px;">
+          <label class="feedback-label">Priložiť screenshot (max 5 MB)</label>
+          <div class="feedback-file-dropzone" id="feedback-file-dropzone" onclick="document.getElementById('feedback-image').click()">
+            <input type="file" accept="image/png, image/jpeg, image/jpg, image/webp" id="feedback-image" style="display: none;" onchange="handleFeedbackFileSelect(this)">
+            <div id="feedback-file-empty" class="feedback-file-empty-state">
+              <span class="feedback-file-icon">📎</span>
+              <span class="feedback-file-hint">Priložiť screenshot (max 5 MB)</span>
+              <span class="feedback-file-subhint">PNG, JPG, JPEG alebo WEBP</span>
+            </div>
+            <div id="feedback-file-preview-wrap" class="feedback-file-preview-wrap" style="display: none;">
+              <img id="feedback-file-preview-img" class="feedback-file-preview-img" src="" alt="Náhľad">
+              <div class="feedback-file-info">
+                <span id="feedback-file-name" class="feedback-file-name"></span>
+                <span id="feedback-file-size" class="feedback-file-size"></span>
+              </div>
+              <button type="button" class="feedback-file-remove-btn" onclick="clearFeedbackFile(event)" title="Odstrániť obrázok">✕</button>
+            </div>
+          </div>
+        </div>
+
         <div style="margin-bottom: 16px;">
           <label for="feedback-contact" class="feedback-label">Váš nick na fóre imhd.sk alebo e-mail (voliteľné)</label>
           <input type="text" id="feedback-contact" class="feedback-input" placeholder="Napr. nick z diskusie na imhd alebo kontakt pre odpoveď" autocomplete="off" />
@@ -5673,6 +5800,55 @@
         modal.style.display = 'none';
       }
       if (backdrop) backdrop.classList.remove('open');
+      clearFeedbackFile();
+    }
+
+    function handleFeedbackFileSelect(input) {
+      const file = input && input.files ? input.files[0] : null;
+      const emptyState = document.getElementById('feedback-file-empty');
+      const previewWrap = document.getElementById('feedback-file-preview-wrap');
+      const previewImg = document.getElementById('feedback-file-preview-img');
+      const nameEl = document.getElementById('feedback-file-name');
+      const sizeEl = document.getElementById('feedback-file-size');
+
+      if (!file) {
+        clearFeedbackFile();
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Priložený screenshot presahuje maximálnu veľkosť 5 MB. Prosím, zvoľte menší obrázok.');
+        clearFeedbackFile();
+        return;
+      }
+
+      if (emptyState) emptyState.style.display = 'none';
+      if (previewWrap) previewWrap.style.display = 'flex';
+      if (nameEl) nameEl.textContent = file.name;
+      if (sizeEl) sizeEl.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+      if (previewImg) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewImg.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function clearFeedbackFile(event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      const fileInput = document.getElementById('feedback-image');
+      if (fileInput) fileInput.value = '';
+      const emptyState = document.getElementById('feedback-file-empty');
+      const previewWrap = document.getElementById('feedback-file-preview-wrap');
+      const previewImg = document.getElementById('feedback-file-preview-img');
+      if (emptyState) emptyState.style.display = 'flex';
+      if (previewWrap) previewWrap.style.display = 'none';
+      if (previewImg) previewImg.src = '';
     }
 
     async function submitFeedbackForm(e) {
@@ -5680,6 +5856,7 @@
       const msgEl = document.getElementById('feedback-message');
       const catEl = document.getElementById('feedback-category');
       const contactEl = document.getElementById('feedback-contact');
+      const fileInput = document.getElementById('feedback-image');
       const statusEl = document.getElementById('feedback-status-msg');
       const submitBtn = document.getElementById('feedback-submit-btn');
 
@@ -5689,22 +5866,36 @@
         return;
       }
 
+      const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      if (file && file.size > 5 * 1024 * 1024) {
+        alert('Priložený screenshot presahuje 5 MB. Prosím, zvoľte menší obrázok.');
+        return;
+      }
+
       if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerText = 'Odosielam...';
       }
 
       try {
-        const payload = {
-          message: message,
-          category: catEl ? catEl.value : 'Iné',
-          contact: (contactEl ? contactEl.value : '').trim() || null
-        };
+        const formData = new FormData();
+        formData.append('message', message);
+        formData.append('category', catEl ? catEl.value : 'Iné');
+        if (contactEl && contactEl.value.trim()) {
+          formData.append('contact', contactEl.value.trim());
+        }
+        if (file) {
+          formData.append('image', file);
+        }
+
+        // Diagnostické dáta zariadenia
+        formData.append('screen_width', String(window.innerWidth || ''));
+        formData.append('screen_height', String(window.innerHeight || ''));
+        formData.append('user_agent', navigator.userAgent || '');
 
         const resp = await fetch('/api/v1/feedback', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: formData
         });
 
         const data = await resp.json().catch(() => ({}));
@@ -5719,6 +5910,7 @@
           }
           if (msgEl) msgEl.value = '';
           if (contactEl) contactEl.value = '';
+          clearFeedbackFile();
           setTimeout(() => {
             closeFeedbackModal();
             if (statusEl) statusEl.style.display = 'none';
