@@ -986,6 +986,217 @@
       color: #6ee7b7;
     }
 
+    /* ============================================================ */
+    /* MODÁLNE OKNO: SPÄTNÁ VÄZBA (PREHĽADNÝ ČITATEĽNÝ DIZAJN BEZ BLURU) */
+    /* ============================================================ */
+    #feedback-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      width: 92%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      z-index: 10070 !important;
+      padding: 22px 24px;
+      border-radius: 16px;
+      box-sizing: border-box;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      /* Zrušenie rozmazania liquid glass */
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      /* Pevné, nepriehľadné biele pozadie pre svetlý režim */
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.28), 0 8px 20px -6px rgba(0, 0, 0, 0.12) !important;
+    }
+    #feedback-modal.open {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      transform: translate(-50%, -50%) scale(1) !important;
+    }
+    /* Pevné tmavé pozadie pre tmavý režim */
+    body.dark-mode #feedback-modal {
+      background: #1e293b !important;
+      color: #f8fafc !important;
+      border: 1px solid rgba(255, 255, 255, 0.14) !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    }
+
+    #feedback-modal .feedback-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    body.dark-mode #feedback-modal .feedback-modal-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    #feedback-modal .feedback-modal-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    body.dark-mode #feedback-modal .feedback-modal-title {
+      color: #f8fafc;
+    }
+
+    #feedback-modal .feedback-modal-close {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.05rem;
+      font-weight: 700;
+      transition: all 0.15s ease;
+    }
+    #feedback-modal .feedback-modal-close:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+      transform: scale(1.05);
+    }
+    body.dark-mode #feedback-modal .feedback-modal-close {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.16);
+      color: #cbd5e1;
+    }
+    body.dark-mode #feedback-modal .feedback-modal-close:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+    }
+
+    #feedback-modal .feedback-info-banner {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      font-weight: 500;
+    }
+    body.dark-mode #feedback-modal .feedback-info-banner {
+      background: rgba(16, 185, 129, 0.14);
+      border-color: rgba(52, 211, 153, 0.35);
+      color: #a7f3d0;
+    }
+
+    #feedback-modal .feedback-label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    body.dark-mode #feedback-modal .feedback-label {
+      color: #94a3b8;
+    }
+
+    #feedback-modal .feedback-input,
+    #feedback-modal .feedback-select {
+      width: 100%;
+      padding: 10px 13px;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      color: #0f172a;
+      font-size: 0.92rem;
+      box-sizing: border-box;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #feedback-modal .feedback-input::placeholder {
+      color: #94a3b8;
+    }
+    #feedback-modal .feedback-input:focus,
+    #feedback-modal .feedback-select:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+    body.dark-mode #feedback-modal .feedback-input,
+    body.dark-mode #feedback-modal .feedback-select {
+      background: #0f172a;
+      border-color: #334155;
+      color: #f8fafc;
+    }
+    body.dark-mode #feedback-modal .feedback-input::placeholder {
+      color: #64748b;
+    }
+    body.dark-mode #feedback-modal .feedback-input:focus,
+    body.dark-mode #feedback-modal .feedback-select:focus {
+      border-color: #34d399;
+      box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25);
+    }
+
+    #feedback-modal .feedback-btn-cancel {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      transition: all 0.15s ease;
+    }
+    #feedback-modal .feedback-btn-cancel:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    body.dark-mode #feedback-modal .feedback-btn-cancel {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+    }
+    body.dark-mode #feedback-modal .feedback-btn-cancel:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+    }
+
+    #feedback-modal .feedback-btn-submit {
+      background: #10b981;
+      border: 1px solid #059669;
+      color: #ffffff;
+      font-weight: 700;
+      padding: 9px 20px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #feedback-modal .feedback-btn-submit:hover {
+      background: #059669;
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
+      transform: translateY(-1px);
+    }
+    #feedback-modal .feedback-btn-submit:active {
+      transform: translateY(0);
+    }
+
     /* Modálne okno Katalóg & Galéria SVG ikoniek */
     .icon-gallery-modal {
       position: fixed;
@@ -4933,22 +5144,22 @@
 
   <!-- Modálne okno: Spätná väzba a hlásenie chýb (pre imhd.sk používateľov) -->
   <div id="feedback-modal-backdrop" class="override-modal-backdrop" onclick="closeFeedbackModal()"></div>
-  <div id="feedback-modal" class="override-modal apple-glass" role="dialog" aria-modal="true" aria-labelledby="feedback-modal-title" style="display: none; max-width: 480px; z-index: 10050;">
-    <div class="override-modal-header">
-      <div class="override-modal-title" id="feedback-modal-title" style="color: #34d399;">
-        <span>💬</span>
+  <div id="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-modal-title" style="display: none;">
+    <div class="feedback-modal-header">
+      <div class="feedback-modal-title" id="feedback-modal-title">
+        <span style="font-size: 1.25rem;">💬</span>
         <span>Spätná väzba & Hlásenie chýb</span>
       </div>
-      <button class="override-modal-close" onclick="closeFeedbackModal()" title="Zavrieť">✕</button>
+      <button class="feedback-modal-close" onclick="closeFeedbackModal()" title="Zavrieť">✕</button>
     </div>
-    <div class="override-modal-body">
-      <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 12px; line-height: 1.45; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 8px 10px;">
+    <div class="feedback-modal-body">
+      <div class="feedback-info-banner">
         🧪 Aplikácia je vo verejnom testovaní pre komunitu <strong>imhd.sk</strong>. Vopred ďakujeme za každý postreh, nahlásenú chybu alebo nápad na zlepšenie!
       </div>
       <form id="feedback-form" onsubmit="submitFeedbackForm(event)">
-        <div class="override-field-group" style="margin-bottom: 10px;">
-          <label for="feedback-category" class="override-label">Kategória podnetu</label>
-          <select id="feedback-category" class="override-select">
+        <div style="margin-bottom: 12px;">
+          <label for="feedback-category" class="feedback-label">Kategória podnetu</label>
+          <select id="feedback-category" class="feedback-select">
             <option value="Nesprávny model / ŠPZ">🐞 Nesprávny model alebo ŠPZ vozidla</option>
             <option value="Chyba plánovača trás">🛣️ Plánovač trás / prestupy</option>
             <option value="Chyba mapy alebo GPS">🗺️ Zobrazenie mapy / GPS poloha</option>
@@ -4957,21 +5168,21 @@
           </select>
         </div>
 
-        <div class="override-field-group" style="margin-bottom: 10px;">
-          <label for="feedback-message" class="override-label">Popis chyby alebo spätná väzba *</label>
-          <textarea id="feedback-message" class="override-input" rows="4" style="height: auto; min-height: 90px; resize: vertical; font-family: inherit;" placeholder="Napíšte napríklad: Linka 19 na zastávke Mier mala zle zobrazený typ vozidla, alebo návrh na zlepšenie..." required></textarea>
+        <div style="margin-bottom: 12px;">
+          <label for="feedback-message" class="feedback-label">Popis chyby alebo spätná väzba *</label>
+          <textarea id="feedback-message" class="feedback-input" rows="4" style="height: auto; min-height: 95px; resize: vertical;" placeholder="Napíšte napríklad: Linka 19 na zastávke Mier mala zle zobrazený typ vozidla, alebo návrh na zlepšenie..." required></textarea>
         </div>
 
-        <div class="override-field-group" style="margin-bottom: 14px;">
-          <label for="feedback-contact" class="override-label">Váš nick na fóre imhd.sk alebo e-mail (voliteľné)</label>
-          <input type="text" id="feedback-contact" class="override-input" placeholder="Napr. nick z diskusie na imhd alebo kontakt pre odpoveď" autocomplete="off" />
+        <div style="margin-bottom: 16px;">
+          <label for="feedback-contact" class="feedback-label">Váš nick na fóre imhd.sk alebo e-mail (voliteľné)</label>
+          <input type="text" id="feedback-contact" class="feedback-input" placeholder="Napr. nick z diskusie na imhd alebo kontakt pre odpoveď" autocomplete="off" />
         </div>
 
-        <div id="feedback-status-msg" style="display: none; padding: 8px 10px; border-radius: 6px; font-size: 0.78rem; margin-bottom: 12px;"></div>
+        <div id="feedback-status-msg" style="display: none; padding: 10px 12px; border-radius: 8px; font-size: 0.82rem; margin-bottom: 14px; font-weight: 600;"></div>
 
-        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px;">
-          <button type="button" class="btn-dev-override" onclick="closeFeedbackModal()" style="background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.3); color: #cbd5e1;">Zrušiť</button>
-          <button type="submit" id="feedback-submit-btn" class="btn-dev-override" style="background: #10b981; border: 1px solid #059669; color: #ffffff; font-weight: 700; padding: 8px 14px;">
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;">
+          <button type="button" class="feedback-btn-cancel" onclick="closeFeedbackModal()">Zrušiť</button>
+          <button type="submit" id="feedback-submit-btn" class="feedback-btn-submit">
             <span>🚀 Odoslať</span>
           </button>
         </div>
@@ -5497,12 +5708,13 @@
         });
 
         const data = await resp.json().catch(() => ({}));
+        const isDark = document.body.classList.contains('dark-mode');
         if (resp.ok) {
           if (statusEl) {
             statusEl.style.display = 'block';
-            statusEl.style.background = 'rgba(16, 185, 129, 0.2)';
+            statusEl.style.background = isDark ? 'rgba(16, 185, 129, 0.2)' : '#ecfdf5';
             statusEl.style.border = '1px solid #10b981';
-            statusEl.style.color = '#34d399';
+            statusEl.style.color = isDark ? '#34d399' : '#065f46';
             statusEl.innerHTML = '✅ <strong>Ďakujeme!</strong> Vaša spätná väzba bola úspešne zaznamenaná.';
           }
           if (msgEl) msgEl.value = '';
@@ -5518,9 +5730,9 @@
         } else {
           if (statusEl) {
             statusEl.style.display = 'block';
-            statusEl.style.background = 'rgba(239, 68, 68, 0.2)';
+            statusEl.style.background = isDark ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2';
             statusEl.style.border = '1px solid #ef4444';
-            statusEl.style.color = '#f87171';
+            statusEl.style.color = isDark ? '#f87171' : '#991b1b';
             statusEl.innerHTML = `❌ Chyba: ${data.detail || data.message || 'Nepodarilo sa odoslať správu.'}`;
           }
           if (submitBtn) {
@@ -5529,11 +5741,12 @@
           }
         }
       } catch (err) {
+        const isDark = document.body.classList.contains('dark-mode');
         if (statusEl) {
           statusEl.style.display = 'block';
-          statusEl.style.background = 'rgba(239, 68, 68, 0.2)';
+          statusEl.style.background = isDark ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2';
           statusEl.style.border = '1px solid #ef4444';
-          statusEl.style.color = '#f87171';
+          statusEl.style.color = isDark ? '#f87171' : '#991b1b';
           statusEl.innerHTML = '❌ Nastala sieťová chyba pri odosielaní.';
         }
         if (submitBtn) {
