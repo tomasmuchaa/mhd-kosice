@@ -497,9 +497,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      position: relative;
       cursor: pointer;
       filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.65));
-      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s;
+      transform: rotate(var(--veh-heading, 0deg));
+      transform-origin: center center;
+      transition: transform 0.22s linear, filter 0.18s;
       user-select: none;
       -webkit-user-select: none;
       background: transparent !important;
@@ -507,7 +510,7 @@
     }
 
     .modern-veh-marker:hover {
-      transform: scale(1.22);
+      transform: rotate(var(--veh-heading, 0deg)) scale(1.22);
       filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.85));
       z-index: 9999 !important;
     }
@@ -517,15 +520,24 @@
       filter: grayscale(0.4) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
     }
 
-    .veh-rotator {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transform-origin: center center;
-      transition: transform 0.22s ease-out;
-      will-change: transform;
+    .veh-heading-arrow {
+      position: absolute;
+      top: -7px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 4.5px solid transparent;
+      border-right: 4.5px solid transparent;
+      border-bottom: 7px solid #38bdf8;
+      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.85));
+      pointer-events: none;
+      z-index: 10;
+      transition: border-bottom-color 0.2s ease;
+    }
+
+    .modern-veh-marker.veh-stale .veh-heading-arrow {
+      border-bottom-color: #94a3b8;
     }
 
     .veh-front-svg {
@@ -10308,15 +10320,13 @@
       const stopInfo = (v.is_on_stop && v.current_stop_name) ? ` • Stojí na: ${v.current_stop_name}` : '';
       const tooltipTitle = `Linka ${line} • ${cat.name || 'Vozidlo'}${stopInfo} • ${v.destination || 'Neznámy smer'}`;
 
-      const rotDeg = Math.round(heading || 0);
-
+      const validHeading = (typeof heading === 'number' && !isNaN(heading)) ? heading : 0;
       return L.divIcon({
         className: 'custom-modern-veh-icon',
         html: `
-          <div class="modern-veh-marker ${isStale ? 'veh-stale' : ''}" title="${tooltipTitle}">
-            <div class="veh-rotator" style="transform: rotate(${rotDeg}deg);">
-              ${svgHtml}
-            </div>
+          <div class="modern-veh-marker ${isStale ? 'veh-stale' : ''}" style="--veh-heading: ${validHeading}deg;" title="${tooltipTitle}">
+            <div class="veh-heading-arrow"></div>
+            ${svgHtml}
           </div>
         `,
         iconSize: iconSize,
@@ -10765,185 +10775,33 @@
     window.openVehicleDetailBottomSheet = openVehicleDetailBottomSheet;
 
     // ========================================================
-    // MAP MATCHING, TRASY LINIEK & PLYNULÁ WAYPOINT INTERPOLÁCIA
+    // TRASY SPOJOV & GEOMETRICKÝ MAP-MATCHING (ROUTE SNAPPING)
     // ========================================================
 
-    // Rýchla sférická vzdialenosť v metroch s ekvirektangulárnou aproximáciou
-    function getDistanceMetersFast(lat1, lng1, lat2, lng2) {
-      const dLat = (lat2 - lat1) * 111320;
-      const dLng = (lng2 - lng1) * 111320 * Math.cos(((lat1 + lat2) * 0.5) * (Math.PI / 180));
-      return Math.sqrt(dLat * dLat + dLng * dLng);
-    }
-    window.getDistanceMetersFast = getDistanceMetersFast;
-
-    // Výpočet azimutu (uhol v stupňoch 0-360) medzi dvoma GPS bodmi
-    function getBearingDegrees(lat1, lng1, lat2, lng2) {
-      const dLng = (lng2 - lng1) * (Math.PI / 180);
-      const lat1Rad = lat1 * (Math.PI / 180);
-      const lat2Rad = lat2 * (Math.PI / 180);
-      const y = Math.sin(dLng) * Math.cos(lat2Rad);
-      const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
-      let brng = Math.atan2(y, x) * (180 / Math.PI);
-      return (brng + 360) % 360;
-    }
-    window.getBearingDegrees = getBearingDegrees;
-
-    // Ortogonálna projekcia GPS bodu na úsečku [A -> B]
-    function projectPointOnSegment(pLat, pLng, aLat, aLng, bLat, bLng) {
-      const cosLat = Math.cos(((aLat + bLat) * 0.5) * (Math.PI / 180));
-      const dx = (bLng - aLng) * 111320 * cosLat;
-      const dy = (bLat - aLat) * 111320;
-      const lenSq = dx * dx + dy * dy;
-
-      if (lenSq < 0.0001) {
-        return {
-          t: 0,
-          projLat: aLat,
-          projLng: aLng,
-          distMeters: getDistanceMetersFast(pLat, pLng, aLat, aLng)
-        };
-      }
-
-      const px = (pLng - aLng) * 111320 * cosLat;
-      const py = (pLat - aLat) * 111320;
-      let t = (px * dx + py * dy) / lenSq;
-      if (t < 0) t = 0;
-      else if (t > 1) t = 1;
-
-      const projLat = aLat + t * (bLat - aLat);
-      const projLng = aLng + t * (bLng - aLng);
-      const distMeters = getDistanceMetersFast(pLat, pLng, projLat, projLng);
-
-      return { t, projLat, projLng, distMeters };
-    }
-    window.projectPointOnSegment = projectPointOnSegment;
-
-    // Nájdenie najbližšieho uličného segmentu na polyline trasy
-    function findClosestSegmentOnPolyline(point, polyline, startIdx = 0, maxLookahead = null) {
-      if (!point || !polyline || polyline.length < 2) return null;
-      const pLat = Number(point[0]);
-      const pLng = Number(point[1]);
-      if (isNaN(pLat) || isNaN(pLng)) return null;
-
-      const totalSegs = polyline.length - 1;
-      const fromIdx = Math.max(0, Math.min(startIdx, totalSegs - 1));
-      const toIdx = (maxLookahead != null) ? Math.min(fromIdx + maxLookahead, totalSegs) : totalSegs;
-
-      let bestIdx = fromIdx;
-      let bestDist = Infinity;
-      let bestT = 0;
-      let bestProjLat = polyline[fromIdx][0];
-      let bestProjLng = polyline[fromIdx][1];
-
-      for (let i = fromIdx; i < toIdx; i++) {
-        const segA = polyline[i];
-        const segB = polyline[i + 1];
-        const proj = projectPointOnSegment(pLat, pLng, segA[0], segA[1], segB[0], segB[1]);
-        if (proj.distMeters < bestDist) {
-          bestDist = proj.distMeters;
-          bestIdx = i;
-          bestT = proj.t;
-          bestProjLat = proj.projLat;
-          bestProjLng = proj.projLng;
-        }
-      }
-
-      const segA = polyline[bestIdx];
-      const segB = polyline[bestIdx + 1];
-      const bearing = getBearingDegrees(segA[0], segA[1], segB[0], segB[1]);
-
-      return {
-        idx: bestIdx,
-        t: bestT,
-        projPoint: [bestProjLat, bestProjLng],
-        distMeters: bestDist,
-        bearing: bearing
-      };
-    }
-    window.findClosestSegmentOnPolyline = findClosestSegmentOnPolyline;
-
-    // Map Matching: Zostavenie postupnosti uličných bodov (waypoints) medzi dvoma GPS polohami
-    function getRouteWaypointsBetween(startPt, targetPt, routePoints, maxDeviationMeters = 80) {
-      if (!routePoints || routePoints.length < 2) return null;
-
-      // 1. Nájdenie najbližšieho segmentu pre počiatočnú pozíciu A
-      const matchA = findClosestSegmentOnPolyline(startPt, routePoints);
-      if (!matchA || matchA.distMeters > maxDeviationMeters) {
-        return null; // Odchýlka > 80m -> fallback na priamu animáciu
-      }
-
-      // 2. Nájdenie najbližšieho segmentu pre cieľovú pozíciu B
-      // Preferujeme dopredný smer od segmentu A (okno do 40 segmentov)
-      let matchB = findClosestSegmentOnPolyline(targetPt, routePoints, matchA.idx, 40);
-      if (!matchB || matchB.distMeters > maxDeviationMeters) {
-        matchB = findClosestSegmentOnPolyline(targetPt, routePoints);
-      }
-      if (!matchB || matchB.distMeters > maxDeviationMeters) {
-        return null; // Odchýlka > 80m -> fallback na priamu animáciu
-      }
-
-      const idxA = matchA.idx;
-      const idxB = matchB.idx;
-
-      // Ak je cieľ za východiskovým segmentom (spätný pohyb):
-      // pri malom posune (< 25m) ide o bežný GPS šum pred križovatkou -> použijeme priamy posun
-      if (idxB < idxA) {
-        return null;
-      }
-
-      // Ak je posun nerealisticky veľký (> 50 segmentov naráz), použijeme priamy fallback
-      if (idxB - idxA > 50) {
-        return null;
-      }
-
-      const waypoints = [startPt];
-
-      if (idxA === idxB) {
-        // Posun v rámci jedného uličného segmentu
-        waypoints.push(targetPt);
-      } else {
-        // Posun cez viacero zákrut a križovatiek pozdĺž ulíc (modelRoutePoints)
-        for (let i = idxA + 1; i <= idxB; i++) {
-          const pt = routePoints[i];
-          const lastWp = waypoints[waypoints.length - 1];
-          if (getDistanceMetersFast(lastWp[0], lastWp[1], pt[0], pt[1]) >= 1.5) {
-            waypoints.push([pt[0], pt[1]]);
-          }
-        }
-        // Záverečný cieľový bod novej GPS polohy
-        const lastWp = waypoints[waypoints.length - 1];
-        if (getDistanceMetersFast(lastWp[0], lastWp[1], targetPt[0], targetPt[1]) >= 1.5) {
-          waypoints.push(targetPt);
-        }
-      }
-
-      return waypoints.length >= 2 ? waypoints : null;
-    }
-    window.getRouteWaypointsBetween = getRouteWaypointsBetween;
-
-    // Globálna vyrovnávacia pamäť trás (trip_id -> koordináty [lat, lng])
-    const tripRouteCache = new Map();
+    // Centrálna pamäťová cache trás (tripId -> Array<[lat, lng]>)
+    const tripRoutesCache = new Map();
     const tripRoutePromises = new Map();
-    window.tripRouteCache = tripRouteCache;
 
+    /**
+     * Získa alebo asynchrónne načíta shape body trasy (modelRoutePoints) pre konkrétny spoj.
+     * @param {number|string} tripId - ID spoja
+     * @returns {Promise<Array<[number, number]>|null>}
+     */
     async function getOrFetchTripRoute(tripId) {
       if (!tripId) return null;
-      const tId = Number(tripId) || tripId;
-      if (tripRouteCache.has(tId)) {
-        return tripRouteCache.get(tId);
-      }
-      if (tripRoutePromises.has(tId)) {
-        return tripRoutePromises.get(tId);
-      }
+      const numTripId = Number(tripId);
+      if (tripRoutesCache.has(numTripId)) return tripRoutesCache.get(numTripId);
+      if (tripRoutesCache.has(tripId)) return tripRoutesCache.get(tripId);
+      if (tripRoutePromises.has(numTripId)) return tripRoutePromises.get(numTripId);
 
-      const promise = (async () => {
+      const p = (async () => {
         try {
-          const resp = await fetch(`${BASE_ORIGIN}/api/v1/trip/${tId}`);
+          const resp = await fetch(`${BASE_ORIGIN}/api/v1/trip/${tripId}?t=${Date.now()}`, { cache: 'no-store' });
           if (!resp.ok) return null;
           const data = await resp.json();
           const latLngs = [];
 
-          // 1. Získanie podrobných tvarov trasy (modelRoutePoints)
+          // 1. Získanie uličných tvarov trasy (modelRoutePoints)
           if (Array.isArray(data.route)) {
             data.route.forEach(segment => {
               if (Array.isArray(segment.modelRoutePoints)) {
@@ -10956,7 +10814,7 @@
             });
           }
 
-          // 2. Fallback na zastávky
+          // 2. Fallback na zoznam zastávok
           if (latLngs.length === 0 && Array.isArray(data.tripStops)) {
             data.tripStops.forEach(stop => {
               if (stop.latitude && stop.longitude) {
@@ -10966,26 +10824,247 @@
           }
 
           if (latLngs.length > 0) {
-            tripRouteCache.set(tId, latLngs);
+            tripRoutesCache.set(numTripId, latLngs);
+            tripRoutesCache.set(tripId, latLngs);
             return latLngs;
           }
-          return null;
         } catch (err) {
-          return null;
+          console.warn(`Nepodarilo sa stiahnuť trasu spoju ${tripId}:`, err);
         } finally {
-          tripRoutePromises.delete(tId);
+          tripRoutePromises.delete(numTripId);
         }
+        return null;
       })();
 
-      tripRoutePromises.set(tId, promise);
-      return promise;
+      tripRoutePromises.set(numTripId, p);
+      return p;
     }
-    window.getOrFetchTripRoute = getOrFetchTripRoute;
 
     /**
-     * Plynulý posun Leaflet markera pozdĺž reálnej trasy ulíc (Map Matching & Waypoint Interpolation).
-     * Namiesto priamočiarej interpolácie cez budovy a parky marker kopíruje zákruty ulíc (modelRoutePoints).
-     * Rýchlosť je rozdelená rovnomerne podľa dĺžky uličných segmentov a azimut sa natáča po dotyčnici.
+     * Vzdialenosť v metroch medzi dvoma zemepisnými bodmi (ekvirektangulárna aproximácia).
+     */
+    function getDistanceMeters(p1, p2) {
+      if (!p1 || !p2) return 0;
+      const lat1 = Number(p1[0] !== undefined ? p1[0] : p1.lat);
+      const lon1 = Number(p1[1] !== undefined ? p1[1] : p1.lng);
+      const lat2 = Number(p2[0] !== undefined ? p2[0] : p2.lat);
+      const lon2 = Number(p2[1] !== undefined ? p2[1] : p2.lng);
+      if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return 0;
+      const avgLat = ((lat1 + lat2) / 2.0) * (Math.PI / 180.0);
+      const dx = (lon2 - lon1) * (Math.PI / 180.0) * Math.cos(avgLat) * 6371000.0;
+      const dy = (lat2 - lat1) * (Math.PI / 180.0) * 6371000.0;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    /**
+     * Výpočet azimutu (bearing v stupňoch 0..360) z p1 do p2.
+     */
+    function getBearingBetween(p1, p2) {
+      if (!p1 || !p2) return 0;
+      const lat1 = Number(p1[0] !== undefined ? p1[0] : p1.lat) * (Math.PI / 180.0);
+      const lon1 = Number(p1[1] !== undefined ? p1[1] : p1.lng) * (Math.PI / 180.0);
+      const lat2 = Number(p2[0] !== undefined ? p2[0] : p2.lat) * (Math.PI / 180.0);
+      const lon2 = Number(p2[1] !== undefined ? p2[1] : p2.lng) * (Math.PI / 180.0);
+      const dLon = lon2 - lon1;
+      const y = Math.sin(dLon) * Math.cos(lat2);
+      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+      const brng = Math.atan2(y, x) * (180.0 / Math.PI);
+      return (brng + 360.0) % 360.0;
+    }
+
+    /**
+     * Vyhladenie zmeny uhla (zabraňuje 360-stupňovému pretočeniu pri prechode cez Sever).
+     */
+    function unwrapAngle(currentAngle, targetAngle) {
+      let diff = (targetAngle - currentAngle) % 360;
+      if (diff < -180) diff += 360;
+      if (diff > 180) diff -= 360;
+      return currentAngle + diff;
+    }
+
+    /**
+     * Nastaví azimut natočenia (heading) na elemente markera.
+     */
+    function updateMarkerHeading(marker, targetBearing) {
+      if (!marker || isNaN(targetBearing)) return;
+      const currentHeading = (typeof marker._currentHeading === 'number') ? marker._currentHeading : targetBearing;
+      const smoothedHeading = unwrapAngle(currentHeading, targetBearing);
+      marker._currentHeading = smoothedHeading;
+
+      if (marker._icon) {
+        const inner = marker._icon.querySelector('.modern-veh-marker');
+        if (inner) {
+          inner.style.setProperty('--veh-heading', `${smoothedHeading}deg`);
+        }
+      }
+    }
+
+    /**
+     * Kolmý priemet bodu P na úsečku [A, B].
+     */
+    function projectPointToSegment(p, a, b) {
+      const pLat = Number(p[0] !== undefined ? p[0] : p.lat);
+      const pLon = Number(p[1] !== undefined ? p[1] : p.lng);
+      const aLat = Number(a[0] !== undefined ? a[0] : a.lat);
+      const aLon = Number(a[1] !== undefined ? a[1] : (a.lng !== undefined ? a.lng : a[1]));
+      const bLat = Number(b[0] !== undefined ? b[0] : b.lat);
+      const bLon = Number(b[1] !== undefined ? b[1] : (b.lng !== undefined ? b.lng : b[1]));
+
+      const avgLat = ((aLat + bLat) / 2.0) * (Math.PI / 180.0);
+      const vx = (bLon - aLon) * (Math.PI / 180.0) * Math.cos(avgLat) * 6371000.0;
+      const vy = (bLat - aLat) * (Math.PI / 180.0) * 6371000.0;
+      const ux = (pLon - aLon) * (Math.PI / 180.0) * Math.cos(avgLat) * 6371000.0;
+      const uy = (pLat - aLat) * (Math.PI / 180.0) * 6371000.0;
+
+      const lenSq = vx * vx + vy * vy;
+      let t = 0;
+      if (lenSq > 0.0001) {
+        t = (ux * vx + uy * vy) / lenSq;
+        if (t < 0) t = 0;
+        else if (t > 1) t = 1;
+      }
+      const projLat = aLat + t * (bLat - aLat);
+      const projLon = aLon + t * (bLon - aLon);
+      const dist = getDistanceMeters([pLat, pLon], [projLat, projLon]);
+      return {
+        point: [projLat, projLon],
+        distance: dist,
+        t: t
+      };
+    }
+
+    /**
+     * Nájde najvhodnejší segment trasy pre danú GPS polohu (Map Matching).
+     */
+    function findBestRouteMatch(point, routePoints, startIdx = 0, searchWindow = null) {
+      if (!routePoints || routePoints.length < 2) return null;
+      const total = routePoints.length;
+      let minIdx = 0;
+      let maxIdx = total - 1;
+
+      if (searchWindow !== null && startIdx >= 0) {
+        minIdx = Math.max(0, startIdx - 3);
+        maxIdx = Math.min(total - 1, startIdx + searchWindow);
+      }
+
+      let bestMatch = null;
+      let minDist = Infinity;
+      let bestSegmentIdx = -1;
+
+      for (let i = minIdx; i < maxIdx; i++) {
+        const res = projectPointToSegment(point, routePoints[i], routePoints[i + 1]);
+        if (res.distance < minDist) {
+          minDist = res.distance;
+          bestMatch = res;
+          bestSegmentIdx = i;
+        }
+      }
+
+      // Ak sme v obmedzenom okne nenašli bod pod 80 m, prehľadáme celú trasu (fallback)
+      if (minDist > 80 && searchWindow !== null) {
+        for (let i = 0; i < total - 1; i++) {
+          if (i >= minIdx && i < maxIdx) continue;
+          const res = projectPointToSegment(point, routePoints[i], routePoints[i + 1]);
+          if (res.distance < minDist) {
+            minDist = res.distance;
+            bestMatch = res;
+            bestSegmentIdx = i;
+          }
+        }
+      }
+
+      if (!bestMatch) return null;
+      return {
+        segmentIndex: bestSegmentIdx,
+        projectedPoint: bestMatch.point,
+        distance: bestMatch.distance,
+        t: bestMatch.t
+      };
+    }
+
+    /**
+     * Vypočíta zoznam medzilahlych bodov (waypointov) medzi pôvodnou a novou polohou vozidla
+     * priradením k reálnej trase spoju (modelRoutePoints).
+     * @param {Array<number>} startPos - [lat, lng]
+     * @param {Array<number>} targetPos - [lat, lng]
+     * @param {Array<Array<number>>} routePoints - [[lat, lng], ...]
+     * @param {number} lastKnownSegmentIdx - Posledný index segmentu vozidla
+     * @returns {Object|null} { waypoints, matchedSegmentIndex } alebo null (pre fallback)
+     */
+    function getRouteSnappedWaypoints(startPos, targetPos, routePoints, lastKnownSegmentIdx = -1) {
+      if (!routePoints || routePoints.length < 2) return null;
+
+      // 1. Map matching pre cieľovú novú GPS polohu (targetPos)
+      const targetMatch = findBestRouteMatch(
+        targetPos,
+        routePoints,
+        lastKnownSegmentIdx >= 0 ? lastKnownSegmentIdx : 0,
+        35
+      );
+      if (!targetMatch || targetMatch.distance > 80) {
+        // Odchýlka od trasy > 80 m -> Fallback
+        return null;
+      }
+
+      // 2. Map matching pre počiatočnú polohu (startPos)
+      const startMatch = findBestRouteMatch(
+        startPos,
+        routePoints,
+        lastKnownSegmentIdx >= 0 ? lastKnownSegmentIdx : targetMatch.segmentIndex,
+        20
+      );
+      if (!startMatch || startMatch.distance > 80) {
+        // Odchýlka od trasy > 80 m -> Fallback
+        return null;
+      }
+
+      const sIdx = startMatch.segmentIndex;
+      const tIdx = targetMatch.segmentIndex;
+
+      // Ak vozidlo urobilo neprimeraný skok dozadu (> 3 segmenty), fallback
+      if (tIdx < sIdx && (sIdx - tIdx > 3)) {
+        return null;
+      }
+
+      const waypoints = [];
+      waypoints.push(startMatch.projectedPoint);
+
+      if (sIdx === tIdx) {
+        // Pohyb v rámci jedného segmentu
+        waypoints.push(targetMatch.projectedPoint);
+      } else if (sIdx < tIdx) {
+        // Vozidlo postupuje dopredu po trase cez zákruty a ulice
+        for (let k = sIdx + 1; k <= tIdx; k++) {
+          const pt = [routePoints[k][0], routePoints[k][1]];
+          if (getDistanceMeters(waypoints[waypoints.length - 1], pt) > 1.2) {
+            waypoints.push(pt);
+          }
+        }
+        if (getDistanceMeters(waypoints[waypoints.length - 1], targetMatch.projectedPoint) > 1.2) {
+          waypoints.push(targetMatch.projectedPoint);
+        }
+      } else {
+        // Drobný reverzný posun v rámci susedného segmentu
+        waypoints.push(targetMatch.projectedPoint);
+      }
+
+      if (waypoints.length < 2) {
+        waypoints.push(targetMatch.projectedPoint);
+      }
+
+      return {
+        waypoints: waypoints,
+        matchedSegmentIndex: tIdx
+      };
+    }
+
+    // ========================================================
+    // PLYNULÝ POHYB VOZIDIEL NA MAPE (ROUTE-SNAPPED LIVE INTERPOLÁCIA)
+    // ========================================================
+    /**
+     * Plynulý posun Leaflet markera pozdĺž reálnej trasy spoja cez requestAnimationFrame.
+     * Namiesto priamky cez budovy interpoluje marker cez zákrutové body (modelRoutePoints),
+     * rovnomerne rozkladá čas podľa dĺžky uličných segmentov a natáča azimut podľa dotyčnice cesty.
      * @param {L.Marker} marker - Cieľový Leaflet marker
      * @param {Array<number>} targetLatLng - Cieľové súradnice [lat, lng]
      * @param {number} duration - Trvanie animácie v ms (predvolene 8 500 ms)
@@ -10997,7 +11076,7 @@
       const targetLng = Number(targetLatLng[1]);
       if (isNaN(targetLat) || isNaN(targetLng)) return;
 
-      // 1. Zrušenie predchádzajúcej animácie pri príchode nových dát
+      // 1. Zrušenie predchádzajúcej animácie pri príchode nového ticku dát
       if (marker._slideAnim) {
         if (marker._slideAnim.frameId) {
           cancelAnimationFrame(marker._slideAnim.frameId);
@@ -11005,7 +11084,7 @@
         marker._slideAnim = null;
       }
 
-      // Aktuálna medzipoloha markera v okamihu príchodu nových dát
+      // Aktuálna medzipoloha markera
       const currentPos = marker.getLatLng();
       if (!currentPos) {
         marker.setLatLng([targetLat, targetLng]);
@@ -11015,24 +11094,24 @@
       const startLat = currentPos.lat;
       const startLng = currentPos.lng;
 
-      // Výpočet priamej vzdialenosti v metroch pre bezpečnostné limity
-      const straightDistMeters = getDistanceMetersFast(startLat, startLng, targetLat, targetLng);
+      // Priama vzdialenosť
+      const directDist = getDistanceMeters([startLat, startLng], [targetLat, targetLng]);
 
-      // 2. Vozidlo stojí (< 2 metre): neanimujeme, aby marker nevibroval
-      if (straightDistMeters < 2) {
+      // 2. Vozidlo stojí (< 2 metre)
+      if (directDist < 2) {
         marker.setLatLng([targetLat, targetLng]);
         if (options.onComplete) options.onComplete();
         return;
       }
 
-      // 3. Veľký skok / Teleport (> 500 metrov): okamžité premiestnenie
-      if (straightDistMeters > 500) {
+      // 3. Veľký skok / Teleport (> 500 metrov)
+      if (directDist > 500) {
         marker.setLatLng([targetLat, targetLng]);
         if (options.onComplete) options.onComplete();
         return;
       }
 
-      // 4. Viewport Culling: ak marker nie je viditeľný a nie je sledovaný
+      // 4. Viewport Culling pre neviditeľné markery
       const isFollowed = options.isFollowed || (typeof followingVehicleId !== 'undefined' && marker._vehicleId === followingVehicleId);
       if (!isFollowed && typeof map !== 'undefined') {
         const bounds = (map.getBounds && typeof map.getBounds === 'function') ? map.getBounds() : null;
@@ -11043,107 +11122,81 @@
         }
       }
 
-      // 5. Map Matching: nájdenie bodov na reálnej trase linky
+      // 5. Map Matching: priradenie k segmentom trasy a získanie uličných waypointov
       const tripId = options.tripId || marker._tripId;
-      const routePoints = (tripId && tripRouteCache.has(tripId)) ? tripRouteCache.get(tripId) : null;
-
-      // Prefetch trasy na pozadí pre ďalšiu animáciu, ak ešte nie je v pamäti
-      if (tripId && !routePoints) {
-        getOrFetchTripRoute(tripId);
-      }
-
       let waypoints = null;
-      if (routePoints && routePoints.length >= 2) {
-        waypoints = getRouteWaypointsBetween(
-          [startLat, startLng],
-          [targetLat, targetLng],
-          routePoints,
-          80 // Odchýlka max 80 m
-        );
+      let matchedSegmentIdx = -1;
+
+      if (tripId && (tripRoutesCache.has(tripId) || tripRoutesCache.has(Number(tripId)))) {
+        const routePoints = tripRoutesCache.get(tripId) || tripRoutesCache.get(Number(tripId));
+        const snapResult = getRouteSnappedWaypoints([startLat, startLng], [targetLat, targetLng], routePoints, marker._routeIndex);
+        if (snapResult && snapResult.waypoints && snapResult.waypoints.length >= 2) {
+          waypoints = snapResult.waypoints;
+          matchedSegmentIdx = snapResult.matchedSegmentIndex;
+          marker._routeIndex = matchedSegmentIdx;
+        }
       }
 
-      // Fallback pre linky bez načítanej trasy alebo obchádzku > 80 m: priama animácia
+      // 6. Fallback pre linky bez stiahnutej trasy alebo odchýlku > 80 m
       if (!waypoints || waypoints.length < 2) {
         waypoints = [[startLat, startLng], [targetLat, targetLng]];
       }
 
-      // 6. Výpočet dĺžok jednotlivých uličných segmentov a azimutov
-      const subDistances = [];
-      const cumDistances = [0];
-      const bearings = [];
-      let totalDist = 0;
-
+      // 7. Výpočet dĺžky subsegmentov a kumulatívnych vzdialeností
+      const segLengths = [];
+      let totalDistance = 0;
       for (let i = 0; i < waypoints.length - 1; i++) {
-        const p1 = waypoints[i];
-        const p2 = waypoints[i + 1];
-        const d = getDistanceMetersFast(p1[0], p1[1], p2[0], p2[1]);
-        subDistances.push(d);
-        totalDist += d;
-        cumDistances.push(totalDist);
-        bearings.push(getBearingDegrees(p1[0], p1[1], p2[0], p2[1]));
+        const d = getDistanceMeters(waypoints[i], waypoints[i + 1]);
+        segLengths.push(d);
+        totalDistance += d;
       }
 
-      if (totalDist < 2) {
-        marker.setLatLng([targetLat, targetLng]);
+      if (totalDistance < 1.5) {
+        marker.setLatLng(waypoints[waypoints.length - 1]);
         if (options.onComplete) options.onComplete();
         return;
       }
 
-      const animDuration = duration || 8500;
+      const cumDist = [0];
+      for (let i = 0; i < segLengths.length; i++) {
+        cumDist.push(cumDist[i] + segLengths[i]);
+      }
+
       const startTime = performance.now();
+      const animDuration = duration || 8500;
 
       function step(now) {
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / animDuration, 1.0);
-        const curDist = totalDist * progress;
+        const curDist = progress * totalDistance;
 
-        // Nájdenie aktívneho uličného segmentu podľa prejdenej kumulatívnej vzdialenosti
+        // Výber aktívneho uličného segmentu podľa kumulatívnej dĺžky
         let segIdx = 0;
-        while (segIdx < subDistances.length - 1 && curDist >= cumDistances[segIdx + 1]) {
-          segIdx++;
+        for (let i = 0; i < segLengths.length; i++) {
+          if (curDist <= cumDist[i + 1] || i === segLengths.length - 1) {
+            segIdx = i;
+            break;
+          }
         }
 
-        const segLen = subDistances[segIdx];
-        const segDist = curDist - cumDistances[segIdx];
-        const segT = segLen > 0.0001 ? Math.min(Math.max(segDist / segLen, 0.0), 1.0) : 1.0;
+        const segLen = segLengths[segIdx];
+        const segProgress = segLen > 0 ? (curDist - cumDist[segIdx]) / segLen : 0;
+        const clampedSegProg = Math.max(0, Math.min(1, segProgress));
 
         const pA = waypoints[segIdx];
         const pB = waypoints[segIdx + 1];
 
-        const curLat = pA[0] + (pB[0] - pA[0]) * segT;
-        const curLng = pA[1] + (pB[1] - pA[1]) * segT;
+        const curLat = pA[0] + clampedSegProg * (pB[0] - pA[0]);
+        const curLng = pA[1] + clampedSegProg * (pB[1] - pA[1]);
 
         marker.setLatLng([curLat, curLng]);
 
-        // 7. Korekcia natočenia (Heading / Azimut po dotyčnici ulice)
-        let targetBearing = bearings[segIdx];
-        // Plynulé predvídanie zákruty (ak je vzdialenosť k lomu < 8 metrov)
-        if (segIdx < bearings.length - 1) {
-          const distToTurn = cumDistances[segIdx + 1] - curDist;
-          if (distToTurn < 8 && distToTurn >= 0) {
-            const blendRatio = (8 - distToTurn) / 8;
-            const nextBearing = bearings[segIdx + 1];
-            const turnDiff = ((nextBearing - targetBearing + 540) % 360) - 180;
-            targetBearing = (targetBearing + turnDiff * blendRatio * 0.5 + 360) % 360;
-          }
-        }
-
-        // Najkratší uhlový posun pre plynulé otáčanie bez 360° protočenia
-        if (marker._currentHeading == null) {
-          marker._currentHeading = targetBearing;
-        } else {
-          const delta = ((targetBearing - (marker._currentHeading % 360) + 540) % 360) - 180;
-          marker._currentHeading += delta;
-        }
-
-        const markerEl = marker.getElement();
-        const rotatorEl = markerEl ? markerEl.querySelector('.veh-rotator') : null;
-        if (rotatorEl) {
-          rotatorEl.style.transform = `rotate(${marker._currentHeading.toFixed(1)}deg)`;
-        }
+        // Korekcia natočenia: azimut markera podľa dotyčnice k danému segmentu ulice
+        const segBearing = getBearingBetween(pA, pB);
+        updateMarkerHeading(marker, segBearing);
 
         if (options.onStep) {
-          options.onStep(curLat, curLng, progress, marker._currentHeading);
+          options.onStep(curLat, curLng, progress, segBearing);
         }
 
         if (progress < 1.0) {
@@ -11151,7 +11204,8 @@
             marker._slideAnim.frameId = requestAnimationFrame(step);
           }
         } else {
-          marker.setLatLng([targetLat, targetLng]);
+          const finalPt = waypoints[waypoints.length - 1];
+          marker.setLatLng(finalPt);
           marker._slideAnim = null;
           if (options.onComplete) {
             options.onComplete();
@@ -11161,12 +11215,8 @@
 
       marker._slideAnim = {
         frameId: requestAnimationFrame(step),
-        startLat: startLat,
-        startLng: startLng,
-        targetLat: targetLat,
-        targetLng: targetLng,
-        startTime: startTime,
-        waypoints: waypoints
+        waypoints: waypoints,
+        startTime: startTime
       };
     }
 
@@ -11181,18 +11231,12 @@
     // Tvorba kompletného Leaflet markera pre vozidlo (ikona, popup, interakcie)
     function createVehicleMarker(v) {
       const comm = formatLastCommunication(v.last_communication);
-      let initialHeading = 0;
-      if (v.trip_id && tripRouteCache.has(v.trip_id)) {
-        const seg = findClosestSegmentOnPolyline([v.latitude, v.longitude], tripRouteCache.get(v.trip_id));
-        if (seg && seg.bearing != null) initialHeading = seg.bearing;
-      }
-      const icon = createVehicleMarkerIcon(v, comm.isStale, initialHeading);
+      const icon = createVehicleMarkerIcon(v, comm.isStale, 0);
       const popupContent = buildPopupHtml(v);
       const marker = L.marker([v.latitude, v.longitude], { icon: icon });
       marker._vehicleId = v.vehicle_id;
       marker._tripId = v.trip_id;
-      marker._line = v.line;
-      marker._currentHeading = initialHeading;
+      marker._currentHeading = 0;
       // Vypnutie Leaflet AutoPan: striktne autoPan: false, aby mapa pri kliknutí neodskakovala
       marker.bindPopup(popupContent, {
         autoPan: false,
@@ -11616,7 +11660,7 @@
       }
     });
 
-    // Funkcia na stiahnutie a vykreslenie trasy spoja s cache-bustingom
+    // Funkcia na stiahnutie a vykreslenie trasy spoja s využitím centrálnej cache trás
     async function loadAndDrawTripRoute(tripId) {
       if (!tripId) return;
 
@@ -11644,7 +11688,7 @@
           }).addTo(map);
         }
       } catch (err) {
-        console.error(`Chyba pri sťahovaní trasy:`, err);
+        console.error(`Chyba pri vykresľovaní trasy:`, err);
       }
     }
 
@@ -13797,11 +13841,8 @@
           const id = v.vehicle_id;
           if (markers[id] && v.latitude && v.longitude) {
             markers[id]._tripId = v.trip_id;
-            markers[id]._line = v.line;
-
             const comm = formatLastCommunication(v.last_communication);
-            const currentHeading = (markers[id]._currentHeading != null) ? markers[id]._currentHeading : 0;
-            const icon = createVehicleMarkerIcon(v, comm.isStale, currentHeading);
+            const icon = createVehicleMarkerIcon(v, comm.isStale, markers[id]._currentHeading || 0);
             const popupContent = buildPopupHtml(v);
             markers[id].setIcon(icon);
             markers[id].setPopupContent(popupContent);
@@ -13809,11 +13850,6 @@
             const isFollowed = (followingVehicleId === id);
             const mapBounds = (typeof map !== 'undefined' && map.getBounds) ? map.getBounds() : null;
             const isVisible = isVehicleVisibleOnMap(v, mapBounds);
-
-            // Asynchrónny prefetch trasy pre aktívne/viditeľné vozidlo
-            if (v.trip_id && (isVisible || isFollowed)) {
-              getOrFetchTripRoute(v.trip_id);
-            }
 
             // Viewport Culling: ak vozidlo nie je viditeľné a nie je sledované,
             // nezaťažujeme procesor animáciou, ale priamo nastavíme súradnice
@@ -13826,7 +13862,7 @@
               return;
             }
 
-            // Plynulý posun po reálnej trase (Live GPS interpolácia cez requestAnimationFrame)
+            // Plynulý posun (Route-Snapped Live GPS interpolácia pozdĺž modelRoutePoints)
             slideMarkerTo(markers[id], [v.latitude, v.longitude], 8500, {
               isFollowed: isFollowed,
               tripId: v.trip_id,
@@ -13884,12 +13920,19 @@
       // Prepočet množiny povolených vozidiel (Proximity, Zoom < 14, Viewport Culling, Max 25 limit, Search Bypass)
       latestVisibleVehicleIds = computeVisibleVehicleIds(rawList);
 
-      // Asynchrónny prefetch tvarov trás (modelRoutePoints) pre viditeľné vozidlá
-      rawList.forEach(v => {
-        if (v.trip_id && latestVisibleVehicleIds.has(v.vehicle_id)) {
+      // Asynchrónne prednačítanie trás (Trip Route Prefetch) pre viditeľné a sledované vozidlá
+      latestVisibleVehicleIds.forEach(id => {
+        const v = rawList.find(item => item.vehicle_id === id);
+        if (v && v.trip_id && !tripRoutesCache.has(v.trip_id) && !tripRoutesCache.has(Number(v.trip_id))) {
           getOrFetchTripRoute(v.trip_id);
         }
       });
+      if (followingVehicleId) {
+        const followed = rawList.find(item => item.vehicle_id === followingVehicleId);
+        if (followed && followed.trip_id && !tripRoutesCache.has(followed.trip_id) && !tripRoutesCache.has(Number(followed.trip_id))) {
+          getOrFetchTripRoute(followed.trip_id);
+        }
+      }
 
       rawList.forEach(v => {
         const id = v.vehicle_id;
