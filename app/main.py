@@ -145,6 +145,17 @@ fleet_service = FleetService(csv_path=CSV_PATH)
 live_feed = DpmkLiveFeed()
 routing_engine = RoutingEngine(live_feed=live_feed, fleet_service=fleet_service)
 
+# Vynútené uvoľnenie pamäte po načítaní datasetov (optimalizácia RAM pre Northflank)
+import gc
+gc.collect()
+
+@app.on_event("startup")
+def on_startup():
+    """Uvoľnenie prebytočnej pamäte po štarte aplikácie a načítaní datasetu."""
+    import gc
+    gc.collect()
+
+
 # Vyrovnávacia pamäť pre posledné zaznamenané polohy (užitočné počas nočnej pauzy medzi 00:35 a 03:40)
 LAST_SEEN_CACHE: List[Dict[str, Any]] = [
     {"vehicle_id": 1276522, "line": "N3", "line_type": "BUS", "line_name": "Staničné námestie - Nemocnica Šaca", "destination": "Nemocnica Šaca", "destination_full": "Košice, Nemocnica Šaca", "latitude": 48.71660, "longitude": 21.24988, "delay_minutes": 0, "is_on_stop": False, "trip_id": 1003257873, "last_stop_order": 7, "last_communication": "2026-10-06T00:25:00+02:00"},
@@ -1341,5 +1352,8 @@ def get_all_feedback(request: Request):
     }
 
 
-
-
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    # Uvicorn beží s 1 workerom na šetrenie pamäte (Northflank 256MB limit)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, workers=1)

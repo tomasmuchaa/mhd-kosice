@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 import json
-import pandas as pd
+import csv
 from typing import Optional, Dict, Any, List, Union
 
 class FleetService:
@@ -32,7 +32,6 @@ class FleetService:
         self.csv_path = csv_path
         self.overrides_path = overrides_path or os.path.join(os.path.dirname(self.csv_path), "overrides.json")
         self.MANUAL_OVERRIDES = self._load_overrides()
-        self.df = pd.DataFrame()
         self.spz_index = {}
         self.ev_index = {}
         self.vin_prod_index = {
@@ -198,59 +197,45 @@ class FleetService:
         if not os.path.exists(self.csv_path):
             raise FileNotFoundError(f"Súbor datasetu {self.csv_path} nebol nájdený.")
 
-        self.df = pd.read_csv(self.csv_path)
+        with open(self.csv_path, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            fieldnames = reader.fieldnames or []
 
-        # Normalizácia názvov stĺpcov
-        self.spz_col = next((c for c in self.df.columns if "EČV" in c or "ŠPZ" in c), "EČV / ŠPZ")
-        self.ev_col = next((c for c in self.df.columns if "ev." in c.lower() or "číslo" in c.lower()), "ev. číslo")
-        self.model_col = next((c for c in self.df.columns if "typ" in c.lower()), "typ")
-        self.vin_col = next((c for c in self.df.columns if "vin" in c.lower()), "výrobné číslo (VIN)")
-        self.rok_col = next((c for c in self.df.columns if "rok" in c.lower()), "rok vyroby (dodanie) [zaradenie]")
-        self.ret_col = next((c for c in self.df.columns if any(w in c.lower() for w in ["vyradenie", "likvid", "odstavenie"])), "(odstavenie) vyradenie [likvidácia]")
+            # Normalizácia názvov stĺpcov
+            spz_col = next((c for c in fieldnames if "EČV" in c or "ŠPZ" in c), "EČV / ŠPZ")
+            ev_col = next((c for c in fieldnames if "ev." in c.lower() or "číslo" in c.lower()), "ev. číslo")
+            model_col = next((c for c in fieldnames if "typ" in c.lower()), "typ")
+            ret_col = next((c for c in fieldnames if any(w in c.lower() for w in ["vyradenie", "likvid", "odstavenie"])), None)
 
-        # Prísne vyfiltrovanie vyradených / zlikvidovaných historických vozidiel z celej histórie podniku (vyše 600 starých záznamov).
-        # Ponechávame výlučne prevádzkyschopné vozidlá, kde stĺpec vyradenia je prázdny.
-        if self.ret_col in self.df.columns:
-            is_retired = (
-                self.df[self.ret_col].notna()
-                & ~self.df[self.ret_col].astype(str).str.strip().isin(["", "nan", "None", "NaN"])
-            )
-            self.df = self.df[~is_retired].copy()
+            for row in reader:
+                # Prísne vyfiltrovanie vyradených / zlikvidovaných historických vozidiel z celej histórie podniku.
+                # Ponechávame výlučne prevádzkyschopné vozidlá, kde stĺpec vyradenia je prázdny.
+                if ret_col:
+                    ret_val = (row.get(ret_col) or "").strip()
+                    if ret_val and ret_val.lower() not in ("", "nan", "none"):
+                        continue
 
-        # Dodatočný filter: vyradenie historických modelov (Karosa, Ikarus, Škoda a pod.)
-        self.df = self.df[self.df[self.model_col].apply(self.is_active_model)].copy()
+                model_raw = (row.get(model_col) or "").strip()
+                # Dodatočný filter: vyradenie historických modelov (Karosa, Ikarus, Škoda a pod.)
+                if not self.is_active_model(model_raw):
+                    continue
 
-        # Čistenie dát a vytvorenie indexov
-        self.df["spz_clean"] = (
-            self.df[self.spz_col]
-            .fillna("")
-            .astype(str)
-            .str.replace(" ", "", regex=False)
-            .str.replace("-", "", regex=False)
-            .str.upper()
-        )
-        self.df["ev_clean"] = (
-            self.df[self.ev_col]
-            .fillna("")
-            .astype(str)
-            .str.replace(".0", "", regex=False)
-            .str.strip()
-        )
+                ev_raw = (row.get(ev_col) or "").strip().replace(".0", "")
+                spz_raw = (row.get(spz_col) or "").strip()
 
-        for _, row in self.df.iterrows():
-            ev = row["ev_clean"]
-            spz = row["spz_clean"]
-            item = {
-                "evidencne_cislo": str(row[self.ev_col]).replace(".0", ""),
-                "spz": str(row[self.spz_col]) if pd.notna(row[self.spz_col]) else None,
-                "model": str(row[self.model_col]) if pd.notna(row[self.model_col]) else None,
-                "vin": str(row[self.vin_col]) if pd.notna(row[self.vin_col]) else None,
-                "rok_vyroby": str(row[self.rok_col]) if pd.notna(row[self.rok_col]) else None,
-            }
-            if ev:
-                self.ev_index[ev] = item
-            if spz:
-                self.spz_index[spz] = item
+                spz_clean = spz_raw.replace(" ", "").replace("-", "").upper()
+                ev_clean = ev_raw
+
+                # V pamäti držíme iba potrebné stĺpce (spz, evidencne_cislo, model)
+                item = {
+                    "evidencne_cislo": ev_clean,
+                    "spz": spz_raw if spz_raw else None,
+                    "model": model_raw if model_raw else None,
+                }
+                if ev_clean:
+                    self.ev_index[ev_clean] = item
+                if spz_clean:
+                    self.spz_index[spz_clean] = item
 
         # Doplnenie najnovšieho vozového parku DPMK (elektrobusy a nové série)
         self._inject_modern_fleet()
@@ -272,8 +257,6 @@ class FleetService:
                 "evidencne_cislo": ev,
                 "spz": spz,
                 "model": "SOR NS 18 Electric",
-                "vin": None,
-                "rok_vyroby": "2026",
             }
             self.ev_index[ev] = item
             self.spz_index[spz.replace("-", "").replace(" ", "").upper()] = item
@@ -288,8 +271,6 @@ class FleetService:
                 "evidencne_cislo": ev,
                 "spz": spz,
                 "model": "SOR EBN 10.5",
-                "vin": None,
-                "rok_vyroby": "2014",
             }
             self.ev_index[ev] = item
             self.spz_index[spz.replace("-", "").replace(" ", "").upper()] = item
@@ -308,8 +289,6 @@ class FleetService:
                 "evidencne_cislo": ev,
                 "spz": spz,
                 "model": "SOR EBN 11",
-                "vin": None,
-                "rok_vyroby": "2016",
             }
             self.ev_index[ev] = item
             self.spz_index[spz.replace("-", "").replace(" ", "").upper()] = item
@@ -327,25 +306,21 @@ class FleetService:
                 "evidencne_cislo": ev,
                 "spz": spz,
                 "model": "Solaris Urbino 18,75 III",
-                "vin": None,
-                "rok_vyroby": "2017",
             }
             self.ev_index[ev] = item
             self.spz_index[spz.replace("-", "").replace(" ", "").upper()] = item
 
         # 5. SOR NSG 18 a SOR NSG 12
         nsg_plates = {
-            "4801": ("AA-403EV", "SOR NSG 18", "2023"),
-            "5802": ("AA-355EV", "SOR NSG 12", "2023"),
-            "5803": ("AA-362EV", "SOR NSG 12", "2023")
+            "4801": ("AA-403EV", "SOR NSG 18"),
+            "5802": ("AA-355EV", "SOR NSG 12"),
+            "5803": ("AA-362EV", "SOR NSG 12")
         }
-        for ev, (spz, model, rok) in nsg_plates.items():
+        for ev, (spz, model) in nsg_plates.items():
             item = {
                 "evidencne_cislo": ev,
                 "spz": spz,
                 "model": model,
-                "vin": None,
-                "rok_vyroby": rok,
             }
             self.ev_index[ev] = item
             self.spz_index[spz.replace("-", "").replace(" ", "").upper()] = item

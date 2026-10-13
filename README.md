@@ -46,7 +46,7 @@ pip install -r requirements.txt
 
 ### 2. Spustenie FastAPI servera
 ```bash
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
 Po spustení je aplikácia dostupná na:
