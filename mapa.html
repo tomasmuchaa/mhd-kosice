@@ -7727,7 +7727,7 @@
       { id: 'solaris-u12', name: 'Solaris Urbino 12 III', cat: 'standard', catLabel: 'Sólo 12m', tagClass: 'tag-standard', dim: '44×44px', render: (l, d) => renderSolarisU12Svg(l, d), desc: 'Červený mestský štandard, asymetrické okno klesajúce doprava, zvislé svetlá' },
       { id: 'solaris-u12-iv', name: 'Solaris Urbino 12 IV', cat: 'standard', catLabel: 'Sólo Gen IV', tagClass: 'tag-standard', dim: '44×42px', render: (l, d) => renderSolarisU12IvSvg(l, d, '5108'), desc: 'Ostré agresívne línie 4. generácie New Urbino, sýto červená karoséria, biele sklo s čiernym číslom, klinové svetlomety a jazvečík' },
       { id: 'solaris-u12-hyb', name: 'Solaris Urbino 12 Hybrid', cat: 'standard', catLabel: 'Hybrid 12m', tagClass: 'tag-electric', dim: '44×46px', render: (l, d) => renderSolarisU12HybridSvg(l, d, '5119'), desc: 'Solaris Urbino 12 III Hybrid (5119), asymetrické čelné sklo klesajúce doprava, tmavý hybridný strešný box, biele sklo s tmavým číslom linky, žltá maska a červený nárazník' },
-      { id: 'solaris-u15', name: 'Solaris Urbino 15', cat: 'standard', catLabel: '15m (3 nápravy)', tagClass: 'tag-standard', dim: '46×45px', render: (l, d) => renderSolarisU15Svg(l, d), desc: 'Trojnápravový sólo gigant (46px), zlatý lem, asymetrické sklo' },
+      { id: 'solaris-u15', name: 'Solaris Urbino 15', cat: 'standard', catLabel: '15m (3 nápravy)', tagClass: 'tag-standard', dim: '46×45px', render: (l, d) => renderSolarisU15Svg(l, d, '3535'), desc: 'Trojnápravový sólo gigant (46px), košická trikolóra, asymetrické biele sklo' },
       { id: 'sor-ebn', name: 'SOR EBN 10.5 & 11', cat: 'standard', catLabel: 'Elektrobus', tagClass: 'tag-electric', dim: '44×42px', render: (l, d) => renderSorEbnSvg(l, d, '6701'), desc: 'Elektrobus s oblým strešným hrbom so symbolom ⚡, tyrkysová maska, biele sklo s tmavým číslom linky' },
       { id: 'sor-bn95', name: 'SOR BN 9,5', cat: 'midibus', catLabel: 'Midibus 9,5m', tagClass: 'tag-midibus', dim: '36×38px', render: (l, d) => renderSorBn95Svg(l, d, '6705'), desc: 'Agilný midibus (36×38px), výrazne zúžená karoséria, ikonický strešný hrb rozbíjajúci plochú siluetu (nadstavba z fotky 6705), biele sklo s tmavým číslom a tykadlá SOR' },
       { id: 'sor-c105', name: 'SOR C 10,5', cat: 'midibus', catLabel: 'Prímestský', tagClass: 'tag-midibus', dim: '44×44px', render: (l, d) => renderSorC105Svg(l, d), desc: 'Sivomodrý linkový autobus, vyvýšený masívny nárazník' },
@@ -8482,8 +8482,8 @@
             brand: 'solaris',
             name: 'Solaris Urbino 15 II / III',
             icon: '🚍',
-            color: '#881337',
-            borderColor: '#f59e0b',
+            color: '#0284c7',
+            borderColor: '#0f172a',
             badgeClass: 'veh-cat-solaris-u15',
             textColor: '#ffffff',
             title: 'Solaris Urbino 15'
@@ -10829,33 +10829,128 @@
       `;
     }
 
-    // 15. Solaris Urbino 15 II / III - 46px trojnápravový, asymetrické okno, zlatý lem
-    function renderSolarisU15Svg(line, delayColorOrMinutes = '') {
+    // 15. Solaris Urbino 15 II / III - 46px trojnápravový sólo gigant, asymetrické čelné sklo,
+    // autentická košická trikolóra (azúrová strecha a nárazník, snehobiely panel pod oknom, žltý pruh),
+    // čisté BIELE asymetrické čelné sklo (fill="#ffffff"), horná integrovaná lišta meškania,
+    // veľké tučné čierne číslo linky (#0f172a), logo Solaris a evidenčné číslo, čierny obrys (#0f172a)
+    function renderSolarisU15Svg(line, delayColorOrMinutes = '', evNum = '3535') {
+      const safeLine = escapeXml(line || '15');
+      const displayEv = escapeXml(String(evNum || '3535').trim() || '3535');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
+
       const delayColor = getDelayBarColor(delayColorOrMinutes);
-      const fontSize = getLineFontSize(line);
-      const safeLine = escapeXml(line);
-      const clipId = 'ws-clip-sol-u15-' + Math.random().toString(36).substr(2, 7);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const cleanSpz = 'KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv);
+
       return `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 45" width="46" height="45" class="veh-front-svg">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 45" width="46" height="45" class="veh-front-svg veh-solaris-u15">
           <defs>
-            <clipPath id="${clipId}">
-              <path d="M 8 7 L 38 7 L 38 32 L 27 32 L 27 29 L 8 29 Z"/>
-            </clipPath>
+            <filter id="sol15-shadow" x="-12%" y="-10%" width="124%" height="120%">
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
+            </filter>
           </defs>
-          <rect x="16" y="1" width="14" height="4" rx="2" fill="#f59e0b" stroke="#0f172a" stroke-width="1"/>
-          <rect x="7" y="38" width="6.5" height="4" rx="1.5" fill="#0f172a"/>
-          <rect x="32.5" y="38" width="6.5" height="4" rx="1.5" fill="#0f172a"/>
-          <rect x="5" y="4" width="36" height="35" rx="5" fill="#881337" stroke="#f59e0b" stroke-width="2.5"/>
-          <rect x="1" y="8" width="3.8" height="9.5" rx="1.8" fill="#0f172a" stroke="#f59e0b" stroke-width="1"/>
-          <rect x="41.2" y="8" width="3.8" height="9.5" rx="1.8" fill="#0f172a" stroke="#f59e0b" stroke-width="1"/>
-          <path d="M 8 7 L 38 7 L 38 32 L 27 32 L 27 29 L 8 29 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
-          <rect class="veh-delay-bar" x="8" y="7" width="30" height="6" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
-          <text x="22" y="20.5" text-anchor="middle" dominant-baseline="central" alignment-baseline="central" font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" style="fill: #0f172a !important; font-size: ${fontSize}px !important; font-weight: 900 !important;" letter-spacing="-0.5px">${safeLine}</text>
-          <rect x="16" y="31.5" width="14" height="4.5" rx="2" fill="#0f172a"/>
-          <circle cx="10" cy="31.5" r="1.6" fill="#fef08a"/>
-          <circle cx="10" cy="34.5" r="1.4" fill="#fef08a"/>
-          <circle cx="36" cy="31.5" r="1.6" fill="#fef08a"/>
-          <circle cx="36" cy="34.5" r="1.4" fill="#fef08a"/>
+
+          <!-- KOLESÁ (tmavé, pod nárazníkom) -->
+          <g fill="#0f172a">
+            <rect x="6.5" y="38" width="5.5" height="4" rx="1.5"/>
+            <rect x="34" y="38" width="5.5" height="4" rx="1.5"/>
+          </g>
+
+          <!-- DLHÉ ČIERNE SPÄTNÉ ZRKADLÁ PO BOKOCH -->
+          <!-- Ľavé zrkadlo -->
+          <rect x="0.5" y="9" width="2.4" height="8.5" rx="1" fill="#0f172a" stroke="#18181b" stroke-width="0.6"/>
+          <rect x="0.9" y="9.8" width="1.4" height="6.9" rx="0.5" fill="#1e293b"/>
+          <line x1="2.9" y1="10.5" x2="4.5" y2="10.5" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="2.9" y1="15" x2="4.5" y2="15" stroke="#0f172a" stroke-width="1.3" stroke-linecap="round"/>
+          <!-- Pravé zrkadlo -->
+          <rect x="43.1" y="9" width="2.4" height="8.5" rx="1" fill="#0f172a" stroke="#18181b" stroke-width="0.6"/>
+          <rect x="43.7" y="9.8" width="1.4" height="6.9" rx="0.5" fill="#1e293b"/>
+          <line x1="43.1" y1="10.5" x2="41.5" y2="10.5" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="43.1" y1="15" x2="41.5" y2="15" stroke="#0f172a" stroke-width="1.3" stroke-linecap="round"/>
+
+          <!-- STREŠNÁ KLIMATIZAČNÁ JEDNOTKA S REBROVANÍM (svetlomodrá #0284c7) -->
+          <rect x="13.5" y="1" width="19" height="2.5" rx="1" fill="#0284c7" stroke="#0f172a" stroke-width="0.8"/>
+          <line x1="15.5" y1="1.8" x2="30.5" y2="1.8" stroke="#7dd3fc" stroke-width="0.4"/>
+          <line x1="15.5" y1="2.6" x2="30.5" y2="2.6" stroke="#0369a1" stroke-width="0.4"/>
+
+          <!-- HLAVNÁ ROBUSTNÁ KAROSÉRIA (šírka 37px, svetlomodrý základ #0284c7, čierny obrys #0f172a) -->
+          <rect x="4.5" y="3.5" width="37" height="35.5" rx="2.5" fill="#0284c7" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" filter="url(#sol15-shadow)"/>
+
+          <!-- HORNÁ HRANA NAD ČELNÝM SKLOM (STRECHA) A DISPLEJ TRASY -->
+          <path d="M 4.8 7.2 L 4.8 5.4 C 4.8 4.3 5.7 3.5 6.8 3.5 L 39.2 3.5 C 40.3 3.5 41.2 4.3 41.2 5.4 L 41.2 7.2 Z" fill="#0284c7"/>
+          <rect x="12.5" y="4.2" width="21" height="2.2" rx="0.6" fill="#18181b" stroke="#0f172a" stroke-width="0.4"/>
+          <line x1="14.5" y1="5.3" x2="31.5" y2="5.3" stroke="#f97316" stroke-width="0.5" stroke-dasharray="1 0.8"/>
+          <line x1="4.8" y1="7.2" x2="41.2" y2="7.2" stroke="#0f172a" stroke-width="0.8"/>
+
+          <!-- AUTENTICKÉ ASYMETRICKÉ ČELNÉ SKLO SOLARIS GEN II/III:
+               Čisté BIELE pozadie (fill="#ffffff"), spodná línia skla klesá šikmo z pohľadu diváka vľavo (y=30.5) oproti pravej strane (y=22.5) -->
+          <path d="M 5 7.2 L 41 7.2 L 41 22.5 L 5 30.5 Z"
+                fill="#ffffff" stroke="#0f172a" stroke-width="1.2" stroke-linejoin="round"/>
+
+          <!-- REALISTICKÝ DIAGONÁLNY POLOPRIEHLADNÝ BIELY/SVETLOSIVÝ ODLESK SKLA -->
+          <polygon points="27,7.2 33,7.2 21,26.5 16,27.5" fill="#e2e8f0" opacity="0.4"/>
+          <polygon points="34,7.2 37,7.2 28,24.5 25,25.2" fill="#e2e8f0" opacity="0.2"/>
+
+          <!-- INDIKAČNÁ LIŠTA MEŠKANIA (integrovaná na samom vrchu bieleho skla na celú šírku 100%) -->
+          <path class="veh-delay-bar" d="M 5 10.8 L 5 8 C 5 7.4 5.6 7.2 6.4 7.2 L 39.6 7.2 C 40.4 7.2 41 7.4 41 8 L 41 10.8 Z"
+                fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="5" y1="10.8" x2="41" y2="10.8" stroke="#0f172a" stroke-width="0.8"/>` : ''}
+
+          <!-- OBROVSKÉ, TUČNÉ A TMAVÉ ČÍSLO LINKY VYCENTROVANÉ V STREDE BIELEHO SKLA -->
+          <text x="23" y="16.8" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- BIELY PANEL POD ASYMETRICKÝM SKLOM (SNEHOBIELY #ffffff) -->
+          <path d="M 4.8 30.5 L 41.2 22.5 L 41.2 32.2 Q 34 33.2 23 33.2 Q 12 33.2 4.8 32.2 Z" fill="#ffffff"/>
+
+          <!-- DROBNÉ ČIERNE EVIDENČNÉ ČÍSLO V STREDE BIELEHO PANELU -->
+          <text x="23" y="27.8" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.0px"
+                fill="#0f172a">${displayEv}</text>
+
+          <!-- OVÁLNE LOGO SOLARIS S PÍSMENOM 'S' POD EVIDENČNÝM ČÍSLOM -->
+          <g transform="translate(23, 30.8)">
+            <ellipse cx="0" cy="0" rx="2.6" ry="1.4" fill="#18181b" stroke="#cbd5e1" stroke-width="0.4"/>
+            <text x="0" y="0.2" text-anchor="middle" dominant-baseline="central"
+                  font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.7px"
+                  class="veh-text-white" fill="#ffffff" style="fill: #ffffff !important; color: #ffffff !important;">S</text>
+          </g>
+
+          <!-- HORIZONTÁLNY ŽLTÝ PRUH TESNE POD BIELYM PANELOM, KTORÝ SA NA KRAJOCH JEMNE DVÍHA NAHOR -->
+          <path d="M 4.8 32.2 Q 12 33.2 23 33.2 Q 34 33.2 41.2 32.2 L 41.2 34.0 Q 34 35.0 23 35.0 Q 12 35.0 4.8 34.0 Z"
+                fill="#facc15" stroke="#0f172a" stroke-width="0.4"/>
+
+          <!-- SPODNÝ MASÍVNY NÁRAZNÍK V SVETLOMODREJ FARBE (#0284c7) -->
+          <path d="M 4.8 34.0 Q 12 35.0 23 35.0 Q 34 35.0 41.2 34.0 L 41.2 36.8 C 41.2 38.6 39.8 39.8 37.5 39.8 L 8.5 39.8 C 6.2 39.8 4.8 38.6 4.8 36.8 Z" fill="#0284c7"/>
+          <path d="M 4.8 34.0 Q 12 35.0 23 35.0 Q 34 35.0 41.2 34.0" fill="none" stroke="#0f172a" stroke-width="0.6"/>
+
+          <!-- REALISTICKÉ OKRÚHLE SVETLOMETY V NÁRAZNÍKU S NEUTRÁLNOU BIELO-ŽLTOU FARBOU -->
+          <!-- Ľavý zhluk svetiel -->
+          <g>
+            <rect x="6.2" y="34.8" width="6.6" height="2.7" rx="0.7" fill="#0f172a" stroke="#334155" stroke-width="0.3"/>
+            <circle cx="7.4" cy="36.1" r="0.75" fill="#fef08a" stroke="#64748b" stroke-width="0.25"/>
+            <circle cx="9.5" cy="36.1" r="0.7" fill="#fef9c3" stroke="#64748b" stroke-width="0.25"/>
+            <circle cx="11.6" cy="36.1" r="0.65" fill="#f8fafc" stroke="#64748b" stroke-width="0.25"/>
+          </g>
+          <!-- Pravý zhluk svetiel -->
+          <g>
+            <rect x="33.2" y="34.8" width="6.6" height="2.7" rx="0.7" fill="#0f172a" stroke="#334155" stroke-width="0.3"/>
+            <circle cx="34.4" cy="36.1" r="0.65" fill="#f8fafc" stroke="#64748b" stroke-width="0.25"/>
+            <circle cx="36.5" cy="36.1" r="0.7" fill="#fef9c3" stroke="#64748b" stroke-width="0.25"/>
+            <circle cx="38.6" cy="36.1" r="0.75" fill="#fef08a" stroke="#64748b" stroke-width="0.25"/>
+          </g>
+
+          <!-- MALÁ ŠPZ V STREDE NÁRAZNÍKA -->
+          <rect x="18.5" y="36.3" width="9" height="2.5" rx="0.5" fill="#ffffff" stroke="#0f172a" stroke-width="0.4"/>
+          <text x="23" y="37.5" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.4px"
+                fill="#0f172a">${cleanSpz}</text>
+
+          <!-- ČISTÝ TMAVÝ OKRAJ CELEJ KAROSÉRIE -->
+          <rect x="4.5" y="3.5" width="37" height="35.5" rx="2.5" fill="none" stroke="#0f172a" stroke-width="2" stroke-linejoin="round"/>
         </svg>
       `;
     }
@@ -11372,7 +11467,8 @@
           popupAnchor = [0, -23];
           break;
         case 'solaris-u15':
-          svgHtml = renderSolarisU15Svg(line, delayColor);
+          const sol15Ev = (v.fleet_info || v || {}).evidencne_cislo || v.evidencne_cislo || '3535';
+          svgHtml = renderSolarisU15Svg(line, delayColor, sol15Ev);
           iconSize = [46, 45];
           iconAnchor = [23, 22.5];
           popupAnchor = [0, -24];
@@ -14415,7 +14511,7 @@
         return renderSolarisU18Svg(line, delayMin);
       }
       if (catId === 'solaris-u15' && typeof renderSolarisU15Svg === 'function') {
-        return renderSolarisU15Svg(line, delayMin);
+        return renderSolarisU15Svg(line, delayMin, ev || '3535');
       }
       if (catId === 'solaris-u12-hybrid' && typeof renderSolarisU12HybridSvg === 'function') {
         return renderSolarisU12HybridSvg(line, delayMin, ev || '3501');
