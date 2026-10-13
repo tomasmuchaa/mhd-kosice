@@ -10059,12 +10059,133 @@
     }
     window.openVehicleDetailBottomSheet = openVehicleDetailBottomSheet;
 
+    // ========================================================
+    // PLYNULÝ POHYB VOZIDIEL NA MAPE (LIVE GPS INTERPOLÁCIA)
+    // ========================================================
+    /**
+     * Plynulý posun Leaflet markera cez requestAnimationFrame (Linear Interpolation).
+     * Súradnice sa interpolujú na úrovni (lat, lng), nie cez CSS transition,
+     * čím sa zabraňuje lagovaniu a odlietaniu markerov pri zoomovaní a posúvaní mapy.
+     * @param {L.Marker} marker - Cieľový Leaflet marker
+     * @param {Array<number>} targetLatLng - Cieľové súradnice [lat, lng]
+     * @param {number} duration - Trvanie animácie v ms (predvolene 8 500 ms)
+     * @param {Object} options - { isFollowed, onStep, onComplete }
+     */
+    function slideMarkerTo(marker, targetLatLng, duration = 8500, options = {}) {
+      if (!marker || !targetLatLng) return;
+      const targetLat = Number(targetLatLng[0]);
+      const targetLng = Number(targetLatLng[1]);
+      if (isNaN(targetLat) || isNaN(targetLng)) return;
+
+      // 1. Zrušenie predchádzajúcej animácie:
+      // Ak dorazia nové dáta skôr, než dobehla predchádzajúca animácia,
+      // korektne zrušíme cancelAnimationFrame a plynule začneme z aktuálnej medzipolohy.
+      if (marker._slideAnim) {
+        if (marker._slideAnim.frameId) {
+          cancelAnimationFrame(marker._slideAnim.frameId);
+        }
+        marker._slideAnim = null;
+      }
+
+      // Aktuálna medzipoloha markera v okamihu príchodu nových dát
+      const currentPos = marker.getLatLng();
+      if (!currentPos) {
+        marker.setLatLng([targetLat, targetLng]);
+        return;
+      }
+
+      const startLat = currentPos.lat;
+      const startLng = currentPos.lng;
+
+      // Výpočet reálnej vzdialenosti v metroch cez sférickú geometriu
+      const distanceMeters = L.latLng(startLat, startLng).distanceTo([targetLat, targetLng]);
+
+      // 2. Vozidlo stojí:
+      // Ak sa nová poloha líši o menej ako 2 metre (alebo je rovnaká),
+      // neanimujeme nič, aby marker nevibroval na mieste.
+      if (distanceMeters < 2) {
+        marker.setLatLng([targetLat, targetLng]);
+        if (options.onComplete) options.onComplete();
+        return;
+      }
+
+      // 3. Veľký skok / Teleport (> 500 metrov):
+      // Ak vozidlo prešlo nereálnu vzdialenosť (zmena linky, výpadok signálu),
+      // nepoužívame animáciu, ale okamžite nastavíme novú polohu.
+      if (distanceMeters > 500) {
+        marker.setLatLng([targetLat, targetLng]);
+        if (options.onComplete) options.onComplete();
+        return;
+      }
+
+      // 4. Viewport Culling:
+      // Ak marker nie je viditeľný na obrazovke a nie je sledovaný,
+      // nezaťažujeme procesor animáciou snímkov, ale priamo nastavíme polohu.
+      const isFollowed = options.isFollowed || (typeof followingVehicleId !== 'undefined' && marker._vehicleId === followingVehicleId);
+      if (!isFollowed && typeof map !== 'undefined') {
+        const bounds = (map.getBounds && typeof map.getBounds === 'function') ? map.getBounds() : null;
+        if (!map.hasLayer(marker) || (bounds && bounds.isValid && bounds.isValid() && !bounds.contains([targetLat, targetLng]) && !bounds.contains([startLat, startLng]))) {
+          marker.setLatLng([targetLat, targetLng]);
+          if (options.onComplete) options.onComplete();
+          return;
+        }
+      }
+
+      const startTime = performance.now();
+      const animDuration = duration || 8500;
+
+      function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / animDuration, 1.0); // lineárny priebeh (linear)
+
+        // Interpolácia na úrovni zemepisných súradníc (lat, lng)
+        const curLat = startLat + (targetLat - startLat) * progress;
+        const curLng = startLng + (targetLng - startLng) * progress;
+
+        marker.setLatLng([curLat, curLng]);
+
+        if (options.onStep) {
+          options.onStep(curLat, curLng, progress);
+        }
+
+        if (progress < 1.0) {
+          if (marker._slideAnim) {
+            marker._slideAnim.frameId = requestAnimationFrame(step);
+          }
+        } else {
+          marker.setLatLng([targetLat, targetLng]);
+          marker._slideAnim = null;
+          if (options.onComplete) {
+            options.onComplete();
+          }
+        }
+      }
+
+      marker._slideAnim = {
+        frameId: requestAnimationFrame(step),
+        startLat: startLat,
+        startLng: startLng,
+        targetLat: targetLat,
+        targetLng: targetLng,
+        startTime: startTime
+      };
+    }
+
+    // Registrácia metódy priamo do Leaflet L.Marker prototypu
+    if (typeof L !== 'undefined' && L.Marker) {
+      L.Marker.prototype.slideTo = function(targetLatLng, duration, options) {
+        slideMarkerTo(this, targetLatLng, duration, options);
+        return this;
+      };
+    }
+
     // Tvorba kompletného Leaflet markera pre vozidlo (ikona, popup, interakcie)
     function createVehicleMarker(v) {
       const comm = formatLastCommunication(v.last_communication);
       const icon = createVehicleMarkerIcon(v, comm.isStale);
       const popupContent = buildPopupHtml(v);
       const marker = L.marker([v.latitude, v.longitude], { icon: icon });
+      marker._vehicleId = v.vehicle_id;
       // Vypnutie Leaflet AutoPan: striktne autoPan: false, aby mapa pri kliknutí neodskakovala
       marker.bindPopup(popupContent, {
         autoPan: false,
@@ -10483,6 +10604,13 @@
       }
       stopFollowingVehicle();
       clearWalkingTransfers();
+    });
+
+    // Manuálne potiahnutie mapy používateľom preruší sledovanie vozidla (Follow Mode)
+    map.on('dragstart', () => {
+      if (followingVehicleId) {
+        stopFollowingVehicle();
+      }
     });
 
     // Spustenie / zastavenie sledovania vozidla (Follow Mode)
@@ -11942,25 +12070,53 @@
         if (followingVehicleId) {
           const followed = vehicles.find(v => v.vehicle_id === followingVehicleId);
           if (followed && followed.latitude && followed.longitude) {
-            map.panTo([followed.latitude, followed.longitude], {
-              animate: true,
-              duration: 1.0
-            });
+            // Ak marker sledovaného vozidla ešte nie je na mape, vycentrujeme mapu
+            if (!markers[followingVehicleId]) {
+              map.panTo([followed.latitude, followed.longitude], {
+                animate: true,
+                duration: 1.0
+              });
+            }
           } else if (!activeIds.has(followingVehicleId)) {
             stopFollowingVehicle();
           }
         }
 
-        // Aktualizácia telemetrie a pozície pre existujúce viditeľné markery
+        // Aktualizácia telemetrie a plynulý posun (SlideTo) pre existujúce markery
         vehicles.forEach(v => {
           const id = v.vehicle_id;
           if (markers[id] && v.latitude && v.longitude) {
             const comm = formatLastCommunication(v.last_communication);
             const icon = createVehicleMarkerIcon(v, comm.isStale);
             const popupContent = buildPopupHtml(v);
-            markers[id].setLatLng([v.latitude, v.longitude]);
             markers[id].setIcon(icon);
             markers[id].setPopupContent(popupContent);
+
+            const isFollowed = (followingVehicleId === id);
+            const mapBounds = (typeof map !== 'undefined' && map.getBounds) ? map.getBounds() : null;
+            const isVisible = isVehicleVisibleOnMap(v, mapBounds);
+
+            // Viewport Culling: ak vozidlo nie je viditeľné a nie je sledované,
+            // nezaťažujeme procesor animáciou, ale priamo nastavíme súradnice
+            if (!isVisible && !isFollowed) {
+              if (markers[id]._slideAnim && markers[id]._slideAnim.frameId) {
+                cancelAnimationFrame(markers[id]._slideAnim.frameId);
+                markers[id]._slideAnim = null;
+              }
+              markers[id].setLatLng([v.latitude, v.longitude]);
+              return;
+            }
+
+            // Plynulý posun (Live GPS interpolácia cez requestAnimationFrame)
+            slideMarkerTo(markers[id], [v.latitude, v.longitude], 8500, {
+              isFollowed: isFollowed,
+              onStep: (curLat, curLng) => {
+                // Ak je aktívny Follow Mode, plynulo zosúladíme kameru s pohybom vozidla
+                if (followingVehicleId === id) {
+                  map.panTo([curLat, curLng], { animate: false });
+                }
+              }
+            });
           }
         });
 
@@ -11968,6 +12124,10 @@
         for (const id in markers) {
           const numId = parseInt(id);
           if (!activeIds.has(id) && !activeIds.has(numId)) {
+            if (markers[id]._slideAnim && markers[id]._slideAnim.frameId) {
+              cancelAnimationFrame(markers[id]._slideAnim.frameId);
+              markers[id]._slideAnim = null;
+            }
             if (map.hasLayer(markers[id])) {
               map.removeLayer(markers[id]);
             }
@@ -12013,6 +12173,10 @@
           // Ak autobus vyjde z obrazovky (používateľ mapu posunie alebo oddiali), okamžite ho z mapy odstráň.
           // Neuchovávaj zbytočné elementy v DOMe. Ponechaj si iba surové dáta v vehiclesCache.
           if (markers[id]) {
+            if (markers[id]._slideAnim && markers[id]._slideAnim.frameId) {
+              cancelAnimationFrame(markers[id]._slideAnim.frameId);
+              markers[id]._slideAnim = null;
+            }
             if (map.hasLayer(markers[id])) {
               map.removeLayer(markers[id]);
             }
@@ -12029,8 +12193,10 @@
           marker.addTo(map);
           markers[id] = marker;
         } else {
-          // Marker už existuje v DOMe, aktualizujeme len polohu
-          markers[id].setLatLng(latLng);
+          // Marker už existuje v DOMe: ak neprebieha plynulá animácia, zosúladíme polohu
+          if (!markers[id]._slideAnim) {
+            markers[id].setLatLng(latLng);
+          }
           if (!map.hasLayer(markers[id])) {
             markers[id].addTo(map);
           }
