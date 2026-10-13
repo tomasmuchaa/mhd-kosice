@@ -7043,6 +7043,9 @@
 
     function updateUserLocationMarker(lat, lng, accuracy, panTo = false) {
       userLastKnownCoords = { lat, lng, accuracy, timestamp: Date.now() };
+      if (!panTo && typeof debouncedSyncVisibleMarkers === 'function') {
+        debouncedSyncVisibleMarkers(80);
+      }
 
       const userLocationIcon = L.divIcon({
         className: 'user-location-marker',
@@ -12520,61 +12523,130 @@
     }
     window.handleMapSearchFocus = handleMapSearchFocus;
 
-    // Rozhodovacie pravidlo viditeľnosti vozidla na mape (Extrémny Viewport Culling & Search Bypass)
-    function isVehicleVisibleOnMap(v, mapBounds) {
-      const id = v.vehicle_id;
-      if (!v.latitude || !v.longitude) return false;
+    // ========================================================
+    // INTELIGENTNÝ VÝKONNOSTNÝ FILTER & VIEWPORT CULLING
+    // ========================================================
+    const MAX_VISIBLE_VEHICLES = (typeof window !== 'undefined' && window.innerWidth <= 768) ? 25 : 45;
+    const GPS_PROXIMITY_RADIUS_METERS = 1800; // Okruh 1.8 km okolo používateľa pri oddialenej mape (< 14)
+    let latestVisibleVehicleIds = null;
 
-      // 1. Filter liniek (ak používateľ danú linku manuálne odškrtol)
-      if (disabledLines.has(v.line) && id !== followingVehicleId) {
-        return false;
+    function computeVisibleVehicleIds(rawList) {
+      const visibleIds = new Set();
+      if (!rawList || rawList.length === 0 || currentAppView !== 'map' || typeof map === 'undefined') {
+        return visibleIds;
       }
 
-      const latLng = L.latLng(v.latitude, v.longitude);
+      const currentZoom = (map && typeof map.getZoom === 'function') ? map.getZoom() : 13;
+      let mapBounds = null;
+      let mapCenter = null;
+      try {
+        mapBounds = map.getBounds();
+        mapCenter = map.getCenter();
+      } catch (e) {
+        // Fallback ak mapa ešte nie je inicializovaná
+      }
+
       const searchInput = document.getElementById('search-input');
       const searchQuery = searchInput ? searchInput.value.trim() : '';
-
-      // 2. Je aktívne vyhľadávanie alebo filter modelu?
       const hasActiveSearch = Boolean(
         activeModelFilter || 
         (activeModelVehicleIds && activeModelVehicleIds.size > 0) || 
         searchQuery.length > 0
       );
 
+      // 1. Follow Mode výnimka: sledované vozidlo je VŽDY viditeľné bez ohľadu na zoom či vzdialenosť
+      if (followingVehicleId) {
+        visibleIds.add(followingVehicleId);
+        visibleIds.add(String(followingVehicleId));
+        visibleIds.add(Number(followingVehicleId));
+      }
+
+      // 2. VÝNIMKA PRE AKTÍVNE VYHĽADÁVANIE (Search & Model Filter Bypass):
+      // Ak používateľ aktívne vyhľadá konkrétnu linku (napr. 19), model (napr. SOR), evidenčné číslo alebo ŠPZ,
+      // pravidlá obmedzujúceho zoomu a rádiusu sa pre nájdené vozidlá dočasne vypnú, aby fungovalo celkové zobrazenie aj map.fitBounds().
       if (hasActiveSearch) {
-        let isMatched = false;
-        if (activeModelVehicleIds && activeModelVehicleIds.size > 0) {
-          isMatched = activeModelVehicleIds.has(id);
-        } else if (searchQuery.length > 0) {
-          isMatched = matchesSearchQuery(v, searchQuery);
+        rawList.forEach(v => {
+          const id = v.vehicle_id;
+          if (!v.latitude || !v.longitude) return;
+          if (disabledLines.has(v.line) && id !== followingVehicleId) return;
+
+          let isMatched = false;
+          if (activeModelVehicleIds && activeModelVehicleIds.size > 0) {
+            isMatched = activeModelVehicleIds.has(id);
+          } else if (searchQuery.length > 0) {
+            isMatched = matchesSearchQuery(v, searchQuery);
+          }
+
+          if (isMatched) {
+            visibleIds.add(id);
+          }
+        });
+        return visibleIds;
+      }
+
+      // 3. BEŽNÝ REŽIM (Proximity Filter + Zoom Level Threshold):
+      const userGps = (userLastKnownCoords && userLastKnownCoords.lat && userLastKnownCoords.lng)
+        ? L.latLng(userLastKnownCoords.lat, userLastKnownCoords.lng)
+        : null;
+
+      const candidates = [];
+
+      rawList.forEach(v => {
+        const id = v.vehicle_id;
+        if (!v.latitude || !v.longitude) return;
+        if (id === followingVehicleId) return; // Už pridané vyššie
+        if (disabledLines.has(v.line)) return;
+
+        const vLatLng = L.latLng(v.latitude, v.longitude);
+
+        if (currentZoom < 14) {
+          // Pravidlo úrovne priblíženia: Oddialená mapa (< 14)
+          // Plošne nevykresľuj vozidlá po celých Košiciach.
+          // Zobrazuj iba najbližšie vozidlá v okolí používateľa (ak je GPS aktívne), inak nezobrazuj žiadne markery.
+          if (userGps) {
+            const distToUser = vLatLng.distanceTo(userGps);
+            if (distToUser <= GPS_PROXIMITY_RADIUS_METERS) {
+              candidates.push({ v, dist: distToUser });
+            }
+          }
+          // Ak GPS nie je k dispozícii, nezobrazujeme žiadne markery.
+        } else {
+          // Pravidlo úrovne priblíženia: Priblížená mapa (>= 14)
+          // Aktivuj Viewport Culling – vykresli iba tie vozidlá, ktoré sa fyzicky nachádzajú v aktuálnom výreze obrazovky.
+          if (mapBounds && mapBounds.isValid && mapBounds.isValid() && mapBounds.contains(vLatLng)) {
+            const distToCenter = mapCenter ? vLatLng.distanceTo(mapCenter) : 0;
+            candidates.push({ v, dist: distToCenter });
+          }
         }
+      });
 
-        // VÝNIMKA PRE VYHĽADÁVANIE (Search Bypass):
-        // Táto culling logika sa nesmie aplikovať na vozidlá, ktoré používateľ aktívne vyhľadal.
-        // Tieto vyhľadané vozidlá sa musia na mape zobraziť vždy, bez ohľadu na aktuálny výrez alebo zoom,
-        // aby správne fungovalo oddialenie fitBounds().
-        if (isMatched || id === followingVehicleId) {
-          return true;
-        }
-
-        // Ostatné nehľadané vozidlá zostanú bezpodmienečne skryté
-        return false;
+      // 4. TVRDÝ LIMIT POČTU VYKRESLENÝCH MARKEROV (Max DOM Limit = 25 na mobile):
+      // Ak by sa vo výreze nachádzalo viac ako 25 vozidiel, vyber iba 25 najbližších k stredu displeja.
+      if (candidates.length > MAX_VISIBLE_VEHICLES) {
+        candidates.sort((a, b) => a.dist - b.dist);
+        candidates.slice(0, MAX_VISIBLE_VEHICLES).forEach(c => {
+          visibleIds.add(c.v.vehicle_id);
+        });
+      } else {
+        candidates.forEach(c => {
+          visibleIds.add(c.v.vehicle_id);
+        });
       }
 
-      // 3. Režim bežnej mapy (bez vyhľadávania):
-      if (id === followingVehicleId) {
-        return true;
-      }
+      return visibleIds;
+    }
 
-      // EXTRÉMNY VIEWPORT CULLING:
-      // Ak mapBounds ešte nie sú validné (napr. pred dokončením prvotného layoutu), zobrazíme vozidlá
-      if (!mapBounds || !mapBounds.isValid || !mapBounds.isValid()) {
-        return true;
-      }
+    // Rozhodovacie pravidlo viditeľnosti vozidla na mape
+    function isVehicleVisibleOnMap(v, mapBounds) {
+      if (!v || !v.latitude || !v.longitude) return false;
+      const id = v.vehicle_id;
+      if (id === followingVehicleId) return true;
 
-      // Vykresli marker vozidla a pridaj ho do mapy (DOM) IBA vtedy,
-      // ak sa jeho súradnice [lat, lon] fyzicky nachádzajú vo viditeľnom výreze obrazovky.
-      return mapBounds.contains(latLng);
+      if (!latestVisibleVehicleIds) {
+        const rawList = (vehiclesCache && vehiclesCache.length > 0) ? vehiclesCache : latestVehiclesList;
+        latestVisibleVehicleIds = computeVisibleVehicleIds(rawList);
+      }
+      return latestVisibleVehicleIds.has(id);
     }
 
     function applyLineFilters() {
@@ -13482,8 +13554,12 @@
           }
         }
 
-        // Synchronizácia viditeľných markerov (Extrémny Viewport Culling & Search Bypass)
-        syncVisibleMarkers();
+        // Synchronizácia viditeľných markerov (s ochranou počas dotykových gest)
+        if (isUserDraggingMap) {
+          debouncedSyncVisibleMarkers(120);
+        } else {
+          syncVisibleMarkers();
+        }
 
         // Kontrola aktívnych upozornení na odchody spojov
         checkActiveDepartureAlerts();
@@ -13494,7 +13570,7 @@
       }
     }
 
-    // EXTRÉMNY VIEWPORT CULLING & DYNAMICKÉ ČISTENIE
+    // EXTRÉMNY VIEWPORT CULLING, DYNAMICKÉ ČISTENIE & 60 FPS LIMIT
     function syncVisibleMarkers() {
       const rawList = (vehiclesCache && vehiclesCache.length > 0) ? vehiclesCache : latestVehiclesList;
       if (!rawList || rawList.length === 0 || currentAppView !== 'map') return;
@@ -13504,24 +13580,20 @@
         map.invalidateSize();
       }
 
-      let mapBounds = null;
-      try {
-        mapBounds = map.getBounds();
-      } catch (e) {
-        console.warn('Nepodarilo sa získať map bounds:', e);
-      }
+      // Prepočet množiny povolených vozidiel (Proximity, Zoom < 14, Viewport Culling, Max 25 limit, Search Bypass)
+      latestVisibleVehicleIds = computeVisibleVehicleIds(rawList);
 
       rawList.forEach(v => {
         const id = v.vehicle_id;
         if (!v.latitude || !v.longitude) return;
 
         const latLng = [v.latitude, v.longitude];
-        const isVisible = isVehicleVisibleOnMap(v, mapBounds);
+        const isVisible = latestVisibleVehicleIds.has(id);
 
         if (!isVisible) {
           // DYNAMICKÉ ČISTENIE:
-          // Ak autobus vyjde z obrazovky (používateľ mapu posunie alebo oddiali), okamžite ho z mapy odstráň.
-          // Neuchovávaj zbytočné elementy v DOMe. Ponechaj si iba surové dáta v vehiclesCache.
+          // Ak autobus opustí výrez obrazovky (alebo nespĺňa limit), okamžite ho z mapy odstráň z DOMu.
+          // Neuchovávaj zbytočné elementy v DOMe. Ponechaj si iba surové dáta v pamäti JS.
           if (markers[id]) {
             if (markers[id]._slideAnim && markers[id]._slideAnim.frameId) {
               cancelAnimationFrame(markers[id]._slideAnim.frameId);
@@ -13535,9 +13607,8 @@
           return;
         }
 
-        // EXTRÉMNY VIEWPORT CULLING:
         // Vykresli marker vozidla a pridaj ho do mapy (DOM) IBA vtedy,
-        // ak sa jeho súradnice [lat, lon] fyzicky nachádzajú vo viditeľnom výreze obrazovky (alebo platí Search Bypass)
+        // ak je schválený vo visibleIds
         if (!markers[id]) {
           const marker = createVehicleMarker(v);
           marker.addTo(map);
@@ -13552,12 +13623,75 @@
           }
         }
       });
+
+      // Zabezpečenie prísneho bezpečnostného limitu: vyčisti akékoľvek nezaradené markery z DOMu
+      for (const id in markers) {
+        const numId = parseInt(id);
+        const isPreserved = latestVisibleVehicleIds.has(id) || 
+                            latestVisibleVehicleIds.has(numId) || 
+                            followingVehicleId === id || 
+                            followingVehicleId === numId;
+        if (!isPreserved) {
+          if (markers[id]._slideAnim && markers[id]._slideAnim.frameId) {
+            cancelAnimationFrame(markers[id]._slideAnim.frameId);
+            markers[id]._slideAnim = null;
+          }
+          if (map.hasLayer(markers[id])) {
+            map.removeLayer(markers[id]);
+          }
+          delete markers[id];
+        }
+      }
     }
 
+    // ========================================================
+    // DEBOUNCE NA GESTÁ MAPY (moveend / zoomend) - 60 FPS UX
+    // ========================================================
+    let syncVisibleMarkersTimeout = null;
+    let isUserDraggingMap = false;
+
+    function debouncedSyncVisibleMarkers(delay = 110) {
+      if (syncVisibleMarkersTimeout) {
+        clearTimeout(syncVisibleMarkersTimeout);
+      }
+      syncVisibleMarkersTimeout = setTimeout(() => {
+        syncVisibleMarkers();
+      }, delay);
+    }
+    window.debouncedSyncVisibleMarkers = debouncedSyncVisibleMarkers;
+
+    // Počas aktívneho ťahania prstom (touch drag) alebo zoomovania nerobíme náročné DOM manipulácie
+    map.on('dragstart', () => {
+      isUserDraggingMap = true;
+      if (syncVisibleMarkersTimeout) {
+        clearTimeout(syncVisibleMarkersTimeout);
+        syncVisibleMarkersTimeout = null;
+      }
+    });
+
+    map.on('dragend', () => {
+      isUserDraggingMap = false;
+    });
+
+    map.on('zoomstart', () => {
+      isUserDraggingMap = true;
+      if (syncVisibleMarkersTimeout) {
+        clearTimeout(syncVisibleMarkersTimeout);
+        syncVisibleMarkersTimeout = null;
+      }
+    });
+
     // EVENT LISTENER 'moveend' a 'zoomend':
-    // Pri akomkoľvek pohybe mapy sa musí spustiť culling logika a prekresliť len tie vozidlá, ktoré sú po novom na obrazovke
-    map.on('moveend', syncVisibleMarkers);
-    map.on('zoomend', syncVisibleMarkers);
+    // Spúšťame syncVisibleMarkers až po dokončení pohybu/zoomu s debounce 110 ms
+    map.on('moveend', () => {
+      isUserDraggingMap = false;
+      debouncedSyncVisibleMarkers(110);
+    });
+
+    map.on('zoomend', () => {
+      isUserDraggingMap = false;
+      debouncedSyncVisibleMarkers(110);
+    });
 
     // ==========================================
     // SEKCIA: VYHĽADÁVAČ TRÁS (JOURNEY PLANNER)
