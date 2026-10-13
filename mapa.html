@@ -2622,6 +2622,280 @@
       border: 1px solid rgba(56, 189, 248, 0.3);
       color: #7dd3fc;
     }
+
+    /* ==========================================
+       UBIAN TIME SELECTOR & DIRECT TOGGLE
+       ========================================== */
+    .planner-options-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 8px 0 6px 0;
+    }
+    .planner-time-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(30, 41, 59, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 7px 12px;
+      color: #38bdf8;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      outline: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .planner-time-btn:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #ffffff;
+    }
+    .planner-time-btn.is-custom {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(99, 102, 241, 0.25));
+      border-color: rgba(56, 189, 248, 0.5);
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(14, 165, 233, 0.25);
+    }
+    .planner-time-btn-icon {
+      font-size: 0.95rem;
+    }
+    .planner-time-btn-chevron {
+      font-size: 0.72rem;
+      opacity: 0.7;
+      transition: transform 0.2s;
+    }
+    .planner-time-btn.open .planner-time-btn-chevron {
+      transform: rotate(180deg);
+    }
+
+    /* Apple-style Toggle Switch pre "Len priame spoje" */
+    .planner-direct-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .planner-direct-toggle input {
+      display: none;
+    }
+    .planner-toggle-slider {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 9999px;
+      transition: background 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .planner-toggle-slider::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      background: #ffffff;
+      border-radius: 50%;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+    .planner-direct-toggle input:checked + .planner-toggle-slider {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+    .planner-direct-toggle input:checked + .planner-toggle-slider::after {
+      transform: translateX(16px);
+    }
+    .planner-toggle-text {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #94a3b8;
+      transition: color 0.2s;
+    }
+    .planner-direct-toggle input:checked ~ .planner-toggle-text {
+      color: #38bdf8;
+    }
+
+    /* Elegantný Apple-Glass rozbaľovací panel pre voľbu času */
+    .planner-time-panel {
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 6px;
+      margin-bottom: 10px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(14, 165, 233, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeInSlideDown 0.2s ease-out;
+    }
+    @keyframes fadeInSlideDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .planner-time-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .planner-time-panel-title {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.2px;
+    }
+    .planner-time-panel-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 0.88rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 6px;
+      line-height: 1;
+    }
+    .planner-time-panel-close:hover {
+      color: #f87171;
+    }
+    .planner-mode-tabs {
+      display: flex;
+      background: rgba(30, 41, 59, 0.6);
+      padding: 3px;
+      border-radius: 10px;
+      gap: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .planner-mode-tab {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 6px;
+      font-size: 0.77rem;
+      font-weight: 600;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .planner-mode-tab:hover {
+      color: #ffffff;
+    }
+    .planner-mode-tab.active {
+      background: #0284c7;
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+    }
+    .planner-custom-time-inputs {
+      display: flex;
+      gap: 10px;
+    }
+    .planner-field-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .planner-field-mini-label {
+      font-size: 0.70rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .planner-select, .planner-time-input {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 8px 10px;
+      color: #ffffff;
+      font-size: 0.84rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .planner-select:focus, .planner-time-input:focus {
+      border-color: #38bdf8;
+      background: rgba(30, 41, 59, 0.9);
+    }
+    .planner-select option {
+      background: #0f172a;
+      color: #ffffff;
+    }
+    .planner-quick-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .planner-chip {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 4px 9px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .planner-chip:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #ffffff;
+    }
+    .planner-panel-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .planner-panel-apply-btn {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 0.80rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+    }
+    .planner-panel-apply-btn:hover {
+      background: #0369a1;
+    }
+
+    /* Odznak pre plánovaný spoj v budúcnosti */
+    .ubian-future-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 2px 7px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
     /* ==========================================
        UBIAN DIZAJN: PLÁNOVAČ TRÁS (ROUTE CARDS & TIMELINE)
        ========================================== */
@@ -5391,6 +5665,70 @@
           <button class="nav-clear-btn" id="nav-to-clear" onclick="clearNavStop('to')" style="display:none;" title="Vymazať">✕</button>
         </div>
         <div id="nav-to-dropdown" class="nav-autocomplete-dropdown"></div>
+      </div>
+
+      <!-- Interaktívny riadok: Výber času (Ubian štýl) a filter Len priame spoje -->
+      <div class="planner-options-row">
+        <!-- Tlačidlo výberu času -->
+        <button type="button" id="planner-time-btn" class="planner-time-btn" onclick="togglePlannerTimePanel()" title="Zmeniť čas odchodu alebo príchodu">
+          <span class="planner-time-btn-icon">🕒</span>
+          <span id="planner-time-btn-label">Teraz</span>
+          <span class="planner-time-btn-chevron">▾</span>
+        </button>
+
+        <!-- Prepínač Len priame spoje -->
+        <label class="planner-direct-toggle" title="Vyhľadať iba priame spojenia bez prestupu">
+          <input type="checkbox" id="planner-direct-only-checkbox" onchange="handleDirectOnlyToggle(this.checked)">
+          <span class="planner-toggle-slider"></span>
+          <span class="planner-toggle-text">Len priame</span>
+        </label>
+      </div>
+
+      <!-- Vysúvací Apple-Glass panel pre voľbu času (Teraz / Odchod o... / Príchod do...) -->
+      <div id="planner-time-panel" class="planner-time-panel apple-glass" style="display: none;">
+        <div class="planner-time-panel-header">
+          <span class="planner-time-panel-title">⏱️ Plánovaný čas cesty</span>
+          <button type="button" class="planner-time-panel-close" onclick="closePlannerTimePanel()" title="Zavrieť">✕</button>
+        </div>
+
+        <!-- Segmented control: Teraz | Odchod o... | Príchod do... -->
+        <div class="planner-mode-tabs">
+          <button type="button" class="planner-mode-tab active" id="tab-time-now" onclick="setPlannerTimeMode('now')">⚡ Teraz</button>
+          <button type="button" class="planner-mode-tab" id="tab-time-dep" onclick="setPlannerTimeMode('departure')">Odchod o...</button>
+          <button type="button" class="planner-mode-tab" id="tab-time-arr" onclick="setPlannerTimeMode('arrival')">Príchod do...</button>
+        </div>
+
+        <!-- Časť pre výber dátumu a času (skrytá pri 'now') -->
+        <div id="planner-custom-time-box" style="display: none; flex-direction: column; gap: 8px;">
+          <div class="planner-custom-time-inputs">
+            <!-- Výber dňa -->
+            <div class="planner-field-col">
+              <label class="planner-field-mini-label">Dátum</label>
+              <select id="planner-date-select" class="planner-select" onchange="onPlannerDateChange()">
+              </select>
+            </div>
+            <!-- Výber času -->
+            <div class="planner-field-col">
+              <label class="planner-field-mini-label">Čas</label>
+              <input type="time" id="planner-time-input" class="planner-time-input" onchange="onPlannerTimeChange()">
+            </div>
+          </div>
+
+          <!-- Rýchle predvoľby času (Quick chips) -->
+          <div class="planner-quick-chips">
+            <button type="button" class="planner-chip" onclick="shiftPlannerTimeMinutes(15)">+15 min</button>
+            <button type="button" class="planner-chip" onclick="shiftPlannerTimeMinutes(30)">+30 min</button>
+            <button type="button" class="planner-chip" onclick="shiftPlannerTimeMinutes(60)">+1 hod</button>
+            <button type="button" class="planner-chip" onclick="resetPlannerTimeToNow()">Aktuálny čas</button>
+          </div>
+        </div>
+
+        <!-- Tlačidlo potvrdiť -->
+        <div class="planner-panel-actions">
+          <button type="button" class="planner-panel-apply-btn" onclick="applyPlannerTimeSelection()">
+            ✓ Použiť tento čas
+          </button>
+        </div>
       </div>
 
       <!-- Tlačidlá Akcie -->
@@ -14301,6 +14639,200 @@
       return null;
     }
 
+    // ==========================================
+    // UBIAN TIME SELECTOR & DIRECT TOGGLE STATE & LOGIC
+    // ==========================================
+
+    const plannerTimeState = {
+      mode: 'now',             // 'now' | 'departure' | 'arrival'
+      dateIso: '',             // 'YYYY-MM-DD'
+      timeStr: '',             // 'HH:MM'
+      directOnly: false
+    };
+
+    function initPlannerTimeControls() {
+      const now = new Date();
+      const todayIso = now.toISOString().slice(0, 10);
+      const curH = String(now.getHours()).padStart(2, '0');
+      const curM = String(now.getMinutes()).padStart(2, '0');
+
+      plannerTimeState.dateIso = todayIso;
+      plannerTimeState.timeStr = `${curH}:${curM}`;
+
+      const dateSelect = document.getElementById('planner-date-select');
+      const timeInput = document.getElementById('planner-time-input');
+
+      if (timeInput) {
+        timeInput.value = `${curH}:${curM}`;
+      }
+
+      if (dateSelect) {
+        dateSelect.innerHTML = '';
+        const dayNames = ['Nedeľa', 'Pondelok', 'Utorok', 'Streda', 'Štvrtok', 'Piatok', 'Sobota'];
+
+        // Dnes, Zajtra a nasledujúce dni
+        for (let i = 0; i <= 6; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() + i);
+          const iso = d.toISOString().slice(0, 10);
+          const dayName = dayNames[d.getDay()];
+          const dayDate = `${d.getDate()}.${d.getMonth() + 1}.`;
+
+          let label = '';
+          if (i === 0) label = `Dnes (${dayName}, ${dayDate})`;
+          else if (i === 1) label = `Zajtra (${dayName}, ${dayDate})`;
+          else label = `${dayName} (${dayDate})`;
+
+          const opt = document.createElement('option');
+          opt.value = iso;
+          opt.textContent = label;
+          if (i === 0) opt.selected = true;
+          dateSelect.appendChild(opt);
+        }
+      }
+
+      updatePlannerTimeButtonLabel();
+    }
+
+    function togglePlannerTimePanel() {
+      const panel = document.getElementById('planner-time-panel');
+      const btn = document.getElementById('planner-time-btn');
+      if (!panel) return;
+      const isVisible = panel.style.display !== 'none';
+      if (isVisible) {
+        closePlannerTimePanel();
+      } else {
+        panel.style.display = 'flex';
+        if (btn) btn.classList.add('open');
+      }
+    }
+
+    function closePlannerTimePanel() {
+      const panel = document.getElementById('planner-time-panel');
+      const btn = document.getElementById('planner-time-btn');
+      if (panel) panel.style.display = 'none';
+      if (btn) btn.classList.remove('open');
+    }
+
+    function setPlannerTimeMode(newMode) {
+      plannerTimeState.mode = newMode;
+
+      const tabNow = document.getElementById('tab-time-now');
+      const tabDep = document.getElementById('tab-time-dep');
+      const tabArr = document.getElementById('tab-time-arr');
+      const customBox = document.getElementById('planner-custom-time-box');
+
+      if (tabNow) tabNow.classList.toggle('active', newMode === 'now');
+      if (tabDep) tabDep.classList.toggle('active', newMode === 'departure');
+      if (tabArr) tabArr.classList.toggle('active', newMode === 'arrival');
+
+      if (customBox) {
+        customBox.style.display = (newMode === 'now') ? 'none' : 'flex';
+      }
+
+      if (newMode === 'now') {
+        updatePlannerTimeButtonLabel();
+        closePlannerTimePanel();
+        if (selectedFromStop && selectedToStop && currentPlannedJourney) {
+          planJourney();
+        }
+      }
+    }
+
+    function onPlannerDateChange() {
+      const dateSelect = document.getElementById('planner-date-select');
+      if (dateSelect) {
+        plannerTimeState.dateIso = dateSelect.value;
+      }
+    }
+
+    function onPlannerTimeChange() {
+      const timeInput = document.getElementById('planner-time-input');
+      if (timeInput && timeInput.value) {
+        plannerTimeState.timeStr = timeInput.value;
+      }
+    }
+
+    function shiftPlannerTimeMinutes(mins) {
+      let [hh, mm] = (plannerTimeState.timeStr || '12:00').split(':').map(Number);
+      if (isNaN(hh)) hh = 12;
+      if (isNaN(mm)) mm = 0;
+      let totalM = (hh * 60 + mm + mins + 1440) % 1440;
+      const newH = String(Math.floor(totalM / 60)).padStart(2, '0');
+      const newM = String(totalM % 60).padStart(2, '0');
+      plannerTimeState.timeStr = `${newH}:${newM}`;
+
+      const timeInput = document.getElementById('planner-time-input');
+      if (timeInput) timeInput.value = `${newH}:${newM}`;
+    }
+
+    function resetPlannerTimeToNow() {
+      const now = new Date();
+      const todayIso = now.toISOString().slice(0, 10);
+      const curH = String(now.getHours()).padStart(2, '0');
+      const curM = String(now.getMinutes()).padStart(2, '0');
+
+      plannerTimeState.dateIso = todayIso;
+      plannerTimeState.timeStr = `${curH}:${curM}`;
+
+      const timeInput = document.getElementById('planner-time-input');
+      if (timeInput) timeInput.value = `${curH}:${curM}`;
+
+      const dateSelect = document.getElementById('planner-date-select');
+      if (dateSelect) dateSelect.value = todayIso;
+    }
+
+    function applyPlannerTimeSelection() {
+      onPlannerDateChange();
+      onPlannerTimeChange();
+      updatePlannerTimeButtonLabel();
+      closePlannerTimePanel();
+
+      if (selectedFromStop && selectedToStop) {
+        planJourney();
+      }
+    }
+
+    function updatePlannerTimeButtonLabel() {
+      const labelEl = document.getElementById('planner-time-btn-label');
+      const btnEl = document.getElementById('planner-time-btn');
+      if (!labelEl) return;
+
+      if (plannerTimeState.mode === 'now') {
+        labelEl.textContent = 'Teraz';
+        if (btnEl) btnEl.classList.remove('is-custom');
+        return;
+      }
+
+      if (btnEl) btnEl.classList.add('is-custom');
+
+      const now = new Date();
+      const todayIso = now.toISOString().slice(0, 10);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowIso = tomorrow.toISOString().slice(0, 10);
+
+      let dayText = '';
+      if (plannerTimeState.dateIso === todayIso) {
+        dayText = 'Dnes';
+      } else if (plannerTimeState.dateIso === tomorrowIso) {
+        dayText = 'Zajtra';
+      } else {
+        const parts = (plannerTimeState.dateIso || todayIso).split('-');
+        dayText = `${parseInt(parts[2], 10)}.${parseInt(parts[1], 10)}.`;
+      }
+
+      const prefix = (plannerTimeState.mode === 'arrival') ? 'Príchod ' : '';
+      labelEl.textContent = `${prefix}${dayText} o ${plannerTimeState.timeStr}`;
+    }
+
+    function handleDirectOnlyToggle(isChecked) {
+      plannerTimeState.directOnly = Boolean(isChecked);
+      if (selectedFromStop && selectedToStop) {
+        planJourney();
+      }
+    }
+
     async function planJourney() {
       const statusEl = document.getElementById('nav-status-msg');
       const resultsEl = document.getElementById('nav-results-container');
@@ -14375,6 +14907,16 @@
         fromQueryParam = `from_id=${encodeURIComponent(selectedFromStop.stop_id)}`;
       }
 
+      // Query parametre pre čas (odchod o / príchod do) a priame spojenia
+      let timeQueryParams = '';
+      if (plannerTimeState.mode !== 'now' && plannerTimeState.timeStr) {
+        const fullDateTimeStr = `${plannerTimeState.dateIso}T${plannerTimeState.timeStr}:00`;
+        timeQueryParams += `&departure_time=${encodeURIComponent(fullDateTimeStr)}&time_type=${encodeURIComponent(plannerTimeState.mode)}`;
+      }
+      if (plannerTimeState.directOnly) {
+        timeQueryParams += `&direct_only=true`;
+      }
+
       setPlanButtonLoading();
       statusEl.className = 'nav-status-msg loading';
       statusEl.innerHTML = `<span class="pulse-dot" style="width:7px; height:7px; display:inline-block; margin-right:6px;"></span> Hľadám najrýchlejšiu trasu...`;
@@ -14385,7 +14927,7 @@
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
-        const resp = await fetch(`${JOURNEY_API_URL}?${fromQueryParam}&to_id=${encodeURIComponent(selectedToStop.stop_id)}&t=${Date.now()}`, {
+        const resp = await fetch(`${JOURNEY_API_URL}?${fromQueryParam}&to_id=${encodeURIComponent(selectedToStop.stop_id)}${timeQueryParams}&t=${Date.now()}`, {
           signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -14772,8 +15314,10 @@
       const sum = journey.summary || {};
       const steps = journey.steps || [];
       const isActive = (idx === activeJourneyIndex);
+      const isFuture = Boolean(sum.is_future) || (plannerTimeState && plannerTimeState.mode !== 'now');
       const relTime = getRelativeDepartureText(journey);
       const depClock = sum.board_time || sum.departure_time || '--:--';
+      const arrClock = sum.arrival_time || '--:--';
       const totalDurMin = Math.round(sum.total_duration_minutes || 0);
 
       const timelineItems = parseJourneyTimeline(journey);
@@ -14808,7 +15352,7 @@
               </div>
             </div>
 
-            <!-- Prepojenie: Červený badge, číslo linky a meškanie pod ním -->
+            <!-- Prepojenie: Červený badge, číslo linky a meškanie pod ním (vypnuté pri plánovaných budúcich spojoch) -->
             <div class="ubian-timeline-transit">
               <div class="ubian-node-col">
                 <div class="ubian-node-line"></div>
@@ -14818,7 +15362,7 @@
                   <span class="ubian-transit-icon">${item.icon}</span>
                   <span class="ubian-transit-name">${item.modeLabel}</span>
                 </div>
-                ${item.delay > 0 ? `<div class="ubian-transit-delay">⚠️ Aktuálne meškanie ${item.delay} min</div>` : ''}
+                ${(!isFuture && item.delay > 0) ? `<div class="ubian-transit-delay">⚠️ Aktuálne meškanie ${item.delay} min</div>` : ''}
                 ${item.intermediateStops && item.intermediateStops.length > 0 ? `
                   <div class="ubian-transit-sub">${item.intermediateStops.length + 1} zastávok (${item.durationMinutes} min)</div>
                 ` : ''}
@@ -14848,7 +15392,7 @@
         let sub = '';
         if (st.type === 'ride' && st.intermediate_stops && st.intermediate_stops.length > 0) {
           sub = `<div class="ubian-detail-step-sub">Cez: ${st.intermediate_stops.join(' → ')}</div>`;
-        } else if (st.type === 'wait' && st.vehicle_info) {
+        } else if (st.type === 'wait' && st.vehicle_info && !isFuture) {
           sub = `<div class="ubian-detail-step-sub" style="color: #10b981;">🚍 ${st.vehicle_info}</div>`;
         } else if (st.type === 'walk' || st.type === 'walk_to_stop') {
           sub = `<div class="ubian-detail-step-sub">${st.distance_meters ? `${Math.round(st.distance_meters)} m • ` : ''}rýchlosť 5 km/h</div>`;
@@ -14865,14 +15409,27 @@
         `;
       }).join('');
 
+      let headerLeftHtml = '';
+      if (isFuture) {
+        headerLeftHtml = `
+          <span class="ubian-future-badge">📅 Plánovaný spoj</span>
+          <span class="ubian-dep-clock" style="font-weight: 800; font-size: 0.95rem; color: inherit;">${depClock} → ${arrClock}</span>
+          <span class="ubian-active-pill" id="ubian-pill-${idx}" style="display: ${isActive ? 'inline-flex' : 'none'};">● Na mape</span>
+        `;
+      } else {
+        headerLeftHtml = `
+          <span>${relTime}</span>
+          <span class="ubian-dep-clock">(${depClock})</span>
+          <span class="ubian-active-pill" id="ubian-pill-${idx}" style="display: ${isActive ? 'inline-flex' : 'none'};">● Na mape</span>
+        `;
+      }
+
       return `
         <div class="ubian-route-card ${isActive ? 'is-active' : ''}" id="ubian-card-${idx}">
-          <!-- Hlavička karty: relatívny čas odchodu vľavo a celkové trvanie vpravo -->
+          <!-- Hlavička karty: relatívny čas odchodu (alebo plánovaný čas dep → arr) a celkové trvanie vpravo -->
           <div class="ubian-card-header">
             <div class="ubian-dep-rel">
-              <span>${relTime}</span>
-              <span class="ubian-dep-clock">(${depClock})</span>
-              <span class="ubian-active-pill" id="ubian-pill-${idx}" style="display: ${isActive ? 'inline-flex' : 'none'};">● Na mape</span>
+              ${headerLeftHtml}
             </div>
             <div class="ubian-duration">
               Trvanie ${totalDurMin} min
@@ -15334,6 +15891,7 @@
     fetchVehicles();
     loadFleetDatabase();
     renderFavoritesQuickAccess();
+    initPlannerTimeControls();
 
     // Automatická aktualizácia každých 10 sekúnd
     setInterval(fetchVehicles, 10000);

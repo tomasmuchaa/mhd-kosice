@@ -390,19 +390,23 @@ def plan_transit_journey(
     to_id: str = Query(..., description="Stop ID cieľovej zastávky"),
     from_lat: Optional[float] = Query(None, description="GPS zemepisná šírka štartu (voliteľné)"),
     from_lon: Optional[float] = Query(None, description="GPS zemepisná dĺžka štartu (voliteľné)"),
-    time: Optional[str] = Query(None, description="Čas odchodu vo formáte HH:MM (voliteľné)")
+    time: Optional[str] = Query(None, description="Čas odchodu vo formáte HH:MM (spätná kompatibilita)"),
+    departure_time: Optional[str] = Query(None, description="Čas odchodu alebo príchodu (ISO reťazec alebo HH:MM)"),
+    time_type: str = Query("departure", description="Typ času: 'departure' (odchod o...) alebo 'arrival' (príchod do...)"),
+    direct_only: bool = Query(False, description="Vyhľadať iba priame spojenia bez prestupu")
 ):
     """
     Multimodálny vyhľadávač trás MHD Košice (Journey Planner):
     Nájde najrýchlejšiu trasu medzi počiatočnou (alebo GPS polohou) a cieľovou zastávkou pomocou Dijkstrovho algoritmu,
     využíva sieť peších prestupov a živé/plánované dáta o spojoch a meškaniach.
+    Podporuje voľbu času (teraz, odchod o..., príchod do...) a filter iba priamych spojov (direct_only).
     """
     parsed_from_id: Optional[Union[int, str]] = None
     from_coords: Optional[Tuple[float, float]] = None
 
-    if from_lat is not None and from_lon is not None:
+    if isinstance(from_lat, (int, float)) and isinstance(from_lon, (int, float)):
         from_coords = (float(from_lat), float(from_lon))
-    elif from_id is not None:
+    elif from_id is not None and not hasattr(from_id, "default"):
         from_id_str = str(from_id).strip()
         if "," in from_id_str and not any(c.isalpha() for c in from_id_str):
             parts = [p.strip() for p in from_id_str.split(",")]
@@ -424,12 +428,18 @@ def plan_transit_journey(
     else:
         parsed_to_id = to_id_str
 
+    effective_dep_time = departure_time if isinstance(departure_time, str) else (time if isinstance(time, str) else None)
+    is_direct = direct_only if isinstance(direct_only, bool) else False
+    t_type = time_type if isinstance(time_type, str) else "departure"
+
     try:
         result = routing_engine.plan_multiple_journeys(
             from_id=parsed_from_id,
             to_id=parsed_to_id,
             from_coords=from_coords,
-            departure_time_str=time,
+            departure_time_str=effective_dep_time,
+            direct_only=is_direct,
+            time_type=str(t_type).lower(),
             target_count=6
         )
         if result.get("status") in ("not_found", "error") or not result.get("journeys"):

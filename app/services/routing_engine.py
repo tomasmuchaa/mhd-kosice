@@ -925,17 +925,59 @@ class RoutingEngine:
             self._stop_departures_cache[cache_key] = []
             return []
 
+    def parse_departure_time(self, departure_time_str: Optional[str]) -> Tuple[datetime, bool]:
+        """
+        Parsuje zadaný reťazec času odchodu:
+        - Môže byť None, "", "now", "teraz" -> aktuálny datetime, is_future = False
+        - Formát HH:MM -> dnešný deň v zadanom čase
+        - ISO reťazec YYYY-MM-DDTHH:MM, YYYY-MM-DD HH:MM atď.
+        Vráti (dt, is_future).
+        is_future je True, ak cieľový čas je o viac ako 10 minút (600 s) v budúcnosti voči terajšku,
+        alebo ak je dátum v budúcom dni.
+        """
+        now = datetime.now()
+        if not departure_time_str or str(departure_time_str).strip().lower() in ("now", "teraz", "none"):
+            return now, False
+
+        val = str(departure_time_str).strip()
+        dt = None
+
+        # 1. Skúsime ISO formát s dátumom
+        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+            try:
+                dt = datetime.strptime(val, fmt)
+                break
+            except ValueError:
+                pass
+
+        # 2. Skúsime jednoduchý čas HH:MM(:SS)
+        if dt is None:
+            try:
+                parts = val.split(":")
+                hh = int(parts[0])
+                mm = int(parts[1])
+                ss = int(parts[2]) if len(parts) > 2 else 0
+                dt = now.replace(hour=hh, minute=mm, second=ss, microsecond=0)
+            except Exception:
+                dt = now
+
+        time_diff_sec = (dt - now).total_seconds()
+        is_future = (time_diff_sec > 600) or (dt.date() > now.date())
+        return dt, is_future
+
     def calculate_transit_edge_wait(
         self,
         stop_id: int,
         line: str,
         current_dt: datetime,
-        allow_network: bool = False
+        allow_network: bool = False,
+        is_future: bool = False
     ) -> Dict[str, Any]:
         """
         Vypočíta presný reálny čas čakania na linku na danej zastávke v danom čase s ohľadom na meškanie.
         Ak spoj v danom čase nepremáva (alebo ide až o niekoľko hodín / na druhý deň),
         vráti plnú dobu čakania, čím ju Dijkstrov algoritmus prirodzene vyradí ako neefektívnu.
+        Pri is_future=True ignoruje živé meškania dnešných vozidiel a telemetriu, vychádza z plánovaného poriadku.
         """
         line_str = str(line).strip()
         current_ts = int(current_dt.timestamp())
@@ -975,11 +1017,16 @@ class RoutingEngine:
         if matching_deps:
             valid_deps = []
             for d in matching_deps:
-                exp_ts = d.get("expected_timestamp")
-                if not exp_ts:
-                    pl_ts = d.get("planned_timestamp") or 0
-                    del_min = d.get("delay_minutes", 0)
-                    exp_ts = pl_ts + (del_min * 60)
+                if is_future:
+                    # Pre budúce spoje ignorujeme aktuálne live meškanie dnešných vozidiel
+                    pl_ts = d.get("planned_timestamp") or d.get("expected_timestamp") or 0
+                    exp_ts = pl_ts
+                else:
+                    exp_ts = d.get("expected_timestamp")
+                    if not exp_ts:
+                        pl_ts = d.get("planned_timestamp") or 0
+                        del_min = d.get("delay_minutes", 0)
+                        exp_ts = pl_ts + (del_min * 60)
                 if exp_ts and exp_ts >= (current_ts - 30):
                     valid_deps.append((exp_ts, d))
 
@@ -987,13 +1034,13 @@ class RoutingEngine:
                 valid_deps.sort(key=lambda x: x[0])
                 best_exp_ts, best_d = valid_deps[0]
                 wait_sec = max(60, int(best_exp_ts - current_ts))
-                del_min = best_d.get("delay_minutes", 0)
+                del_min = 0 if is_future else best_d.get("delay_minutes", 0)
                 tid = best_d.get("trip_id")
-                vid = best_d.get("vehicle_id")
-                lic = best_d.get("license_number")
+                vid = None if is_future else best_d.get("vehicle_id")
+                lic = None if is_future else best_d.get("license_number")
                 fleet_info = None
 
-                if self.fleet_service and (vid or lic):
+                if not is_future and self.fleet_service and (vid or lic):
                     fleet = self.fleet_service.match_live_vehicle(
                         vehicle_id=vid,
                         license_number=lic,
@@ -1014,7 +1061,7 @@ class RoutingEngine:
                     "trip_id": tid,
                     "vehicle_info": fleet_info,
                     "license_number": lic,
-                    "is_live": bool(vid or lic)
+                    "is_live": False if is_future else bool(vid or lic)
                 }
 
         # Ak zastávka vrátila odchody iných liniek, ale táto linka medzi nimi nie je:
@@ -1046,20 +1093,21 @@ class RoutingEngine:
                     "is_live": False
                 }
 
-        # 2. Ak odchody z Ubianu neboli dostupné (offline/okrajová platforma ako Šaca),
-        # skúsime live feed telemetriu najbližšieho vozidla
-        telem = self.get_live_line_telemetry(line_str, stop_id)
-        if telem.get("is_live"):
-            return {
-                "wait_seconds": telem["wait_seconds"],
-                "wait_minutes": telem["wait_minutes"],
-                "delay_minutes": telem["delay_minutes"],
-                "expected_timestamp": current_ts + telem["wait_seconds"],
-                "trip_id": None,
-                "vehicle_info": telem["vehicle_info"],
-                "license_number": telem["license_number"],
-                "is_live": True
-            }
+        # 2. Ak odchody z Ubianu neboli dostupné:
+        # Pre budúci čas ignorujeme live feed telemetriu dnešných vozidiel!
+        if not is_future:
+            telem = self.get_live_line_telemetry(line_str, stop_id)
+            if telem.get("is_live"):
+                return {
+                    "wait_seconds": telem["wait_seconds"],
+                    "wait_minutes": telem["wait_minutes"],
+                    "delay_minutes": telem["delay_minutes"],
+                    "expected_timestamp": current_ts + telem["wait_seconds"],
+                    "trip_id": None,
+                    "vehicle_info": telem["vehicle_info"],
+                    "license_number": telem["license_number"],
+                    "is_live": True
+                }
 
         # 3. Statický fallback: Plánované odchody a štandardný headway v rámci premávky
         stat_wait = sched_wait_sec if is_op else max(9000, sched_wait_sec)
@@ -1078,13 +1126,17 @@ class RoutingEngine:
         self,
         from_id: Any,
         to_id: Any,
-        departure_dt: Optional[datetime] = None
+        departure_dt: Optional[datetime] = None,
+        direct_only: bool = False,
+        is_future: bool = False
     ) -> Tuple[Optional[int], List[Dict[str, Any]]]:
         """
         Multimodálny Dijkstrov algoritmus so super-uzlami:
         - Štartuje z úplne všetkých nástupíšť so zhodným počiatočným názvom (s cenou 0).
         - Flexibilný cieľ: končí v momente dosiahnutia ktoréhokoľvek nástupišťa so zhodným cieľovým názvom.
         - Uzly sú zastávky/nástupištia, hrany sú bezplatné prestupy na nástupišti, chôdza alebo jazda MHD.
+        - direct_only=True: zakazuje prestupy medzi linkami a vracia len priame spojenia.
+        - is_future=True: prehľadáva graf podľa plánovaných cestovných poriadkov bez live meškaní.
         """
         from_stop = self.resolve_stop(from_id)
         to_stop = self.resolve_stop(to_id)
@@ -1190,6 +1242,14 @@ class RoutingEngine:
                 v_str = str(v)
                 if (v not in self.stops_by_id and v_str not in self.stops_by_id) or v in visited or v_str in visited:
                     continue
+
+                # Ak je direct_only=True a cestujúci už raz cestoval spojom MHD:
+                # peší presun je povolený len na cieľovú zastávku (výstup a príchod do cieľa).
+                # Prestup pešo na inú zastávku za účelom prestupu na ďalšiu linku je zakázaný.
+                if direct_only and has_prior_transit:
+                    if not (v in target_ids or v_str in target_ids):
+                        continue
+
                 w_sec = w["walk_time_seconds"]
                 is_platform_transfer = (w_sec == 0 or w.get("is_platform_transfer", False))
 
@@ -1239,7 +1299,9 @@ class RoutingEngine:
                 cand_stops = self.lines_to_stops.get(str(line), [])
                 wait_key = (u_str, line)
                 if wait_key not in wait_cache:
-                    wait_cache[wait_key] = self.calculate_transit_edge_wait(u, line, current_node_dt, allow_network=False)
+                    wait_cache[wait_key] = self.calculate_transit_edge_wait(
+                        u, line, current_node_dt, allow_network=False, is_future=is_future
+                    )
                 wait_info = wait_cache[wait_key]
                 wait_sec = wait_info["wait_seconds"]
                 delay_min = wait_info["delay_minutes"]
@@ -1270,6 +1332,8 @@ class RoutingEngine:
 
                     # Transfer penalty: aplikuje sa výlučne ak už cestujúci použil predchádzajúci spoj a prestupuje
                     is_transfer = has_prior_transit and (mode != f"transit_{line}")
+                    if direct_only and is_transfer:
+                        continue
                     transfer_penalty = TRANSFER_PENALTY_SECONDS if is_transfer else 0
 
                     new_cost = cost_metric + wait_sec + ride_sec + transfer_penalty
@@ -1336,7 +1400,9 @@ class RoutingEngine:
         from_id: Optional[Union[int, str]] = None,
         to_id: Union[int, str] = None,
         from_coords: Optional[Tuple[float, float]] = None,
-        departure_time_str: Optional[str] = None
+        departure_time_str: Optional[str] = None,
+        direct_only: bool = False,
+        time_type: str = "departure"
     ) -> Dict[str, Any]:
         """
         Vyhľadá optimálnu trasu a vygeneruje podrobný štruktúrovaný zoznam krokov
@@ -1348,13 +1414,7 @@ class RoutingEngine:
             raise ValueError(f"Cieľová zastávka s ID/názvom '{to_id}' nebola nájdená.")
         to_canonical = self.get_canonical_name(to_stop)
 
-        now_dt = datetime.now()
-        if departure_time_str:
-            try:
-                parts = departure_time_str.split(":")
-                now_dt = now_dt.replace(hour=int(parts[0]), minute=int(parts[1]), second=0, microsecond=0)
-            except Exception:
-                pass
+        now_dt, is_future = self.parse_departure_time(departure_time_str)
 
         step_zero: Optional[Dict[str, Any]] = None
         step_zero_segment: Optional[Dict[str, Any]] = None
@@ -1456,7 +1516,10 @@ class RoutingEngine:
                     "walking_duration_minutes": 0,
                     "walking_distance_meters": 0,
                     "transit_duration_minutes": 0,
-                    "lines_used": []
+                    "lines_used": [],
+                    "is_future": is_future,
+                    "direct_only": direct_only,
+                    "time_type": time_type
                 },
                 "steps": [
                     {
@@ -1495,7 +1558,10 @@ class RoutingEngine:
                     "walking_duration_minutes": walk_to_first_min,
                     "walking_distance_meters": round(walk_to_first_dist, 1),
                     "transit_duration_minutes": 0,
-                    "lines_used": []
+                    "lines_used": [],
+                    "is_future": is_future,
+                    "direct_only": direct_only,
+                    "time_type": time_type
                 },
                 "steps": [
                     step_zero,
@@ -1522,7 +1588,13 @@ class RoutingEngine:
                 except Exception:
                     pass
 
-        cost_sec, path_actions = self.dijkstra_search(effective_from_id, to_stop["stop_id"], departure_dt=search_start_dt)
+        cost_sec, path_actions = self.dijkstra_search(
+            effective_from_id,
+            to_stop["stop_id"],
+            departure_dt=search_start_dt,
+            direct_only=direct_only,
+            is_future=is_future
+        )
 
         if cost_sec is None or not path_actions:
             return {
@@ -1622,18 +1694,20 @@ class RoutingEngine:
 
                 wait_sec = act.get("wait_seconds", 180)
                 wait_min = act.get("wait_minutes", round(wait_sec / 60.0, 1))
-                delay_min = act.get("delay_minutes", 0)
-                veh_info = act.get("vehicle_info")
+                delay_min = 0 if is_future else act.get("delay_minutes", 0)
+                veh_info = None if is_future else act.get("vehicle_info")
                 trip_id = act.get("trip_id")
 
                 if not act.get("is_live") and not trip_id:
                     try:
-                        fresh_wait = self.calculate_transit_edge_wait(u_s["stop_id"], line, current_time_dt, allow_network=True)
+                        fresh_wait = self.calculate_transit_edge_wait(
+                            u_s["stop_id"], line, current_time_dt, allow_network=True, is_future=is_future
+                        )
                         if fresh_wait.get("wait_seconds") is not None and fresh_wait["wait_seconds"] < 7200:
                             wait_sec = fresh_wait["wait_seconds"]
                             wait_min = fresh_wait["wait_minutes"]
-                            delay_min = fresh_wait["delay_minutes"]
-                            veh_info = fresh_wait.get("vehicle_info") or veh_info
+                            delay_min = 0 if is_future else fresh_wait["delay_minutes"]
+                            veh_info = None if is_future else (fresh_wait.get("vehicle_info") or veh_info)
                             trip_id = fresh_wait.get("trip_id") or trip_id
                     except Exception:
                         pass
@@ -1642,9 +1716,9 @@ class RoutingEngine:
                 v_canon = self.get_canonical_name(v_s)
 
                 wait_instr = f"Počkaj na linku {line} na zastávke {u_canon} (čakacia doba cca {wait_min} min"
-                if delay_min > 0:
+                if not is_future and delay_min > 0:
                     wait_instr += f", meškanie +{delay_min} min"
-                if veh_info:
+                if not is_future and veh_info:
                     wait_instr += f", {veh_info}"
                 wait_instr += ")"
 
@@ -1744,7 +1818,10 @@ class RoutingEngine:
             "walking_duration_minutes": round(total_walk_sec / 60.0, 1),
             "walking_distance_meters": round(total_walk_meters, 1),
             "transit_duration_minutes": round(total_ride_sec / 60.0, 1),
-            "lines_used": lines_used
+            "lines_used": lines_used,
+            "is_future": is_future,
+            "direct_only": direct_only,
+            "time_type": time_type
         }
 
         return {
@@ -1768,28 +1845,139 @@ class RoutingEngine:
 
     def plan_multiple_journeys(
         self,
-        from_id: Optional[int] = None,
-        to_id: int = None,
+        from_id: Optional[Union[int, str]] = None,
+        to_id: Union[int, str] = None,
         from_coords: Optional[Tuple[float, float]] = None,
         departure_time_str: Optional[str] = None,
+        direct_only: bool = False,
+        time_type: str = "departure",
         target_count: int = 6
     ) -> Dict[str, Any]:
         """
-        Vyhľadá primárnu najrýchlejšiu trasu a automaticky dopočíta ďalších 5 nasledujúcich
-        spojení (posúva čas hľadania podľa odchodu predchádzajúcej trasy + 1 minúta).
-        Vráti pole 'journeys' s 1 hlavnou trasou a až 5 alternatívnymi spojeniami.
+        Vyhľadá primárnu najrýchlejšiu trasu a automaticky dopočíta ďalšie nasledujúce spojenia.
+        Podporuje:
+        - departure_time_str: "now", "HH:MM", alebo ISO dátum a čas
+        - direct_only=True: vyradí trasy vyžadujúce prestup a vráti len priame spojenia
+        - time_type: 'departure' (odchod o...) alebo 'arrival' (príchod do...)
         """
+        def get_departure_clock(j: Dict[str, Any], search_clock_str: str) -> str:
+            # Zistí reálny čas nástupu na prvý spoj
+            try:
+                if ":" in search_clock_str:
+                    time_part = search_clock_str.split("T")[-1]
+                    parts = time_part.split(":")
+                    base_dt = datetime.now().replace(hour=int(parts[0]), minute=int(parts[1]), second=0, microsecond=0)
+                else:
+                    base_dt = datetime.now()
+            except Exception:
+                base_dt = datetime.now()
+
+            elapsed = 0
+            for st in j.get("steps", []):
+                if st.get("type") in ("walk", "walk_to_stop"):
+                    elapsed += st.get("duration_seconds", 0)
+                elif st.get("type") == "wait":
+                    elapsed += st.get("wait_seconds", 0)
+                    return (base_dt + timedelta(seconds=elapsed)).strftime("%H:%M")
+                elif st.get("type") == "ride":
+                    return (base_dt + timedelta(seconds=elapsed)).strftime("%H:%M")
+
+            return j.get("summary", {}).get("departure_time") or search_clock_str[-5:]
+
+        base_dt, is_future = self.parse_departure_time(departure_time_str)
+
+        # REŽIM 1: PRÍCHOD DO (time_type == "arrival")
+        if time_type == "arrival":
+            target_arrival_dt = base_dt
+            cand_offsets = [15, 25, 35, 45, 60, 75, 90, 105, 120]
+            valid_arrival_journeys = []
+            seen_signatures = set()
+
+            for offset_min in cand_offsets:
+                test_dt = target_arrival_dt - timedelta(minutes=offset_min)
+                try:
+                    cand = self.plan_journey(
+                        from_id=from_id,
+                        to_id=to_id,
+                        from_coords=from_coords,
+                        departure_time_str=test_dt.strftime("%Y-%m-%dT%H:%M:%S"),
+                        direct_only=direct_only,
+                        time_type=time_type
+                    )
+                except Exception:
+                    continue
+
+                if cand.get("status") != "ok":
+                    continue
+
+                c_sum = cand.get("summary", {})
+                if direct_only and (c_sum.get("transfers_count", 0) > 0 or len(c_sum.get("lines_used", [])) > 1):
+                    continue
+
+                arr_str = c_sum.get("arrival_time")
+                if not arr_str:
+                    continue
+
+                try:
+                    arr_h, arr_m = [int(p) for p in arr_str.split(":")[:2]]
+                    arr_dt = test_dt.replace(hour=arr_h, minute=arr_m, second=0, microsecond=0)
+                    if arr_dt < test_dt:
+                        arr_dt += timedelta(days=1)
+                except Exception:
+                    continue
+
+                # Spoj musí doraziť do cieľa najneskôr v požadovanom čase (tolerancia +1 min)
+                if arr_dt <= target_arrival_dt + timedelta(minutes=1):
+                    board_clock = get_departure_clock(cand, test_dt.strftime("%H:%M"))
+                    sig = (board_clock, arr_str, tuple(c_sum.get("lines_used", [])))
+                    if sig not in seen_signatures:
+                        seen_signatures.add(sig)
+                        cand["summary"]["board_time"] = board_clock
+                        diff_sec = (target_arrival_dt - arr_dt).total_seconds()
+                        valid_arrival_journeys.append((diff_sec, cand))
+
+            if valid_arrival_journeys:
+                # Zoradíme podľa najmenšieho rozdielu voči cieľovému času príchodu
+                valid_arrival_journeys.sort(key=lambda x: x[0])
+                journeys = [item[1] for item in valid_arrival_journeys[:target_count]]
+                for idx, j in enumerate(journeys):
+                    j["journey_index"] = idx
+                return {
+                    "status": "ok",
+                    "total_journeys": len(journeys),
+                    "journeys": journeys,
+                    "from_stop": journeys[0]["from_stop"],
+                    "to_stop": journeys[0]["to_stop"],
+                    "summary": journeys[0]["summary"],
+                    "steps": journeys[0]["steps"],
+                    "map_polyline_segments": journeys[0]["map_polyline_segments"]
+                }
+
+        # REŽIM 2: ODCHOD O / TERAZ (alebo fallback pre arrival)
         primary = self.plan_journey(
             from_id=from_id,
             to_id=to_id,
             from_coords=from_coords,
-            departure_time_str=departure_time_str
+            departure_time_str=base_dt.strftime("%Y-%m-%dT%H:%M:%S") if is_future else departure_time_str,
+            direct_only=direct_only,
+            time_type=time_type
         )
 
         if primary.get("status") != "ok":
             return {
                 "status": primary.get("status", "not_found"),
                 "message": primary.get("message", "Nenašlo sa žiadne spojenie."),
+                "from_stop": primary.get("from_stop"),
+                "to_stop": primary.get("to_stop"),
+                "journeys": [],
+                "steps": [],
+                "map_polyline_segments": []
+            }
+
+        if direct_only and (primary.get("summary", {}).get("transfers_count", 0) > 0 or len(primary.get("summary", {}).get("lines_used", [])) > 1):
+            return {
+                "status": "not_found",
+                "message": "Nenašlo sa žiadne priame spojenie bez prestupu medzi vybranými zastávkami.",
                 "from_stop": primary.get("from_stop"),
                 "to_stop": primary.get("to_stop"),
                 "journeys": [],
@@ -1811,34 +1999,9 @@ class RoutingEngine:
                 "map_polyline_segments": primary.get("map_polyline_segments", [])
             }
 
-        def get_departure_clock(j: Dict[str, Any], search_clock_str: str) -> str:
-            # Zistí reálny čas nástupu na prvý spoj
-            try:
-                base_dt = datetime.strptime(search_clock_str, "%H:%M")
-            except Exception:
-                base_dt = datetime.now()
-
-            elapsed = 0
-            for st in j.get("steps", []):
-                if st.get("type") in ("walk", "walk_to_stop"):
-                    elapsed += st.get("duration_seconds", 0)
-                elif st.get("type") == "wait":
-                    elapsed += st.get("wait_seconds", 0)
-                    return (base_dt + timedelta(seconds=elapsed)).strftime("%H:%M")
-                elif st.get("type") == "ride":
-                    return (base_dt + timedelta(seconds=elapsed)).strftime("%H:%M")
-
-            return j.get("summary", {}).get("departure_time") or search_clock_str
-
-        # Základný čas začiatku hľadania
-        if departure_time_str:
-            init_clock = departure_time_str
-        else:
-            init_clock = datetime.now().strftime("%H:%M")
-
         journeys = []
         primary["journey_index"] = 0
-        board_time = get_departure_clock(primary, init_clock)
+        board_time = get_departure_clock(primary, base_dt.strftime("%H:%M"))
         primary["summary"]["board_time"] = board_time
         journeys.append(primary)
 
@@ -1846,11 +2009,14 @@ class RoutingEngine:
             (board_time, primary["summary"].get("arrival_time"), tuple(primary["summary"].get("lines_used", [])))
         }
 
-        # Posunieme čas hľadania: čas odchodu predchádzajúcej trasy + 1 minúta
+        # Posunieme čas hľadania: čas odchodu predchádzajúcej trasy + 1 minúta (so zachovaním dátumu)
         try:
-            curr_dt = datetime.strptime(board_time, "%H:%M") + timedelta(minutes=1)
+            b_h, b_m = [int(p) for p in board_time.split(":")[:2]]
+            curr_dt = base_dt.replace(hour=b_h, minute=b_m, second=0, microsecond=0) + timedelta(minutes=1)
+            if curr_dt < base_dt:
+                curr_dt += timedelta(days=1)
         except Exception:
-            curr_dt = datetime.now() + timedelta(minutes=1)
+            curr_dt = base_dt + timedelta(minutes=1)
 
         attempts = 0
         max_attempts = target_count * 3
@@ -1858,14 +2024,16 @@ class RoutingEngine:
 
         while len(journeys) < target_count and attempts < max_attempts:
             attempts += 1
-            curr_time_str = curr_dt.strftime("%H:%M")
+            curr_iso_str = curr_dt.strftime("%Y-%m-%dT%H:%M:%S")
 
             try:
                 alt = self.plan_journey(
                     from_id=from_id,
                     to_id=to_id,
                     from_coords=from_coords,
-                    departure_time_str=curr_time_str
+                    departure_time_str=curr_iso_str,
+                    direct_only=direct_only,
+                    time_type=time_type
                 )
             except Exception:
                 consecutive_fails += 1
@@ -1881,9 +2049,13 @@ class RoutingEngine:
                 curr_dt += timedelta(minutes=5)
                 continue
 
+            if direct_only and (alt.get("summary", {}).get("transfers_count", 0) > 0 or len(alt.get("summary", {}).get("lines_used", [])) > 1):
+                curr_dt += timedelta(minutes=5)
+                continue
+
             consecutive_fails = 0
 
-            alt_board = get_departure_clock(alt, curr_time_str)
+            alt_board = get_departure_clock(alt, curr_dt.strftime("%H:%M"))
             sig = (alt_board, alt["summary"].get("arrival_time"), tuple(alt["summary"].get("lines_used", [])))
 
             if sig not in seen_signatures:
@@ -1893,7 +2065,8 @@ class RoutingEngine:
                 journeys.append(alt)
                 # Ďalšie hľadanie: odchod tohto spoja + 1 minúta
                 try:
-                    curr_dt = datetime.strptime(alt_board, "%H:%M") + timedelta(minutes=1)
+                    ab_h, ab_m = [int(p) for p in alt_board.split(":")[:2]]
+                    curr_dt = curr_dt.replace(hour=ab_h, minute=ab_m, second=0, microsecond=0) + timedelta(minutes=1)
                 except Exception:
                     curr_dt += timedelta(minutes=3)
             else:
