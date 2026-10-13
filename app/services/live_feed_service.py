@@ -267,11 +267,23 @@ class DpmkLiveFeed:
         return [[h["lat"], h["lng"], h["intensity"]] for h in active]
 
     def get_trip_polyline_and_stops(self, trip_id: int) -> Dict[str, Any]:
-        """Stiahne kompletnú trasu (shape polyline) a zoznam zastávok pre konkrétnu jazdu."""
+        """Stiahne kompletnú trasu (shape polyline) a zoznam zastávok pre konkrétnu jazdu s in-memory TTL vyrovnávacou pamäťou."""
+        if not hasattr(self, "_trip_routes_cache"):
+            self._trip_routes_cache = {}
+        now = time.time()
+        cached = self._trip_routes_cache.get(trip_id)
+        if cached and (now - cached.get("timestamp", 0) < 7200):  # 2 hodiny TTL
+            return cached.get("data", {})
+
         url = f"{self.UBIAN_BASE_URL}/navigation/vehicles/trip_stops?tripID={trip_id}&withRoute=1"
         req = urllib.request.Request(url, headers=self.headers)
         with urllib.request.urlopen(req, timeout=10) as response:
-            return json.loads(response.read().decode("utf-8"))
+            data = json.loads(response.read().decode("utf-8"))
+            if len(self._trip_routes_cache) > 500:
+                cutoff = now - 7200
+                self._trip_routes_cache = {k: v for k, v in self._trip_routes_cache.items() if v.get("timestamp", 0) > cutoff}
+            self._trip_routes_cache[trip_id] = {"timestamp": now, "data": data}
+            return data
 
     def _ensure_stops_loaded(self):
         """Načíta zastávky z lokálneho JSON súboru alebo ich dynamicky stiahne z Ubianu."""
