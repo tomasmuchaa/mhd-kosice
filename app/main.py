@@ -821,7 +821,7 @@ def get_live_vehicles(
             if is_tram or line_type == "TRAM" or v.get("line") in ["1", "2", "3", "4", "5", "6", "7", "9", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"]:
                 final_model = "Električka DPMK"
                 if not final_ev:
-                    final_ev = str(v["vehicle_id"])[-3:] if v.get("vehicle_id") else None
+                    final_ev = str(v["vehicle_id"]) if v.get("vehicle_id") else None
             elif line_type == "BUS":
                 final_model = "Autobus DPMK"
 

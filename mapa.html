@@ -15440,7 +15440,7 @@
             const evRaw = String(
               fleet.evidencne_cislo ||
               mergedVeh.evidencne_cislo ||
-              (mergedVeh.vehicle_id ? String(mergedVeh.vehicle_id).slice(-4) : '')
+              mergedVeh.vehicle_id || ''
             ).trim();
             const evText = evRaw ? `#${evRaw}` : '#--';
             const rawModel = fleet.model || mergedVeh.model || '';

@@ -863,22 +863,26 @@ class FleetService:
             ov = self.MANUAL_OVERRIDES[s_vid]
             ev = ov.get("evidencne_cislo")
             base = self.ev_index.get(str(ev).strip()) if ev else None
-            res = dict(base) if base else {
-                "evidencne_cislo": ev or s_vid,
-                "spz": ov.get("spz"),
-                "model": ov.get("model", "Autobus DPMK"),
-                "rok_vyroby": ov.get("rok_vyroby"),
-                "vin": ov.get("vin"),
-            }
-            res.update(ov)
-            if self.is_tram(
+            is_tram_veh = self.is_tram(
                 vehicle_id=vehicle_id,
                 line=line,
                 line_type=line_type,
                 ez_vehicle_type=ez_vehicle_type,
                 raw_vehicle=raw_vehicle
-            ) and not ov.get("spz"):
+            )
+            res = dict(base) if base else {
+                "evidencne_cislo": ev or s_vid,
+                "spz": ov.get("spz"),
+                "model": ov.get("model", "Električka DPMK" if is_tram_veh else "Autobus DPMK"),
+                "rok_vyroby": ov.get("rok_vyroby"),
+                "vin": ov.get("vin"),
+            }
+            res.update(ov)
+            if is_tram_veh and not ov.get("spz"):
                 res["spz"] = None
+            is_ver = self.is_vehicle_verified(vehicle_id=s_vid, ev_cislo=res.get("evidencne_cislo") or ev)
+            res["is_verified"] = is_ver
+            res["verified"] = is_ver
             return res
 
         # =====================================================================
@@ -907,11 +911,11 @@ class FleetService:
             else:
                 tram_model = "Električka DPMK"
 
-            tram_ev = (
-                raw.get("evidencne_cislo")
-                or raw.get("vehicleNumber")
-                or (s_vid[-3:] if len(s_vid) >= 3 else (s_vid or None))
-            )
+            raw_ev = raw.get("evidencne_cislo") or raw.get("vehicleNumber")
+            if raw_ev and str(raw_ev).strip():
+                tram_ev = str(raw_ev).strip()
+            else:
+                tram_ev = s_vid if s_vid else None
 
             tram_vin = raw.get("vehicle_vin") or raw.get("vehicleIdentificationNumber") or (s_vid if s_vid else None)
 
@@ -927,6 +931,9 @@ class FleetService:
                 tram_res.update(ov)
                 if not ov.get("spz"):
                     tram_res["spz"] = None
+            is_ver = self.is_vehicle_verified(vehicle_id=s_vid, ev_cislo=tram_res.get("evidencne_cislo") or tram_ev)
+            tram_res["is_verified"] = is_ver
+            tram_res["verified"] = is_ver
             return tram_res
         match = None
 
