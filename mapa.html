@@ -10830,7 +10830,7 @@
     }
 
     // 15. Solaris Urbino 15 II / III - 46px trojnápravový sólo gigant, asymetrické čelné sklo,
-    // autentická košická trikolóra (azúrová strecha a nárazník, snehobiely panel pod oknom, žltý pruh),
+    // autentická košická trikolóra (azúrová strecha a nárazník, svetlosivý panel pod oknom, žltý pruh),
     // čisté BIELE asymetrické čelné sklo (fill="#ffffff"), horná integrovaná lišta meškania,
     // veľké tučné čierne číslo linky (#0f172a), logo Solaris a evidenčné číslo, čierny obrys (#0f172a)
     function renderSolarisU15Svg(line, delayColorOrMinutes = '', evNum = '3535') {
@@ -10903,17 +10903,17 @@
                 font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
                 fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
 
-          <!-- BIELY PANEL POD ASYMETRICKÝM SKLOM (SNEHOBIELY #ffffff) -->
-          <path d="M 4.8 30.5 L 41.2 22.5 L 41.2 32.2 Q 34 33.2 23 33.2 Q 12 33.2 4.8 32.2 Z" fill="#ffffff"/>
+          <!-- SVETLOSIVÝ PANEL POD ASYMETRICKÝM SKLOM (#e2e8f0) -->
+          <path d="M 4.8 30.5 L 41.2 22.5 L 41.2 32.2 Q 34 33.2 23 33.2 Q 12 33.2 4.8 32.2 Z" fill="#e2e8f0"/>
 
-          <!-- DROBNÉ ČIERNE EVIDENČNÉ ČÍSLO V STREDE BIELEHO PANELU -->
+          <!-- DROBNÉ ČIERNE EVIDENČNÉ ČÍSLO V STREDE SVETLOSIVÉHO PANELU -->
           <text x="23" y="27.8" text-anchor="middle" dominant-baseline="central"
                 font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.0px"
                 fill="#0f172a">${displayEv}</text>
 
           <!-- OVÁLNE LOGO SOLARIS S PÍSMENOM 'S' POD EVIDENČNÝM ČÍSLOM -->
           <g transform="translate(23, 30.8)">
-            <ellipse cx="0" cy="0" rx="2.6" ry="1.4" fill="#18181b" stroke="#cbd5e1" stroke-width="0.4"/>
+            <ellipse cx="0" cy="0" rx="2.6" ry="1.4" fill="#18181b" stroke="#94a3b8" stroke-width="0.4"/>
             <text x="0" y="0.2" text-anchor="middle" dominant-baseline="central"
                   font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.7px"
                   class="veh-text-white" fill="#ffffff" style="fill: #ffffff !important; color: #ffffff !important;">S</text>
