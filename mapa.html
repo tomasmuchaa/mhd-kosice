@@ -2351,10 +2351,24 @@
       border-radius: 4px;
     }
     .itin-stop-item.is-passed {
-      opacity: 0.45;
+      opacity: 0.5;
     }
     .itin-stop-item.is-passed .itin-stop-name {
-      color: #94a3b8;
+      color: #64748b;
+    }
+    .itin-stop-item.is-passed .itin-time-box {
+      color: #64748b;
+      opacity: 0.55;
+    }
+    .itin-stop-item.is-passed .itin-time-real {
+      color: #64748b !important;
+      font-weight: 500 !important;
+    }
+    .itin-stop-item.is-passed .itin-time-planned {
+      color: #475569 !important;
+    }
+    .itin-stop-item.is-passed .itin-platform {
+      opacity: 0.45;
     }
     .itin-stop-item.is-current {
       background: rgba(56, 189, 248, 0.12);
@@ -2434,8 +2448,9 @@
       padding: 1px 5px;
       border-radius: 4px;
       white-space: nowrap;
-      letter-spacing: 0.2px;
+      letter-spacing: 0.3px;
       text-transform: uppercase;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
     }
     .itin-time-box {
       font-family: 'JetBrains Mono', monospace;
@@ -12370,46 +12385,80 @@
     }
 
     /**
-     * Nájde index aktuálnej zastávky podľa názvu, poradia alebo GPS blízkosti
+     * Výpočet vzdialenosti medzi dvoma GPS bodmi pomocou vzorca Haversine (v metroch)
+     */
+    function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000; // polomer Zeme v metroch
+      const toRad = deg => (deg * Math.PI) / 180.0;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    /**
+     * Nájde index aktuálnej zastávky podľa priestorového párovania (Haversine GPS blízkosť k markeru vozidla).
+     * Zastávku, ku ktorej je vozidlo fyzicky najbližšie, vráti ako aktuálnu.
      */
     function findCurrentStopIndex(stops, v) {
       if (!stops || stops.length === 0) return -1;
 
-      function cleanStopNameStr(str) {
-        return String(str || '')
-          .toLowerCase()
-          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9]/g, '');
+      // 1. Získanie reálnej GPS polohy (prioritne z aktívneho markera vozidla na mape, fallback z objektu v)
+      let vLat = null;
+      let vLng = null;
+      if (v) {
+        const vid = v.vehicle_id;
+        const marker = (typeof markers !== 'undefined' && vid) ? (markers[vid] || markers[String(vid)]) : null;
+        if (marker && typeof marker.getLatLng === 'function') {
+          const ll = marker.getLatLng();
+          if (ll && !isNaN(ll.lat) && !isNaN(ll.lng)) {
+            vLat = ll.lat;
+            vLng = ll.lng;
+          }
+        }
+        if (vLat === null || vLng === null) {
+          if (v.latitude !== undefined && v.longitude !== undefined) {
+            const nLat = Number(v.latitude);
+            const nLng = Number(v.longitude);
+            if (!isNaN(nLat) && !isNaN(nLng)) {
+              vLat = nLat;
+              vLng = nLng;
+            }
+          }
+        }
       }
 
-      // 1. Podľa názvu aktuálnej zastávky (v.current_stop_name z Ubianu)
-      const curNameClean = cleanStopNameStr(v.current_stop_name);
-      if (curNameClean) {
-        const idx = stops.findIndex(s => cleanStopNameStr(s.stopName || s.stopRawName) === curNameClean);
-        if (idx !== -1) return idx;
+      // 2. Priestorové párovanie cez Haversine: nájdenie zastávky, ku ktorej je vozidlo fyzicky najbližšie
+      if (vLat !== null && vLng !== null) {
+        let minDist = Infinity;
+        let closestIdx = -1;
+
+        for (let i = 0; i < stops.length; i++) {
+          const s = stops[i];
+          const sLat = Number(s.latitude !== undefined ? s.latitude : (s.lat !== undefined ? s.lat : NaN));
+          const sLng = Number(s.longitude !== undefined ? s.longitude : (s.lng !== undefined ? s.lng : (s.lon !== undefined ? s.lon : NaN)));
+          if (!isNaN(sLat) && !isNaN(sLng)) {
+            const dist = haversineDistanceMeters(vLat, vLng, sLat, sLng);
+            if (dist < minDist) {
+              minDist = dist;
+              closestIdx = i;
+            }
+          }
+        }
+
+        if (closestIdx !== -1) {
+          return closestIdx;
+        }
       }
 
-      // 2. Podľa poradia zastávky (v.last_stop_order)
-      if (v.last_stop_order !== undefined && v.last_stop_order !== null) {
+      // 3. Fallback iba ak vozidlo nemá platné GPS súradnice (napr. odstavené v depe)
+      if (v && v.last_stop_order !== undefined && v.last_stop_order !== null) {
         const orderNum = Number(v.last_stop_order);
         const idx = stops.findIndex(s => Number(s.stopOrder) === orderNum);
         if (idx !== -1) return idx;
-      }
-
-      // 3. Proximity podľa GPS súradníc vozidla
-      if (v.latitude && v.longitude && typeof getDistanceMeters === 'function') {
-        let minDist = Infinity;
-        let closestIdx = -1;
-        stops.forEach((s, idx) => {
-          if (s.latitude && s.longitude) {
-            const d = getDistanceMeters([v.latitude, v.longitude], [s.latitude, s.longitude]);
-            if (d < minDist) {
-              minDist = d;
-              closestIdx = idx;
-            }
-          }
-        });
-        if (minDist <= 800) return closestIdx;
       }
 
       return -1;
@@ -12477,7 +12526,7 @@
             <div class="itin-stop-left">
               <span class="itin-stop-name" title="${stopName}">${stopName}</span>
               ${platform}
-              ${isCurr ? '<span class="itin-curr-tag">Práve tu</span>' : ''}
+              ${isCurr ? '<span class="itin-curr-tag">PRÁVE TU</span>' : ''}
             </div>
             <div class="itin-time-box">
               ${timeHtml}
