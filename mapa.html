@@ -2244,6 +2244,217 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* ========================================================
+       ITINERÁR / HARMONOGRAM ZASTÁVOK DANÉHO SPOJA (TIMETABLE)
+       ======================================================== */
+    .vehicle-itinerary-box {
+      margin-top: 10px;
+      margin-bottom: 6px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      overflow: hidden;
+    }
+    .veh-itinerary-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 11px;
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+    .veh-itinerary-header:hover {
+      background: rgba(255, 255, 255, 0.07);
+    }
+    .veh-itinerary-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .veh-itinerary-toggle-btn {
+      font-size: 0.72rem;
+      color: #38bdf8;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .veh-itinerary-toggle-icon {
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-block;
+      font-size: 0.68rem;
+    }
+    .vehicle-itinerary-box.collapsed .veh-itinerary-toggle-icon {
+      transform: rotate(-90deg);
+    }
+    .vehicle-itinerary-box.collapsed .veh-itinerary-body {
+      display: none;
+    }
+    .veh-itinerary-body {
+      padding: 6px 11px 10px 11px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .veh-itinerary-loading, .veh-itinerary-nodata {
+      font-size: 0.73rem;
+      color: #94a3b8;
+      padding: 8px 4px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .veh-itinerary-timeline {
+      position: relative;
+      max-height: 230px;
+      overflow-y: auto;
+      padding-left: 20px;
+      margin-top: 4px;
+      margin-bottom: 2px;
+      scroll-behavior: smooth;
+    }
+    .veh-itinerary-timeline::-webkit-scrollbar {
+      width: 5px;
+    }
+    .veh-itinerary-timeline::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 4px;
+    }
+    .veh-itinerary-timeline-line {
+      position: absolute;
+      left: 7px;
+      top: 10px;
+      bottom: 12px;
+      width: 2px;
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 1px;
+      pointer-events: none;
+    }
+    .itin-stop-item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 4px 0;
+      min-height: 26px;
+      font-size: 0.75rem;
+      transition: opacity 0.15s ease, background 0.15s ease;
+      border-radius: 4px;
+    }
+    .itin-stop-item.is-passed {
+      opacity: 0.45;
+    }
+    .itin-stop-item.is-passed .itin-stop-name {
+      color: #94a3b8;
+    }
+    .itin-stop-item.is-current {
+      background: rgba(56, 189, 248, 0.12);
+      padding: 4px 6px 4px 4px;
+      margin: 2px -4px;
+    }
+    .itin-stop-item.is-current .itin-stop-name {
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .itin-stop-item.is-upcoming .itin-stop-name {
+      color: #f1f5f9;
+      font-weight: 500;
+    }
+    .itin-stop-dot {
+      position: absolute;
+      left: -20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+      z-index: 2;
+    }
+    .itin-stop-item.is-passed .itin-stop-dot {
+      background: #475569;
+      width: 6px;
+      height: 6px;
+      left: -19px;
+    }
+    .itin-stop-item.is-current .itin-stop-dot {
+      background: #38bdf8;
+      width: 10px;
+      height: 10px;
+      left: -21px;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
+      animation: itinPulse 2s infinite;
+    }
+    .itin-stop-item.is-upcoming .itin-stop-dot {
+      background: #0f172a;
+      border: 2px solid #38bdf8;
+    }
+    @keyframes itinPulse {
+      0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+      70% { box-shadow: 0 0 0 6px rgba(56, 189, 248, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+    }
+    .itin-stop-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+    .itin-stop-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .itin-platform {
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 1px 4px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .itin-curr-tag {
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.18);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 1px 5px;
+      border-radius: 4px;
+      white-space: nowrap;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+    }
+    .itin-time-box {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      white-space: nowrap;
+      text-align: right;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .itin-time-planned.strike {
+      text-decoration: line-through;
+      color: #64748b;
+      font-size: 0.68rem;
+    }
+    .itin-time-real {
+      font-weight: 700;
+    }
+
     /* Tlačidlo obľúbenej zastávky (⭐ / ☆) */
     .btn-fav-stop {
       background: rgba(255, 255, 255, 0.08);
@@ -11759,6 +11970,9 @@
           </div>
         </div>
 
+        <!-- Zastávky na trase daného spoja (Itinerár) -->
+        ${(typeof buildVehicleItineraryBoxHtml === 'function') ? buildVehicleItineraryBoxHtml(v, safeVehicleId) : ''}
+
         <!-- Štatistika nasadzovania vozidla na linky (Posledných 14 dní) -->
         <div class="vehicle-assignment-box" id="veh-assignment-box-${safeVehicleId || safeEv}">
           <div class="veh-assignment-header">
@@ -12017,6 +12231,328 @@
     }
     window.loadVehicleAssignmentStats = loadVehicleAssignmentStats;
 
+    // ========================================================
+    // ITINERÁR / HARMONOGRAM ZASTÁVOK DANÉHO SPOJA (TIMETABLE)
+    // ========================================================
+    const tripItineraryCache = new Map();
+    const tripItineraryPromises = new Map();
+    const collapsedItineraries = new Set();
+
+    /**
+     * Naformátuje plánovaný a očakávaný čas príchodu/odchodu zastávky s pripočítaním meškania.
+     */
+    function formatStopTime(stop, delayMinutes) {
+      let pMin = null;
+      if (stop.plannedDepartureMinutes !== undefined && stop.plannedDepartureMinutes !== null) {
+        pMin = Number(stop.plannedDepartureMinutes);
+      } else if (stop.plannedDepartureTimestamp) {
+        const d = new Date(stop.plannedDepartureTimestamp * 1000);
+        pMin = d.getHours() * 60 + d.getMinutes();
+      }
+
+      if (pMin === null || isNaN(pMin)) {
+        return { planned: '--:--', real: '--:--', hasDelay: false, delayMin: 0 };
+      }
+
+      const pHours = Math.floor(pMin / 60) % 24;
+      const pRemMin = pMin % 60;
+      const plannedStr = `${String(pHours).padStart(2, '0')}:${String(pRemMin).padStart(2, '0')}`;
+
+      const delay = Math.round(Number(delayMinutes) || 0);
+      if (delay === 0) {
+        return { planned: plannedStr, real: plannedStr, hasDelay: false, delayMin: 0 };
+      }
+
+      let rMin = pMin + delay;
+      while (rMin < 0) rMin += 24 * 60;
+      const rHours = Math.floor(rMin / 60) % 24;
+      const rRemMin = rMin % 60;
+      const realStr = `${String(rHours).padStart(2, '0')}:${String(rRemMin).padStart(2, '0')}`;
+
+      return { planned: plannedStr, real: realStr, hasDelay: true, delayMin: delay };
+    }
+
+    /**
+     * Vráti farbu textu podľa výšky meškania vozidla
+     */
+    function getDelayTextColor(delayMin) {
+      if (delayMin <= 0) return '#34d399';
+      if (delayMin <= 3) return '#fbbf24';
+      if (delayMin <= 5) return '#fb923c';
+      return '#ef4444';
+    }
+
+    /**
+     * Nájde index aktuálnej zastávky podľa názvu, poradia alebo GPS blízkosti
+     */
+    function findCurrentStopIndex(stops, v) {
+      if (!stops || stops.length === 0) return -1;
+
+      function cleanStopNameStr(str) {
+        return String(str || '')
+          .toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]/g, '');
+      }
+
+      // 1. Podľa názvu aktuálnej zastávky (v.current_stop_name z Ubianu)
+      const curNameClean = cleanStopNameStr(v.current_stop_name);
+      if (curNameClean) {
+        const idx = stops.findIndex(s => cleanStopNameStr(s.stopName || s.stopRawName) === curNameClean);
+        if (idx !== -1) return idx;
+      }
+
+      // 2. Podľa poradia zastávky (v.last_stop_order)
+      if (v.last_stop_order !== undefined && v.last_stop_order !== null) {
+        const orderNum = Number(v.last_stop_order);
+        const idx = stops.findIndex(s => Number(s.stopOrder) === orderNum);
+        if (idx !== -1) return idx;
+      }
+
+      // 3. Proximity podľa GPS súradníc vozidla
+      if (v.latitude && v.longitude && typeof getDistanceMeters === 'function') {
+        let minDist = Infinity;
+        let closestIdx = -1;
+        stops.forEach((s, idx) => {
+          if (s.latitude && s.longitude) {
+            const d = getDistanceMeters([v.latitude, v.longitude], [s.latitude, s.longitude]);
+            if (d < minDist) {
+              minDist = d;
+              closestIdx = idx;
+            }
+          }
+        });
+        if (minDist <= 800) return closestIdx;
+      }
+
+      return -1;
+    }
+
+    /**
+     * Vygeneruje vnútorné HTML časovej osi zastávok
+     */
+    function getVehicleItineraryInnerHtml(stops, v) {
+      if (!stops || stops.length === 0) {
+        return `
+          <div class="veh-itinerary-header" onclick="event.stopPropagation(); toggleVehicleItinerary('${v.vehicle_id}')">
+            <span class="veh-itinerary-title">
+              <span>🚏</span>
+              <span>Zastávky na trase (Itinerár)</span>
+            </span>
+            <span class="veh-itinerary-toggle-btn"><span class="veh-itinerary-toggle-icon">▼</span></span>
+          </div>
+          <div class="veh-itinerary-body">
+            <div class="veh-itinerary-nodata">Zoznam zastávok pre tento spoj nie je dostupný.</div>
+          </div>
+        `;
+      }
+
+      const currentIdx = findCurrentStopIndex(stops, v);
+      const delay = Math.round(Number(v.delay_minutes) || 0);
+      const delayColor = getDelayTextColor(delay);
+      const countLabel = `${stops.length} zastávok`;
+
+      const stopsHtml = stops.map((s, idx) => {
+        let statusClass = 'is-upcoming';
+        let isCurr = false;
+        if (currentIdx !== -1) {
+          if (idx < currentIdx) statusClass = 'is-passed';
+          else if (idx === currentIdx) {
+            statusClass = 'is-current';
+            isCurr = true;
+          }
+        }
+
+        const tInfo = formatStopTime(s, delay);
+        const stopName = s.stopName || s.stopRawName || `Zastávka #${s.stopOrder || idx + 1}`;
+        const platform = s.platformNumber ? `<span class="itin-platform">Nást. ${s.platformNumber}</span>` : '';
+
+        let timeHtml = '';
+        if (tInfo.hasDelay && delay > 0) {
+          timeHtml = `
+            <span class="itin-time-planned strike" title="Plánovaný čas: ${tInfo.planned}">${tInfo.planned}</span>
+            <span class="itin-time-real" style="color: ${delayColor}; font-weight: 700;" title="Očakávaný čas s meškaním +${delay} min">${tInfo.real}</span>
+          `;
+        } else if (tInfo.hasDelay && delay < 0) {
+          timeHtml = `
+            <span class="itin-time-planned strike" title="Plánovaný čas: ${tInfo.planned}">${tInfo.planned}</span>
+            <span class="itin-time-real" style="color: #38bdf8; font-weight: 700;" title="Očakávaný čas v predstihu ${delay} min">${tInfo.real}</span>
+          `;
+        } else {
+          timeHtml = `
+            <span class="itin-time-real" style="color: #34d399; font-weight: 600;" title="Na čas: ${tInfo.planned}">${tInfo.planned}</span>
+          `;
+        }
+
+        return `
+          <div class="itin-stop-item ${statusClass}" ${isCurr ? 'id="itin-current-stop-item-' + v.vehicle_id + '"' : ''}>
+            <div class="itin-stop-dot"></div>
+            <div class="itin-stop-left">
+              <span class="itin-stop-name" title="${stopName}">${stopName}</span>
+              ${platform}
+              ${isCurr ? '<span class="itin-curr-tag">Práve tu</span>' : ''}
+            </div>
+            <div class="itin-time-box">
+              ${timeHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="veh-itinerary-header" onclick="event.stopPropagation(); toggleVehicleItinerary('${v.vehicle_id}')">
+          <span class="veh-itinerary-title">
+            <span>🚏</span>
+            <span>Zastávky na trase</span>
+            <span style="font-size: 0.68rem; font-weight: 600; color: #64748b; margin-left: 4px;">(${countLabel})</span>
+          </span>
+          <span class="veh-itinerary-toggle-btn">
+            <span class="veh-itinerary-toggle-icon">▼</span>
+          </span>
+        </div>
+        <div class="veh-itinerary-body">
+          <div class="veh-itinerary-timeline" id="itin-timeline-${v.vehicle_id}">
+            <div class="veh-itinerary-timeline-line"></div>
+            ${stopsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Zostaví HTML obalový blok itinerára pre vloženie do buildPopupHtml
+     */
+    function buildVehicleItineraryBoxHtml(v, safeVehicleId) {
+      if (!v || !v.trip_id) return '';
+      const isInactive = !v.latitude;
+      if (isInactive) return '';
+
+      const isCollapsed = collapsedItineraries.has(String(v.vehicle_id));
+      const collapseClass = isCollapsed ? ' collapsed' : '';
+      const numTripId = Number(v.trip_id);
+      const cachedStops = tripItineraryCache.get(numTripId) || tripItineraryCache.get(v.trip_id);
+
+      if (cachedStops && cachedStops.length > 0) {
+        return `
+          <div class="vehicle-itinerary-box${collapseClass}" id="veh-itinerary-box-${safeVehicleId}">
+            ${getVehicleItineraryInnerHtml(cachedStops, v)}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="vehicle-itinerary-box${collapseClass}" id="veh-itinerary-box-${safeVehicleId}">
+          <div class="veh-itinerary-header" onclick="event.stopPropagation(); toggleVehicleItinerary('${safeVehicleId}')">
+            <span class="veh-itinerary-title">
+              <span>🚏</span>
+              <span>Zastávky na trase (Itinerár)</span>
+            </span>
+            <span class="veh-itinerary-toggle-btn">
+              <span class="veh-itinerary-toggle-icon">▼</span>
+            </span>
+          </div>
+          <div class="veh-itinerary-body">
+            <div class="veh-itinerary-loading">
+              <span style="font-size: 0.8rem;">⏳</span> Načítavam harmonogram zastávok...
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Prepne rozbalenie/zbalenie zoznamu zastávok
+     */
+    function toggleVehicleItinerary(vehicleId) {
+      const box = document.getElementById(`veh-itinerary-box-${vehicleId}`);
+      if (box) {
+        box.classList.toggle('collapsed');
+        if (box.classList.contains('collapsed')) {
+          collapsedItineraries.add(String(vehicleId));
+        } else {
+          collapsedItineraries.delete(String(vehicleId));
+        }
+      }
+    }
+    window.toggleVehicleItinerary = toggleVehicleItinerary;
+
+    /**
+     * Stiahne alebo získa z cache zastávky pre trip_id
+     */
+    async function getOrFetchTripItinerary(tripId) {
+      if (!tripId) return null;
+      const numTripId = Number(tripId);
+      if (tripItineraryCache.has(numTripId)) return tripItineraryCache.get(numTripId);
+      if (tripItineraryCache.has(tripId)) return tripItineraryCache.get(tripId);
+      if (tripItineraryPromises.has(numTripId)) return tripItineraryPromises.get(numTripId);
+
+      const p = (async () => {
+        try {
+          const resp = await fetch(`${BASE_ORIGIN}/api/v1/trip/${tripId}?t=${Date.now()}`, { cache: 'no-store' });
+          if (!resp.ok) return null;
+          const data = await resp.json();
+          if (Array.isArray(data.tripStops) && data.tripStops.length > 0) {
+            tripItineraryCache.set(numTripId, data.tripStops);
+            tripItineraryCache.set(tripId, data.tripStops);
+            return data.tripStops;
+          }
+        } catch (err) {
+          console.warn(`Nepodarilo sa stiahnuť itinerár pre spoj ${tripId}:`, err);
+        } finally {
+          tripItineraryPromises.delete(numTripId);
+        }
+        return null;
+      })();
+
+      tripItineraryPromises.set(numTripId, p);
+      return p;
+    }
+
+    /**
+     * Asynchrónne načíta a vykreslí itinerár do cieľového kontajnera v popupe alebo spodnom paneli
+     */
+    async function loadVehicleItinerary(v, containerId) {
+      if (!v || !v.trip_id) return;
+      const targetId = containerId || `veh-itinerary-box-${v.vehicle_id}`;
+      const container = document.getElementById(targetId);
+      if (!container) return;
+
+      const numTripId = Number(v.trip_id);
+      let stops = tripItineraryCache.get(numTripId) || tripItineraryCache.get(v.trip_id);
+      if (!stops) {
+        stops = await getOrFetchTripItinerary(v.trip_id);
+      }
+
+      if (stops && stops.length > 0) {
+        container.innerHTML = getVehicleItineraryInnerHtml(stops, v);
+        // Plynulé posunutie časovej osi na aktuálnu zastávku
+        setTimeout(() => {
+          const timelineEl = document.getElementById(`itin-timeline-${v.vehicle_id}`);
+          const currentEl = container.querySelector('#itin-current-stop-item-' + v.vehicle_id);
+          if (timelineEl && currentEl) {
+            const offset = currentEl.offsetTop - timelineEl.offsetTop - 30;
+            if (offset > 0) {
+              timelineEl.scrollTo({ top: offset, behavior: 'smooth' });
+            }
+          }
+        }, 120);
+      } else {
+        container.innerHTML = `
+          <div class="veh-itinerary-header" onclick="event.stopPropagation(); toggleVehicleItinerary('${v.vehicle_id}')">
+            <span class="veh-itinerary-title">
+              <span>🚏</span>
+              <span>Zastávky na trase (Itinerár)</span>
+            </span>
+            <span class="veh-itinerary-toggle-btn"><span class="veh-itinerary-toggle-icon">▼</span></span>
+          </div>
+          <div class="veh-itinerary-body">
+            <div class="veh-itinerary-nodata">Zoznam zastávok pre tento spoj nie je dostupný.</div>
+          </div>
+        `;
+      }
+    }
+    window.loadVehicleItinerary = loadVehicleItinerary;
+
     // Otvorenie detailov vozidla priamo v existujúcom spodnom paneli (Bottom Sheet pre mobily < 768px)
     function openVehicleDetailBottomSheet(v) {
       if (!v) return;
@@ -12068,9 +12604,10 @@
         backdrop.classList.add('active');
       }
 
-      // Asynchrónne načítanie štatistiky nasadzovania vozidla do Bottom Sheetu
+      // Asynchrónne načítanie štatistiky nasadzovania a itinerára zastávok do Bottom Sheetu
       setTimeout(() => {
         loadVehicleAssignmentStats(v.vehicle_id, cleanEv, `veh-assignment-box-${v.vehicle_id || cleanEv}`);
+        loadVehicleItinerary(v, `veh-itinerary-box-${v.vehicle_id}`);
       }, 50);
     }
     window.openVehicleDetailBottomSheet = openVehicleDetailBottomSheet;
@@ -12100,6 +12637,10 @@
           const resp = await fetch(`${BASE_ORIGIN}/api/v1/trip/${tripId}?t=${Date.now()}`, { cache: 'no-store' });
           if (!resp.ok) return null;
           const data = await resp.json();
+          if (Array.isArray(data.tripStops) && data.tripStops.length > 0) {
+            tripItineraryCache.set(numTripId, data.tripStops);
+            tripItineraryCache.set(tripId, data.tripStops);
+          }
           const latLngs = [];
 
           // 1. Získanie uličných tvarov trasy (modelRoutePoints)
@@ -12547,10 +13088,11 @@
           L.DomEvent.disableClickPropagation(popupEl);
           L.DomEvent.disableScrollPropagation(popupEl);
         }
-        // Asynchrónne načítanie štatistiky nasadzovania vozidla do desktop popupu
+        // Asynchrónne načítanie štatistiky nasadzovania a itinerára zastávok do desktop popupu
         const fleetEv = v.fleet_info ? (v.fleet_info.evidencne_cislo || '') : '';
         setTimeout(() => {
           loadVehicleAssignmentStats(v.vehicle_id, fleetEv, `veh-assignment-box-${v.vehicle_id || fleetEv}`);
+          loadVehicleItinerary(v, `veh-itinerary-box-${v.vehicle_id}`);
         }, 50);
       });
       marker.on('popupclose', () => {
