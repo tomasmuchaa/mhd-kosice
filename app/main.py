@@ -3,6 +3,7 @@ import json
 import time
 import uuid
 import unicodedata
+import asyncio
 import requests
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Union, Tuple
@@ -16,6 +17,7 @@ from app.services.live_feed_service import DpmkLiveFeed
 from app.services.routing_engine import RoutingEngine
 from app.services.imhd_scraper import get_imhd_vehicle_history
 from app.services.occupancy_service import occupancy_service
+from app.services.telemetry_db import telemetry_db
 
 def strip_accents(text: str) -> str:
     if not text:
@@ -149,11 +151,57 @@ routing_engine = RoutingEngine(live_feed=live_feed, fleet_service=fleet_service)
 import gc
 gc.collect()
 
+# Background Collector pre kontinuálny zber telemetrie a obsadenosti (interval 15s)
+BACKGROUND_COLLECTOR_TASK: Optional[asyncio.Task] = None
+
+async def telemetry_collector_loop():
+    """
+    Asynchrónny zberateľ telemetrických dát a obsadenosti bežiaci na pozadí FastAPI servera.
+    Dopytuje live feed každých 15 sekúnd a ukladá zmeny do SQLite (data/mhd_historia.db)
+    s inteligentnou deduplikáciou (šetrenie pamäte a disku).
+    """
+    last_seen: Dict[Any, Tuple[float, float, int, int, Any]] = {}
+    print("[Telemetry Collector] Kontinuálny zber dát na pozadí spustený (interval 15s).", flush=True)
+    while True:
+        try:
+            # Spustenie v threadpoole, aby operácie nad SQLite a sieťou neblokovali async event loop
+            await asyncio.to_thread(
+                telemetry_db.collect_telemetry_batch,
+                live_feed,
+                occupancy_service,
+                last_seen
+            )
+        except asyncio.CancelledError:
+            print("[Telemetry Collector] Prijatý signál na ukončenie zberu dát.", flush=True)
+            break
+        except Exception as e:
+            print(f"[Telemetry Collector] Chyba pri zbere dát: {e}", flush=True)
+
+        try:
+            await asyncio.sleep(15)
+        except asyncio.CancelledError:
+            break
+
 @app.on_event("startup")
-def on_startup():
-    """Uvoľnenie prebytočnej pamäte po štarte aplikácie a načítaní datasetu."""
+async def on_startup():
+    """Uvoľnenie prebytočnej pamäte a spustenie background collectora."""
     import gc
     gc.collect()
+
+    global BACKGROUND_COLLECTOR_TASK
+    if BACKGROUND_COLLECTOR_TASK is None or BACKGROUND_COLLECTOR_TASK.done():
+        BACKGROUND_COLLECTOR_TASK = asyncio.create_task(telemetry_collector_loop())
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    """Čisté ukončenie zberateľa telemetrie pri vypínaní servera."""
+    global BACKGROUND_COLLECTOR_TASK
+    if BACKGROUND_COLLECTOR_TASK and not BACKGROUND_COLLECTOR_TASK.done():
+        BACKGROUND_COLLECTOR_TASK.cancel()
+        try:
+            await BACKGROUND_COLLECTOR_TASK
+        except asyncio.CancelledError:
+            pass
 
 
 # Vyrovnávacia pamäť pre posledné zaznamenané polohy (užitočné počas nočnej pauzy medzi 00:35 a 03:40)
@@ -833,18 +881,22 @@ def get_live_vehicles(
 
 
 class OccupancyReportRequest(BaseModel):
-    level: int  # 1 = Prázdny, 2 = Poloplný, 3 = Plný
+    level: Optional[int] = None  # 1 = Prázdny, 2 = Poloplný, 3 = Plný
+    occupancy_level: Optional[int] = None
     current_stop_name: Optional[str] = None
+    line: Optional[str] = None
 
 
 @app.post("/api/v1/vehicle/{vehicle_id}/occupancy")
 def report_vehicle_occupancy(vehicle_id: str, req: OccupancyReportRequest):
     """
     Crowdsourcing endpoint pre nahlásenie zaplnenosti vozidla (1 = Prázdny, 2 = Poloplný, 3 = Plný).
-    Hodnota sa uloží do pamäte k danému vozidlu spolu s časom nahlásenia a aktuálnou zastávkou.
+    Hodnota sa perzistentne zapíše do databázy (occupancy_reports) aj do in-memory pamäte
+    k danému vozidlu spolu s časom nahlásenia a aktuálnou zastávkou.
     Expiruje automaticky po 5 minútach alebo po príchode na novú zastávku.
     """
-    if req.level not in (1, 2, 3):
+    eff_level = req.occupancy_level if req.occupancy_level is not None else req.level
+    if eff_level not in (1, 2, 3):
         raise HTTPException(
             status_code=400,
             detail="Neplatná úroveň zaplnenosti. Povolené hodnoty: 1 (Prázdny), 2 (Poloplný), 3 (Plný)."
@@ -852,22 +904,36 @@ def report_vehicle_occupancy(vehicle_id: str, req: OccupancyReportRequest):
 
     clean_vid = str(vehicle_id).strip()
     stop_name = req.current_stop_name.strip() if req.current_stop_name else None
+    line = req.line.strip() if req.line else None
 
-    # Ak frontend neposlal názov zastávky, pokúsime sa ho zistiť z aktuálneho live feedu
-    if not stop_name:
+    # Ak frontend neposlal názov zastávky alebo linku, pokúsime sa ich zistiť z aktuálneho live feedu
+    if not stop_name or not line:
         try:
             active_list = live_feed.get_live_vehicles() or LAST_SEEN_CACHE
             for v in active_list:
                 if str(v.get("vehicle_id")) == clean_vid:
-                    stop_name = v.get("current_stop_name")
+                    if not stop_name:
+                        stop_name = v.get("current_stop_name")
+                    if not line:
+                        line = str(v.get("line") or "").strip()
                     break
         except Exception:
             pass
 
+    # 1. Okamžitý perzistentný zápis do SQLite tabuľky occupancy_reports
+    telemetry_db.log_occupancy_report(
+        vehicle_id=clean_vid,
+        level=eff_level,
+        line=line,
+        stop_name=stop_name
+    )
+
+    # 2. Uloženie do in-memory pamäte vozidla s časovou pečiatkou pre okamžité zobrazenie v UI
     recorded = occupancy_service.set_occupancy(
         vehicle_id=clean_vid,
-        level=req.level,
-        current_stop_name=stop_name
+        level=eff_level,
+        current_stop_name=stop_name,
+        line=line
     )
 
     return {
