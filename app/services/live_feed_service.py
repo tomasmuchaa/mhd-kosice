@@ -7,7 +7,7 @@ import time
 import unicodedata
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Dict, Any, Optional, Union, Tuple, Set
+from typing import List, Dict, Any, Optional, Union
 
 class DpmkLiveFeed:
     UBIAN_BASE_URL = os.getenv("UBIAN_BASE_URL", "https://www.ubian.sk")
@@ -435,7 +435,7 @@ class DpmkLiveFeed:
         stop_id: Any,
         date: Optional[str] = None,
         time: Optional[str] = None,
-        platform: Optional[Union[str, int]] = None,
+        platform: Optional[Any] = None,
         aggregate: bool = False
     ) -> Dict[str, Any]:
         """
