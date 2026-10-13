@@ -1936,6 +1936,84 @@
       margin-right: 5px;
     }
 
+    /* Hlavný identifikačný blok: Výrazné evidenčné číslo v popredí, ŠPZ v úzadí */
+    .veh-identity-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 10px;
+      padding: 6px 10px;
+      margin: 6px 0 10px 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+    .veh-ev-main-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .veh-ev-label-tag {
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    .veh-ev-number {
+      font-family: 'JetBrains Mono', monospace;
+      color: #38bdf8;
+      font-weight: 900;
+      font-size: 1.25rem;
+      letter-spacing: 0.5px;
+      text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+      line-height: 1;
+    }
+    .veh-sheet-ev-badge {
+      font-family: 'JetBrains Mono', monospace;
+      color: #38bdf8;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+    }
+
+    /* Mierne tlmená ŠPZ v úzadí */
+    .spz-plate-subtle {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(30, 41, 59, 0.75);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.76rem;
+      letter-spacing: 0.8px;
+      padding: 2px 6px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .spz-plate-subtle .sk-flag {
+      background: #1e3a8a;
+      color: #93c5fd;
+      font-size: 0.52rem;
+      font-weight: 700;
+      padding: 1px 3px;
+      border-radius: 2px;
+      margin-right: 4px;
+    }
+    .spz-plate-subtle.spz-plate-none {
+      background: rgba(15, 23, 42, 0.4);
+      border-color: rgba(255, 255, 255, 0.06);
+      color: #64748b;
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+
     .popup-detail-row {
       display: flex;
       justify-content: space-between;
@@ -11540,14 +11618,17 @@
       const comm = formatLastCommunication(v.last_communication);
       const cat = getVehicleCategory(v);
 
+      const rawEv = String(fleet.evidencne_cislo || v.evidencne_cislo || '').replace(/['"\\]/g, '').trim();
+      const displayEvNum = rawEv ? `#${rawEv}` : (v.vehicle_id ? `#${v.vehicle_id}` : '#N/A');
+
       const spzHtml = fleet.spz ? `
-        <div class="spz-plate">
+        <div class="spz-plate-subtle" title="Štátna poznávacia značka (EČV)">
           <span class="sk-flag">SK</span>
           <span>${fleet.spz}</span>
         </div>
       ` : (cat.id === 'tram' ? `
-        <div style="font-size: 0.78rem; color: #eab308; font-weight: 600; margin: 4px 0;">🚊 Koľajové vozidlo (bez ŠPZ)</div>
-      ` : `<div style="font-size: 0.78rem; color: #f59e0b; margin: 4px 0;">ŠPZ zatiaľ nespárovaná</div>`);
+        <span class="spz-plate-subtle spz-plate-none" title="Koľajové vozidlo bez ŠPZ">🚊 Bez ŠPZ</span>
+      ` : `<span class="spz-plate-subtle spz-plate-none" title="ŠPZ zatiaľ nespárovaná">ŠPZ nespárovaná</span>`);
 
       // Špeciálny stavový box, ak vozidlo stojí
       const staleNoticeHtml = comm.isStale ? `
@@ -11610,7 +11691,25 @@
         </div>
         <div class="popup-dest">→ ${v.destination || 'Neznámy smer'}</div>
         ${staleNoticeHtml}
-        ${spzHtml}
+
+        <!-- Hlavný identifikačný blok: Výrazné evidenčné číslo v popredí, ŠPZ v úzadí -->
+        <div class="veh-identity-bar">
+          <div class="veh-ev-main-badge" title="Evidenčné číslo vozidla (primárny identifikátor)">
+            <span class="veh-ev-label-tag">VOZIDLO</span>
+            <span class="veh-ev-number">${displayEvNum}</span>
+          </div>
+          ${spzHtml}
+        </div>
+
+        <div class="popup-detail-row">
+          <span>Evidenčné číslo:</span>
+          <span class="val" style="color: #38bdf8; font-weight: 700; font-family: 'JetBrains Mono', monospace;">${displayEvNum}</span>
+        </div>
+        ${fleet.spz ? `
+        <div class="popup-detail-row">
+          <span>ŠPZ (EČV):</span>
+          <span class="val" style="color: #94a3b8; font-family: 'JetBrains Mono', monospace;">${fleet.spz}</span>
+        </div>` : ''}
         <div class="popup-detail-row">
           <span>Kategória:</span>
           <span class="val" style="color: ${cat.color}; font-weight: 700;">${cat.icon} ${cat.name}</span>
@@ -11622,10 +11721,6 @@
         <div class="popup-detail-row">
           <span>Model:</span>
           <span class="val">${fleet.model || 'N/A'}</span>
-        </div>
-        <div class="popup-detail-row">
-          <span>Evidenčné číslo:</span>
-          <span class="val">${fleet.evidencne_cislo ? 'ev. č. ' + fleet.evidencne_cislo : (v.vehicle_id ? '#' + v.vehicle_id : 'N/A')}</span>
         </div>
         <div class="popup-detail-row">
           <span>Trasa:</span>
@@ -11943,15 +12038,16 @@
 
       const fleet = v.fleet_info || {};
       const cat = getVehicleCategory(v);
-      const cleanEv = String(fleet.evidencne_cislo || '').trim();
-      const displayEv = cleanEv || (v.vehicle_id ? '#' + v.vehicle_id : 'Neznáme');
+      const cleanEv = String(fleet.evidencne_cislo || v.evidencne_cislo || '').trim();
+      const displayEv = cleanEv ? `#${cleanEv}` : (v.vehicle_id ? '#' + v.vehicle_id : 'Neznáme');
       const safeLine = v.line ? `Linka ${v.line}` : 'MHD';
 
       if (titleEl) {
-        titleEl.innerHTML = `${safeLine} • #${displayEv}`;
+        titleEl.innerHTML = `${safeLine} • <span class="veh-sheet-ev-badge">${displayEv}</span>`;
       }
       if (subtitleEl) {
-        subtitleEl.innerText = `${fleet.model || 'DPMK Košice'} • Smer ${v.destination || 'Neznámy'}`;
+        const spzText = fleet.spz ? ` • ${fleet.spz}` : '';
+        subtitleEl.innerText = `${fleet.model || 'DPMK Košice'} • Smer ${v.destination || 'Neznámy'}${spzText}`;
       }
       if (typeIconEl) {
         typeIconEl.innerText = cat.icon || '🚌';
@@ -12948,18 +13044,18 @@
       if (typeof v === 'object') {
         followingVehicleId = v.vehicle_id;
         const fleet = v.fleet_info || {};
-        evOrId = fleet.evidencne_cislo || fleet.spz || v.vehicle_id;
+        evOrId = fleet.evidencne_cislo || v.evidencne_cislo || fleet.spz || v.vehicle_id;
         line = v.line || '?';
-        const label = `Linka ${line} ${fleet.spz ? '(' + fleet.spz + ')' : ''}`;
+        const label = `Linka ${line} • #${evOrId}${fleet.spz ? ' (' + fleet.spz + ')' : ''}`;
         const followLabelEl = document.getElementById('follow-bus-label');
         if (followLabelEl) followLabelEl.innerText = label;
       } else {
         followingVehicleId = v;
         const found = latestVehiclesList.find(x => String(x.vehicle_id) === String(v));
         const fleet = found?.fleet_info || {};
-        evOrId = fleet.evidencne_cislo || fleet.spz || v;
+        evOrId = fleet.evidencne_cislo || found?.evidencne_cislo || fleet.spz || v;
         line = found ? (found.line || '?') : '?';
-        const label = found ? `Linka ${line} ${fleet.spz ? '(' + fleet.spz + ')' : ''}` : `Vozidlo #${v}`;
+        const label = found ? `Linka ${line} • #${evOrId}${fleet.spz ? ' (' + fleet.spz + ')' : ''}` : `Vozidlo #${v}`;
         const followLabelEl = document.getElementById('follow-bus-label');
         if (followLabelEl) followLabelEl.innerText = label;
       }
