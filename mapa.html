@@ -9013,7 +9013,7 @@
           line_type: item.trakcia || '',
           trakcia: item.trakcia || '',
           depo: item.depo || item.garaz || '',
-          destination: 'V depe (odstavené)',
+          destination: 'neaktívne (v garáži/pauza)',
           fleet_info: {
             evidencne_cislo: item.evidencne_cislo,
             spz: item.spz,
@@ -9249,7 +9249,7 @@
         const spzTag = fleet.spz ? `<span class="g-card-spz">${fleet.spz}</span>` : '';
         const modelName = fleet.model || v.model || cat.name || 'DPMK vozidlo';
         const safeModel = String(modelName).replace(/['"\\]/g, ' ').trim();
-        const yearStr = fleet.rok_vyroby ? `Rok: ${String(fleet.rok_vyroby).split(' ')[0]}` : 'Odstavené v depe';
+        const yearStr = fleet.rok_vyroby ? `Rok: ${String(fleet.rok_vyroby).split(' ')[0]}` : 'neaktívne (v garáži/pauza)';
         const verifiedBadge = (isDevMode && isVehicleVerified(v)) ? '<span class="dev-verified-pill verified" style="font-size: 0.65rem; padding: 1px 6px; margin-left: 4px;">Overený ✅</span>' : '';
 
         return `
@@ -9257,7 +9257,7 @@
             onclick="(window.openVehicleHistory || openVehicleHistory)('${cleanEv}', '', '${safeModel}', '')" 
             title="Kliknite pre zobrazenie histórie a profilu vozidla ${evNum} na imhd.sk">
             <div class="g-card-header">
-              <span class="g-line-badge line-depot" title="Vozidlo je odstavené v depe">🅿️ V depe</span>
+              <span class="g-line-badge line-depot" title="neaktívne (v garáži/pauza)">⏸️ neaktívne</span>
               <div class="g-card-id-block">
                 <div>
                   <span class="g-card-ev">${evNum}</span>
@@ -9266,7 +9266,7 @@
                 </div>
                 <div class="g-card-model" title="${modelName}">${modelName}</div>
               </div>
-              <span class="g-depot-status-pill">Odstavené</span>
+              <span class="g-depot-status-pill">neaktívne (v garáži/pauza)</span>
             </div>
             <div class="g-card-footer">
               <span class="g-card-dest" style="color: #64748b;">${yearStr}</span>
@@ -9319,21 +9319,21 @@
               <span class="garage-state-count">0 v premávke</span>
             </div>
             <div style="padding: 16px 20px; text-align: center; color: #94a3b8; font-size: 0.86rem; background: rgba(30, 41, 59, 0.35); border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.06); margin-bottom: 20px;">
-              🌙 Žiadne vozidlá momentálne nevysielajú live polohu (nočná pauza). Všetky vozidlá sú v depe.
+              🌙 Žiadne vozidlá momentálne nevysielajú live polohu (nočná pauza). Všetky vozidlá sú neaktívne (v garáži/pauza).
             </div>
           </div>
         `;
       }
 
-      // 5. Pod to vytvor blok s nadpisom '🅿️ Odstavené v garáži'
+      // 5. Pod to vytvor blok s nadpisom '⏸️ Neaktívne (v garáži/pauza)'
       if (inactiveVehicles.length > 0) {
         const inactiveGroups = groupVehiclesByModelCategory(inactiveVehicles);
         fullHtml += `
           <div class="garage-state-block">
             <div class="garage-state-banner banner-depot">
               <div class="garage-state-title">
-                <span>🅿️</span>
-                <span>Odstavené v garáži</span>
+                <span>⏸️</span>
+                <span>Neaktívne (v garáži/pauza)</span>
               </div>
               <span class="garage-state-count">${inactiveVehicles.length} vozidiel</span>
             </div>
@@ -9345,7 +9345,7 @@
                     <span>${g.title}</span>
                   </div>
                   <span class="garage-group-count" style="background: rgba(255, 255, 255, 0.08); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3);">
-                    ${g.vehicles.length} v depe
+                    ${g.vehicles.length} neaktívne (v garáži/pauza)
                   </span>
                 </div>
                 <div class="garage-cards-grid">
@@ -11630,11 +11630,13 @@
         <span class="spz-plate-subtle spz-plate-none" title="Koľajové vozidlo bez ŠPZ">🚊 Bez ŠPZ</span>
       ` : `<span class="spz-plate-subtle spz-plate-none" title="ŠPZ zatiaľ nespárovaná">ŠPZ nespárovaná</span>`);
 
-      // Špeciálny stavový box, ak vozidlo stojí
-      const staleNoticeHtml = comm.isStale ? `
+      const isInactive = comm.isStale || v.isDepot || !v.latitude;
+
+      // Špeciálny stavový box, ak vozidlo stojí / je neaktívne
+      const staleNoticeHtml = isInactive ? `
         <div style="background: rgba(100, 116, 139, 0.25); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; padding: 5px 8px; font-size: 0.76rem; color: #cbd5e1; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
           <span>⏸️</span>
-          <span><strong>Vozidlo stojí</strong> (neaktívny motor / nočná pauza)</span>
+          <span><strong>neaktívne (v garáži/pauza)</strong></span>
         </div>
       ` : '';
 
@@ -11653,12 +11655,7 @@
       ) : '';
 
       const stopName = String(v.current_stop_name || '').replace(/['"\\]/g, ' ').trim();
-      let statusHtml = 'V pohybe na trase';
-      if (comm.isStale) {
-        statusHtml = stopName ? `Odstavené na konečnej (${stopName})` : 'Odstavené na konečnej';
-      } else if (v.is_on_stop) {
-        statusHtml = stopName ? `🚏 Stojí na: <b>${stopName}</b>` : '🚏 Stojí na zastávke';
-      }
+      let statusHtml = isInactive ? 'neaktívne (v garáži/pauza)' : 'V pohybe na trase';
 
       // Obsadenosť vozidla (Crowdsourcing / Waze pre MHD)
       const occ = v.occupancy || null;
@@ -11686,7 +11683,7 @@
           <span class="popup-line-badge" style="background: ${badgeBg}; color: ${badgeText}; font-weight: 800; border: 1.5px solid ${cat.borderColor};">Linka ${v.line || '?'}</span>
           <div style="display: flex; align-items: center; gap: 6px;">
             ${devVerifiedBadge}
-            ${comm.isStale ? '<span class="popup-delay-badge delay-badge-stale">Odstavené</span>' : getDelayBadge(v.delay_minutes || 0)}
+            ${isInactive ? '<span class="popup-delay-badge delay-badge-stale">neaktívne</span>' : getDelayBadge(v.delay_minutes || 0)}
           </div>
         </div>
         <div class="popup-dest">→ ${v.destination || 'Neznámy smer'}</div>
@@ -11716,7 +11713,7 @@
         </div>
         <div class="popup-detail-row">
           <span>Posledná poloha:</span>
-          <span class="val" style="${comm.isStale ? 'color: #fbbf24; font-weight: 600;' : 'color: #34d399; font-weight: 600;'}">${comm.text}</span>
+          <span class="val" style="${isInactive ? 'color: #fbbf24; font-weight: 600;' : 'color: #34d399; font-weight: 600;'}">${comm.text}</span>
         </div>
         <div class="popup-detail-row">
           <span>Model:</span>
@@ -11728,7 +11725,7 @@
         </div>
         <div class="popup-detail-row">
           <span>Stav:</span>
-          <span class="val" style="${(v.is_on_stop && !comm.isStale) ? 'color: #38bdf8; font-weight: 600;' : ''}">${statusHtml}</span>
+          <span class="val" style="${isInactive ? 'color: #fbbf24; font-weight: 600;' : ''}">${statusHtml}</span>
         </div>
         ${occRowHtml}
 
@@ -12586,7 +12583,7 @@
       const devVerifiedTag = (isDevMode && isVer) ? ' <span class="dev-verified-pill verified" style="margin-left: 6px;">Overený ✅</span>' : ((isDevMode && !isVer) ? ' <span class="dev-verified-pill unverified" style="margin-left: 6px;">Neoverený ⚠️</span>' : '');
 
       if (titleEl) {
-        titleEl.innerHTML = (line ? `Linka ${line} • Vozidlo #${displayEv}` : `Vozidlo #${displayEv} (V depe)`) + devVerifiedTag;
+        titleEl.innerHTML = (line ? `Linka ${line} • Vozidlo #${displayEv}` : `Vozidlo #${displayEv} (neaktívne (v garáži/pauza))`) + devVerifiedTag;
       }
       if (subtitleEl) {
         subtitleEl.innerText = `${model || 'DPMK Košice'}`;

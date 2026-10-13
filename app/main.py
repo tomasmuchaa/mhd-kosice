@@ -842,6 +842,23 @@ def get_live_vehicles(
             live_stop_name=v.get("current_stop_name")
         )
 
+        # Staleness calculation pre jednotný stav vozidla
+        is_inactive = False
+        last_comm = v.get("last_communication")
+        if last_comm:
+            try:
+                comm_str = str(last_comm).replace("Z", "+00:00")
+                comm_dt = datetime.fromisoformat(comm_str)
+                now = datetime.now(comm_dt.tzinfo) if comm_dt.tzinfo else datetime.now()
+                if (now - comm_dt).total_seconds() >= 180:
+                    is_inactive = True
+            except Exception:
+                pass
+        elif not v.get("latitude"):
+            is_inactive = True
+
+        status_text = "neaktívne (v garáži/pauza)" if is_inactive else "v premávke"
+
         item = {
             "vehicle_id": v["vehicle_id"],
             "line": v.get("line"),
@@ -854,6 +871,9 @@ def get_live_vehicles(
             "delay_minutes": v.get("delay_minutes", 0),
             "is_on_stop": v.get("is_on_stop", False),
             "current_stop_name": v.get("current_stop_name"),
+            "status": status_text,
+            "status_text": status_text,
+            "is_inactive": is_inactive,
             "occupancy": occ,
             "trip_id": v.get("trip_id"),
             "last_stop_order": v.get("last_stop_order"),
@@ -1177,6 +1197,8 @@ def get_fleet(
 
         is_in_service = (ev in active_evs) or (bool(spz_clean) and spz_clean in active_spzs)
         item["is_in_service"] = is_in_service
+        item["status"] = "v premávke" if is_in_service else "neaktívne (v garáži/pauza)"
+        item["status_text"] = "v premávke" if is_in_service else "neaktívne (v garáži/pauza)"
         enriched.append(item)
         if not is_in_service:
             parked.append(item)
