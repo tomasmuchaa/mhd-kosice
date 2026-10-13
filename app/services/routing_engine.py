@@ -9,6 +9,7 @@ import urllib.request
 import re
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple, Union, Set
+from app.services.timetable_manager import get_timetable_manager, TimetableManager, normalize_canonical_stop
 
 sys.stdout.reconfigure(encoding="utf-8")
 
@@ -52,11 +53,13 @@ class RoutingEngine:
         self.max_transfer_distance_m = max_transfer_distance_m
         self.live_feed = live_feed
         self.fleet_service = fleet_service
+        self.timetable_manager = get_timetable_manager()
 
         self.stops: List[Dict[str, Any]] = []
         self.stops_by_id: Dict[Any, Dict[str, Any]] = {}
         self.stops_by_name: Dict[str, List[Dict[str, Any]]] = {}
         self.stops_by_canonical_name: Dict[str, List[Dict[str, Any]]] = {}
+        self.stops_by_norm_canonical: Dict[str, List[Dict[str, Any]]] = {}
         self.lines_to_stops: Dict[str, List[Any]] = {}
 
         self.walking_graph: Optional[Dict[str, Any]] = None
@@ -67,6 +70,8 @@ class RoutingEngine:
         self._route_geometry_cache: Dict[Any, Tuple[List[List[float]], List[str]]] = {}
         self._osrm_cache: Dict[str, List[List[float]]] = {}
         self._stop_departures_cache: Dict[Any, List[Dict[str, Any]]] = {}
+        self._trip_downstream_cache: Dict[Tuple[str, int], List[Dict[str, Any]]] = {}
+        self._routing_transit_cache: Dict[Tuple[str, str, str, int, bool], List[Dict[str, Any]]] = {}
 
         self.load_stops()
         try:
@@ -232,6 +237,7 @@ class RoutingEngine:
 
         self.stops_by_name = {}
         self.stops_by_canonical_name = {}
+        self.stops_by_norm_canonical = {}
         self.lines_to_stops = {}
 
         for s in self.stops:
@@ -239,6 +245,10 @@ class RoutingEngine:
             self.stops_by_name.setdefault(raw_name, []).append(s)
             cname = self.get_canonical_name(s)
             self.stops_by_canonical_name.setdefault(cname, []).append(s)
+            norm_cname = normalize_canonical_stop(cname)
+            self.stops_by_norm_canonical.setdefault(norm_cname, []).append(s)
+            s["canonical_norm"] = norm_cname
+
             # Prísny filter: pre plánovanie trás zaradíme výhradne linky mestskej dopravy DPMK (odstraňujeme Eurobusy a vlaky)
             clean_lines = [l for l in s.get("lines", []) if self.is_mhd_line(l)]
             s["lines"] = clean_lines
@@ -700,6 +710,28 @@ class RoutingEngine:
                 seen_ci.add(c_iname)
                 inter_names.append(iname)
 
+        if trip_id and hasattr(self, "timetable_manager") and self.timetable_manager:
+            try:
+                u_norm = normalize_canonical_stop(self.get_canonical_name(u_stop))
+                v_norm = normalize_canonical_stop(self.get_canonical_name(v_stop))
+                conn = self.timetable_manager._ensure_connection()
+                cur = conn.cursor()
+                cur.execute("SELECT stop_sequence FROM stop_departures WHERE trip_id = ? AND canonical_stop_name = ?", (str(trip_id), u_norm))
+                u_r = cur.fetchone()
+                cur.execute("SELECT stop_sequence FROM stop_departures WHERE trip_id = ? AND canonical_stop_name = ?", (str(trip_id), v_norm))
+                v_r = cur.fetchone()
+                if u_r and v_r and v_r[0] > u_r[0]:
+                    cur.execute("""
+                        SELECT stop_name FROM stop_departures
+                        WHERE trip_id = ? AND stop_sequence > ? AND stop_sequence < ?
+                        ORDER BY stop_sequence ASC
+                    """, (str(trip_id), u_r[0], v_r[0]))
+                    db_names = [r[0] for r in cur.fetchall()]
+                    if db_names:
+                        inter_names = db_names
+            except Exception:
+                pass
+
         waypoints = corridor if (corridor and len(corridor) >= 2) else [u_stop, v_stop]
 
         osrm_road = self.get_osrm_road_geometry(waypoints, mode="driving")
@@ -836,91 +868,230 @@ class RoutingEngine:
 
         return default_result
 
-    @staticmethod
-    def get_line_schedule_window(line: str, dt: datetime) -> Tuple[bool, int, int]:
+    def get_live_delay_for_departure(
+        self,
+        line: str,
+        destination_stop: Optional[str] = None,
+        trip_id: Optional[str] = None,
+        is_future: bool = False
+    ) -> Tuple[int, Optional[str], Optional[str], bool]:
         """
-        Vyhodnotí prevádzkový režim linky MHD v danom čase a vráti:
+        Vyhľadá živé vozidlo na danej linke a vráti:
+        (delay_minutes, vehicle_info, license_number, is_live)
+        Pre is_future=True ignoruje aktuálne live meškanie a vracia (0, None, None, False).
+        """
+        if is_future:
+            return 0, None, None, False
+
+        vehicles = []
+        if self.live_feed:
+            try:
+                vehicles = self.get_live_vehicles_cached(max_age_seconds=15.0) or []
+            except Exception:
+                vehicles = []
+        if not vehicles:
+            try:
+                from app.main import LAST_SEEN_CACHE
+                vehicles = LAST_SEEN_CACHE or []
+            except Exception:
+                vehicles = []
+
+        if not vehicles:
+            return 0, None, None, False
+
+        line_str = str(line).strip()
+        norm_dest = normalize_canonical_stop(destination_stop) if destination_stop else ""
+
+        matched_veh = None
+        for v in vehicles:
+            if str(v.get("line")).strip() == line_str:
+                v_dest = normalize_canonical_stop(v.get("destination") or v.get("destination_full") or "")
+                if norm_dest and v_dest and (norm_dest in v_dest or v_dest in norm_dest):
+                    matched_veh = v
+                    break
+                elif matched_veh is None:
+                    matched_veh = v
+
+        if matched_veh:
+            delay = int(matched_veh.get("delay_minutes", 0) or 0)
+            vid = matched_veh.get("vehicle_id")
+            lic = matched_veh.get("license_number")
+            fleet_info = None
+            if self.fleet_service and (vid or lic):
+                fleet = self.fleet_service.match_live_vehicle(
+                    vehicle_id=vid,
+                    license_number=lic,
+                    line=line_str,
+                    line_type=matched_veh.get("line_type"),
+                    raw_vehicle=matched_veh
+                )
+                if fleet:
+                    spz_str = fleet.get("spz") or (f"ev. č. {fleet.get('evidencne_cislo')}" if fleet.get('evidencne_cislo') else None)
+                    model_name = fleet.get("model") or ("Električka DPMK" if matched_veh.get("line_type") == "TRAM" else "Autobus DPMK")
+                    fleet_info = f"{model_name} ({spz_str})" if spz_str else model_name
+
+            return delay, fleet_info, lic, True
+
+        return 0, None, None, False
+
+    def get_transit_departures_for_routing(
+        self,
+        canonical_stop: str,
+        line: str,
+        current_dt: datetime,
+        is_future: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        Získa najbližšie oficiálne naplánované odchody a ich následné zastávky pre linku zo zastávky.
+        Striktne stavia na SQLite databáze grafikónov (timetables.db).
+        K plánovanému času pripočíta meškanie zo živého feedu, ak spoj aktuálne premáva.
+        """
+        c_stop = normalize_canonical_stop(canonical_stop)
+        if not c_stop or not self.timetable_manager:
+            return []
+
+        line_str = str(line).strip()
+        day_type = "weekend" if current_dt.weekday() >= 5 else "workday"
+        cur_sec = current_dt.hour * 3600 + current_dt.minute * 60 + current_dt.second
+
+        cache_key = (c_stop, line_str, day_type, cur_sec // 60, is_future)
+        if cache_key in self._routing_transit_cache:
+            return self._routing_transit_cache[cache_key]
+
+        conn = self.timetable_manager._ensure_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT trip_id, route_id, line, direction, departure_seconds, departure_time_str, stop_sequence, destination_stop
+            FROM stop_departures
+            WHERE canonical_stop_name = ? AND line = ? AND day_type = ? AND departure_seconds >= ?
+            ORDER BY departure_seconds ASC
+            LIMIT 6
+        """, (c_stop, line_str, day_type, cur_sec))
+        rows = cur.fetchall()
+
+        day_offset = 0
+        if not rows:
+            next_dt = current_dt + timedelta(days=1)
+            next_day_type = "weekend" if next_dt.weekday() >= 5 else "workday"
+            cur.execute("""
+                SELECT trip_id, route_id, line, direction, departure_seconds, departure_time_str, stop_sequence, destination_stop
+                FROM stop_departures
+                WHERE canonical_stop_name = ? AND line = ? AND day_type = ? AND departure_seconds >= 0
+                ORDER BY departure_seconds ASC
+                LIMIT 6
+            """, (c_stop, line_str, next_day_type))
+            rows = cur.fetchall()
+            day_offset = 86400
+
+        if not rows:
+            self._routing_transit_cache[cache_key] = []
+            return []
+
+        earliest_by_dir: Dict[str, Any] = {}
+        for r in rows:
+            dest_norm = normalize_canonical_stop(r["destination_stop"])
+            if c_stop == dest_norm:
+                continue
+            d_key = r["direction"]
+            if d_key not in earliest_by_dir:
+                earliest_by_dir[d_key] = r
+
+        results = []
+        for d in earliest_by_dir.values():
+            wait_sec = (d["departure_seconds"] + day_offset) - cur_sec
+            if wait_sec > 18000:
+                continue
+
+            delay_min, veh_info, lic, is_live = self.get_live_delay_for_departure(
+                line_str, destination_stop=d["destination_stop"], trip_id=d["trip_id"], is_future=is_future
+            )
+            eff_wait_sec = max(0, wait_sec + (delay_min * 60))
+
+            ds_key = (d["trip_id"], d["stop_sequence"])
+            if ds_key not in self._trip_downstream_cache:
+                cur.execute("""
+                    SELECT canonical_stop_name, departure_seconds, departure_time_str, stop_sequence, stop_name
+                    FROM stop_departures
+                    WHERE trip_id = ? AND stop_sequence > ?
+                    ORDER BY stop_sequence ASC
+                """, (d["trip_id"], d["stop_sequence"]))
+                downstream = cur.fetchall()
+
+                downstream_list = []
+                for ds in downstream:
+                    ride_sec = ds["departure_seconds"] - d["departure_seconds"]
+                    if ride_sec <= 0:
+                        ride_sec = max(60, ride_sec + 86400)
+                    downstream_list.append({
+                        "canonical_stop_name": ds["canonical_stop_name"],
+                        "stop_name": ds["stop_name"],
+                        "departure_time_str": ds["departure_time_str"],
+                        "ride_seconds": ride_sec
+                    })
+                self._trip_downstream_cache[ds_key] = downstream_list
+
+            results.append({
+                "line": d["line"],
+                "direction": d["direction"],
+                "destination_stop": d["destination_stop"],
+                "trip_id": d["trip_id"],
+                "departure_seconds": d["departure_seconds"],
+                "departure_time_str": d["departure_time_str"],
+                "wait_seconds": wait_sec,
+                "effective_wait_seconds": eff_wait_sec,
+                "delay_minutes": delay_min,
+                "vehicle_info": veh_info,
+                "is_live": is_live,
+                "downstream_stops": self._trip_downstream_cache[ds_key]
+            })
+
+        self._routing_transit_cache[cache_key] = results
+        return results
+
+    def get_line_schedule_window(self, line: str, dt: datetime) -> Tuple[bool, int, int]:
+        """
+        Vyhodnotí prevádzkový režim linky MHD v danom čase podľa timetables.db a vráti:
         (is_operating_now, seconds_until_next_run, typical_headway_seconds).
-        Ak linka v danom čase nepremáva (napr. denná linka 55 neskoro večer alebo v noci),
-        vráti is_operating_now=False a presný počet sekúnd čakania do začiatku najbližšej premávky.
+        Ak linka v danom čase nepremáva, vráti is_operating_now=False a presný počet sekúnd čakania do začiatku najbližšej premávky.
         """
         line_str = str(line).strip()
-        if not RoutingEngine.is_mhd_line(line_str):
-            # Ak to nie je mestská linka MHD Košice (napr. prímestský Eurobus alebo vlak), pre MHD plánovač nepremáva
+        if not self.is_mhd_line(line_str):
             return False, 86400, 86400
 
-        hour = dt.hour
-        minute = dt.minute
-        time_min = hour * 60 + minute
-        weekday = dt.weekday()  # 0=Pondelok, 6=Nedeľa
-        line_upper = line_str.upper()
+        try:
+            day_type = "weekend" if dt.weekday() >= 5 else "workday"
+            cur_sec = dt.hour * 3600 + dt.minute * 60 + dt.second
+            conn = self.timetable_manager._ensure_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT departure_seconds FROM stop_departures
+                WHERE line = ? AND day_type = ? AND departure_seconds >= ?
+                ORDER BY departure_seconds ASC LIMIT 2
+            """, (line_str, day_type, cur_sec))
+            rows = cur.fetchall()
+            if rows:
+                wait_sec = rows[0][0] - cur_sec
+                headway = (rows[1][0] - rows[0][0]) if len(rows) > 1 else 900
+                headway = max(300, min(3600, headway))
+                is_operating = wait_sec <= 3600
+                return is_operating, wait_sec, headway
 
-        # 1. Nočné linky N1 - N7
-        if line_upper.startswith("N"):
-            # Nočné linky premávajú výhradne v nočných hodinách od 23:00 do 04:30
-            is_operating = (time_min >= 23 * 60) or (time_min <= 4 * 60 + 30)
-            if is_operating:
-                mins_left = (60 - (minute % 60)) if minute % 60 != 0 else 60
-                return True, max(180, mins_left * 60), 3600
-            else:
-                # Cez deň nočné linky nepremávajú; najbližší odchod o 23:00 večer
-                target = dt.replace(hour=23, minute=0, second=0, microsecond=0)
-                wait_sec = max(180, int((target - dt).total_seconds()))
-                return False, wait_sec, 3600
+            next_dt = dt + timedelta(days=1)
+            next_day_type = "weekend" if next_dt.weekday() >= 5 else "workday"
+            cur.execute("""
+                SELECT departure_seconds FROM stop_departures
+                WHERE line = ? AND day_type = ? AND departure_seconds >= 0
+                ORDER BY departure_seconds ASC LIMIT 1
+            """, (line_str, next_day_type))
+            r_next = cur.fetchone()
+            if r_next:
+                wait_sec = (r_next[0] + 86400) - cur_sec
+                return False, wait_sec, 900
+        except Exception:
+            pass
 
-        # 2. Účelová / špičková linka 55
-        if line_str == "55":
-            if weekday >= 5:  # Víkend - linka 55 cez víkendy vôbec nepremáva
-                days_to_mon = (7 - weekday)
-                target = (dt + timedelta(days=days_to_mon)).replace(hour=5, minute=45, second=0, microsecond=0)
-                return False, max(180, int((target - dt).total_seconds())), 900
-
-            # Pracovné dni: ranná špička 05:45 - 08:45, popoludňajšia 13:30 - 17:15
-            in_morn = (5 * 60 + 45) <= time_min <= (8 * 60 + 45)
-            in_aft = (13 * 60 + 30) <= time_min <= (17 * 60 + 15)
-            if in_morn or in_aft:
-                return True, 600, 900
-            elif time_min < (5 * 60 + 45):
-                target = dt.replace(hour=5, minute=45, second=0, microsecond=0)
-                return False, max(180, int((target - dt).total_seconds())), 900
-            elif time_min < (13 * 60 + 30):
-                target = dt.replace(hour=13, minute=30, second=0, microsecond=0)
-                return False, max(180, int((target - dt).total_seconds())), 900
-            else:
-                # Po 17:15 (večer / v noci) najbližší spoj až na druhý deň ráno o 05:45
-                days_add = 3 if weekday == 4 else 1  # V piatok večer až v pondelok
-                target = (dt + timedelta(days=days_add)).replace(hour=5, minute=45, second=0, microsecond=0)
-                return False, max(180, int((target - dt).total_seconds())), 900
-
-        # 3. Zmenové linky RA1 - RA8 (U. S. Steel)
-        if line_upper.startswith("RA"):
-            s1 = (5 * 60) <= time_min <= (6 * 60 + 15)
-            s2 = (13 * 60) <= time_min <= (14 * 60 + 15)
-            s3 = (21 * 60) <= time_min <= (22 * 60 + 15)
-            if s1 or s2 or s3:
-                return True, 480, 1200
-            elif time_min < 5 * 60:
-                target = dt.replace(hour=5, minute=0, second=0, microsecond=0)
-            elif time_min < 13 * 60:
-                target = dt.replace(hour=13, minute=0, second=0, microsecond=0)
-            elif time_min < 21 * 60:
-                target = dt.replace(hour=21, minute=0, second=0, microsecond=0)
-            else:
-                target = (dt + timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0)
-            return False, max(180, int((target - dt).total_seconds())), 1200
-
-        # 4. Štandardné denné linky (električky 1-9, R1-R7 a autobusy 10-54, 71, 72)
-        # Premávajú cca od 04:30 do 23:15
-        is_operating = (4 * 60 + 30) <= time_min <= (23 * 60 + 15)
-        if is_operating:
-            return True, 480, 720
-        else:
-            # V noci nepremávajú; najbližší ranný spoj cca o 04:45
-            if time_min > (23 * 60 + 15):
-                target = (dt + timedelta(days=1)).replace(hour=4, minute=45, second=0, microsecond=0)
-            else:
-                target = dt.replace(hour=4, minute=45, second=0, microsecond=0)
-            return False, max(180, int((target - dt).total_seconds())), 720
+        return False, 86400, 86400
 
     def get_stop_departures_cached(
         self,
@@ -1006,9 +1177,7 @@ class RoutingEngine:
     ) -> Dict[str, Any]:
         """
         Vypočíta presný reálny čas čakania na linku na danej zastávke v danom čase s ohľadom na meškanie.
-        Ak spoj v danom čase nepremáva (alebo ide až o niekoľko hodín / na druhý deň),
-        vráti plnú dobu čakania, čím ju Dijkstrov algoritmus prirodzene vyradí ako neefektívnu.
-        Pri is_future=True ignoruje živé meškania dnešných vozidiel a telemetriu, vychádza z plánovaného poriadku.
+        Vychádza striktne z databázy cestovných poriadkov (timetables.db) a živého feedu.
         """
         line_str = str(line).strip()
         current_ts = int(current_dt.timestamp())
@@ -1025,128 +1194,84 @@ class RoutingEngine:
                 "is_live": False
             }
 
+        stop_obj = self.stops_by_id.get(stop_id) or self.stops_by_id.get(str(stop_id))
+        stop_norm = normalize_canonical_stop(self.get_canonical_name(stop_obj)) if stop_obj else ""
+
+        # 1. Kontrola Ubian odchodov na danej zastávke (ak povolené a dostupné)
+        if allow_network:
+            deps = self.get_stop_departures_cached(stop_id, current_dt, allow_network=True)
+            matching_deps = [d for d in deps if str(d.get("line")).strip() == line_str]
+            if matching_deps:
+                valid_deps = []
+                for d in matching_deps:
+                    if is_future:
+                        exp_ts = d.get("planned_timestamp") or d.get("expected_timestamp") or 0
+                    else:
+                        exp_ts = d.get("expected_timestamp")
+                        if not exp_ts:
+                            pl_ts = d.get("planned_timestamp") or 0
+                            del_min = d.get("delay_minutes", 0)
+                            exp_ts = pl_ts + (del_min * 60)
+                    if exp_ts and exp_ts >= (current_ts - 30):
+                        valid_deps.append((exp_ts, d))
+
+                if valid_deps:
+                    valid_deps.sort(key=lambda x: x[0])
+                    best_exp_ts, best_d = valid_deps[0]
+                    wait_sec = max(60, int(best_exp_ts - current_ts))
+                    del_min = 0 if is_future else best_d.get("delay_minutes", 0)
+                    tid = best_d.get("trip_id")
+                    vid = None if is_future else best_d.get("vehicle_id")
+                    lic = None if is_future else best_d.get("license_number")
+                    fleet_info = None
+
+                    if not is_future and self.fleet_service and (vid or lic):
+                        fleet = self.fleet_service.match_live_vehicle(
+                            vehicle_id=vid,
+                            license_number=lic,
+                            line=line_str,
+                            line_type="TRAM" if best_d.get("line_type") == "TRAM" else "BUS",
+                            raw_vehicle=best_d
+                        )
+                        if fleet:
+                            spz_str = fleet.get("spz") or (f"ev. č. {fleet.get('evidencne_cislo')}" if fleet.get('evidencne_cislo') else None)
+                            model_name = fleet.get("model") or ("Električka DPMK" if best_d.get("line_type") == "TRAM" else "Autobus DPMK")
+                            fleet_info = f"{model_name} ({spz_str})" if spz_str else model_name
+
+                    return {
+                        "wait_seconds": wait_sec,
+                        "wait_minutes": round(wait_sec / 60.0, 1),
+                        "delay_minutes": del_min,
+                        "expected_timestamp": best_exp_ts,
+                        "trip_id": tid,
+                        "vehicle_info": fleet_info,
+                        "license_number": lic,
+                        "is_live": False if is_future else bool(vid or lic)
+                    }
+
+        # 2. Striktný oficiálny odchod z timetables.db s live meškaním
+        if stop_norm:
+            tt_deps = self.get_transit_departures_for_routing(stop_norm, line_str, current_dt, is_future=is_future)
+            if tt_deps:
+                dep = tt_deps[0]
+                return {
+                    "wait_seconds": dep["effective_wait_seconds"],
+                    "wait_minutes": round(dep["effective_wait_seconds"] / 60.0, 1),
+                    "delay_minutes": dep["delay_minutes"],
+                    "expected_timestamp": current_ts + dep["effective_wait_seconds"],
+                    "trip_id": dep["trip_id"],
+                    "vehicle_info": dep.get("vehicle_info"),
+                    "license_number": None,
+                    "is_live": dep.get("is_live", False)
+                }
+
+        # 3. Fallback: zistenie z grafikónu celej linky
         is_op, sched_wait_sec, headway = self.get_line_schedule_window(line_str, current_dt)
-        if not is_op:
-            return {
-                "wait_seconds": sched_wait_sec,
-                "wait_minutes": round(sched_wait_sec / 60.0, 1),
-                "delay_minutes": 0,
-                "expected_timestamp": current_ts + sched_wait_sec,
-                "trip_id": None,
-                "vehicle_info": None,
-                "license_number": None,
-                "is_live": False
-            }
-
-        # 1. Kontrola Ubian odchodov na danej zastávke
-        deps = self.get_stop_departures_cached(stop_id, current_dt, allow_network=allow_network)
-        matching_deps = [
-            d for d in deps
-            if str(d.get("line")).strip() == line_str
-        ]
-
-        if matching_deps:
-            valid_deps = []
-            for d in matching_deps:
-                if is_future:
-                    # Pre budúce spoje ignorujeme aktuálne live meškanie dnešných vozidiel
-                    pl_ts = d.get("planned_timestamp") or d.get("expected_timestamp") or 0
-                    exp_ts = pl_ts
-                else:
-                    exp_ts = d.get("expected_timestamp")
-                    if not exp_ts:
-                        pl_ts = d.get("planned_timestamp") or 0
-                        del_min = d.get("delay_minutes", 0)
-                        exp_ts = pl_ts + (del_min * 60)
-                if exp_ts and exp_ts >= (current_ts - 30):
-                    valid_deps.append((exp_ts, d))
-
-            if valid_deps:
-                valid_deps.sort(key=lambda x: x[0])
-                best_exp_ts, best_d = valid_deps[0]
-                wait_sec = max(60, int(best_exp_ts - current_ts))
-                del_min = 0 if is_future else best_d.get("delay_minutes", 0)
-                tid = best_d.get("trip_id")
-                vid = None if is_future else best_d.get("vehicle_id")
-                lic = None if is_future else best_d.get("license_number")
-                fleet_info = None
-
-                if not is_future and self.fleet_service and (vid or lic):
-                    fleet = self.fleet_service.match_live_vehicle(
-                        vehicle_id=vid,
-                        license_number=lic,
-                        line=line_str,
-                        line_type="TRAM" if best_d.get("line_type") == "TRAM" else "BUS",
-                        raw_vehicle=best_d
-                    )
-                    if fleet:
-                        spz_str = fleet.get("spz") or (f"ev. č. {fleet.get('evidencne_cislo')}" if fleet.get("evidencne_cislo") else None)
-                        model_name = fleet.get("model") or ("Električka DPMK" if best_d.get("line_type") == "TRAM" else "Autobus DPMK")
-                        fleet_info = f"{model_name} ({spz_str})" if spz_str else model_name
-
-                return {
-                    "wait_seconds": wait_sec,
-                    "wait_minutes": round(wait_sec / 60.0, 1),
-                    "delay_minutes": del_min,
-                    "expected_timestamp": best_exp_ts,
-                    "trip_id": tid,
-                    "vehicle_info": fleet_info,
-                    "license_number": lic,
-                    "is_live": False if is_future else bool(vid or lic)
-                }
-
-        # Ak zastávka vrátila odchody iných liniek, ale táto linka medzi nimi nie je:
-        if deps and len(deps) >= 5:
-            # Ak je linka v prevádzke podľa statického harmonogramu, použijeme statický headway,
-            # aby uzly nezostali izolované pri výpadku živých dát.
-            if is_op:
-                stat_wait = max(sched_wait_sec, headway)
-                return {
-                    "wait_seconds": stat_wait,
-                    "wait_minutes": round(stat_wait / 60.0, 1),
-                    "delay_minutes": 0,
-                    "expected_timestamp": current_ts + stat_wait,
-                    "trip_id": None,
-                    "vehicle_info": None,
-                    "license_number": None,
-                    "is_live": False
-                }
-            else:
-                big_wait = max(9000, sched_wait_sec)
-                return {
-                    "wait_seconds": big_wait,
-                    "wait_minutes": round(big_wait / 60.0, 1),
-                    "delay_minutes": 0,
-                    "expected_timestamp": current_ts + big_wait,
-                    "trip_id": None,
-                    "vehicle_info": None,
-                    "license_number": None,
-                    "is_live": False
-                }
-
-        # 2. Ak odchody z Ubianu neboli dostupné:
-        # Pre budúci čas ignorujeme live feed telemetriu dnešných vozidiel!
-        if not is_future:
-            telem = self.get_live_line_telemetry(line_str, stop_id)
-            if telem.get("is_live"):
-                return {
-                    "wait_seconds": telem["wait_seconds"],
-                    "wait_minutes": telem["wait_minutes"],
-                    "delay_minutes": telem["delay_minutes"],
-                    "expected_timestamp": current_ts + telem["wait_seconds"],
-                    "trip_id": None,
-                    "vehicle_info": telem["vehicle_info"],
-                    "license_number": telem["license_number"],
-                    "is_live": True
-                }
-
-        # 3. Statický fallback: Plánované odchody a štandardný headway v rámci premávky
-        stat_wait = sched_wait_sec if is_op else max(9000, sched_wait_sec)
         return {
-            "wait_seconds": stat_wait,
-            "wait_minutes": round(stat_wait / 60.0, 1),
+            "wait_seconds": sched_wait_sec,
+            "wait_minutes": round(sched_wait_sec / 60.0, 1),
             "delay_minutes": 0,
-            "expected_timestamp": current_ts + stat_wait,
+            "expected_timestamp": current_ts + sched_wait_sec,
             "trip_id": None,
             "vehicle_info": None,
             "license_number": None,
@@ -1225,6 +1350,7 @@ class RoutingEngine:
 
         visited: Set[Any] = set()
         wait_cache: Dict[Tuple[Any, str], Dict[str, Any]] = {}
+        transit_cache: Dict[Tuple[str, str, int], List[Dict[str, Any]]] = {}
         max_pops = 15000
         pop_count = 0
 
@@ -1324,81 +1450,102 @@ class RoutingEngine:
                 next_mode = "platform_transfer" if is_platform_transfer else "walk"
                 heapq.heappush(pq, (new_cost, new_real_time, counter, v, next_mode, path + [action]))
 
-            # 2. Jazda MHD - výlučne klasické mestské linky DPMK (bez Eurobusov)
+            # 2. Jazda MHD - výlučne podľa oficiálnych grafikonov z timetables.db s live meškaniami
+            u_norm = normalize_canonical_stop(self.get_canonical_name(u_stop))
             u_lines = [l for l in u_stop.get("lines", []) if self.is_mhd_line(l)]
+
             for line in u_lines:
-                cand_stops = self.lines_to_stops.get(str(line), [])
-                wait_key = (u_str, line)
-                if wait_key not in wait_cache:
-                    wait_cache[wait_key] = self.calculate_transit_edge_wait(
-                        u, line, current_node_dt, allow_network=False, is_future=is_future
+                if mode == f"transit_{line}":
+                    continue
+
+                t_cache_key = (u_norm, str(line).strip(), int(current_node_dt.timestamp()) // 60)
+                if t_cache_key not in transit_cache:
+                    transit_cache[t_cache_key] = self.get_transit_departures_for_routing(
+                        u_norm, line, current_node_dt, is_future=is_future
                     )
-                wait_info = wait_cache[wait_key]
-                wait_sec = wait_info["wait_seconds"]
-                delay_min = wait_info["delay_minutes"]
-                trip_id = wait_info.get("trip_id")
-                veh_info = wait_info.get("vehicle_info")
+                departures = transit_cache[t_cache_key]
 
-                for v in cand_stops:
-                    v_str = str(v)
-                    if v == u or v_str == u_str or v in visited or v_str in visited:
-                        continue
+                for dep in departures:
+                    wait_sec = dep["wait_seconds"]
+                    eff_wait_sec = dep["effective_wait_seconds"]
+                    delay_min = dep["delay_minutes"]
+                    trip_id = dep["trip_id"]
+                    direction = dep["direction"]
+                    dest_stop = dep["destination_stop"]
+                    veh_info = dep.get("vehicle_info")
+                    is_live = dep.get("is_live", False)
 
-                    v_stop = self.stops_by_id.get(v) or self.stops_by_id.get(v_str)
-                    if not v_stop:
-                        continue
-                    v_lat = v_stop.get("latitude")
-                    v_lon = v_stop.get("longitude")
-                    if v_lat is None or v_lon is None:
-                        continue
+                    for ds in dep["downstream_stops"]:
+                        to_ds_norm = ds["canonical_stop_name"]
+                        ride_sec = ds["ride_seconds"]
+                        arr_time_str = ds["departure_time_str"]
 
-                    dx = (v_lon - u_lon) * 73400.0
-                    dy = (v_lat - u_lat) * 111200.0
-                    d2 = dx * dx + dy * dy
-                    if d2 > 144000000:  # 12 km
-                        continue
+                        target_cand_stops = self.stops_by_norm_canonical.get(to_ds_norm, [])
+                        if not target_cand_stops:
+                            continue
 
-                    dist_m = math.sqrt(d2)
-                    ride_sec = max(75, int(dist_m * 0.1923))
+                        matched_v_stop = None
+                        for cand in target_cand_stops:
+                            if line in cand.get("lines", []):
+                                matched_v_stop = cand
+                                break
+                        if matched_v_stop is None:
+                            matched_v_stop = target_cand_stops[0]
 
-                    # Transfer penalty: aplikuje sa výlučne ak už cestujúci použil predchádzajúci spoj a prestupuje
-                    is_transfer = has_prior_transit and (mode != f"transit_{line}")
-                    if direct_only and is_transfer:
-                        continue
-                    transfer_penalty = TRANSFER_PENALTY_SECONDS if is_transfer else 0
+                        v = matched_v_stop["stop_id"]
+                        v_str = str(v)
 
-                    new_cost = cost_metric + wait_sec + ride_sec + transfer_penalty
-                    new_real_time = real_time_sec + wait_sec + ride_sec
+                        if v == u or v_str == u_str or v in visited or v_str in visited:
+                            continue
 
-                    if new_cost >= best_cost.get(v, float("inf")) or new_cost >= best_cost.get(v_str, float("inf")):
-                        continue
-                    best_cost[v] = new_cost
-                    best_cost[v_str] = new_cost
-                    try:
-                        best_cost[int(v)] = new_cost
-                    except (ValueError, TypeError):
-                        pass
+                        is_transfer = has_prior_transit and (mode != f"transit_{line}")
+                        if direct_only and is_transfer:
+                            continue
+                        transfer_penalty = TRANSFER_PENALTY_SECONDS if is_transfer else 0
 
-                    action = {
-                        "type": "transit",
-                        "line": line,
-                        "from_id": u,
-                        "to_id": v,
-                        "distance_meters": round(dist_m, 1),
-                        "wait_seconds": wait_sec,     # Čistý reálny čas bez penalizácie
-                        "wait_minutes": wait_info.get("wait_minutes", round(wait_sec / 60.0, 1)),
-                        "ride_seconds": ride_sec,     # Čistý reálny čas bez penalizácie
-                        "delay_minutes": delay_min,
-                        "trip_id": trip_id,
-                        "vehicle_info": veh_info,
-                        "expected_timestamp": wait_info.get("expected_timestamp"),
-                        "is_live": wait_info.get("is_live", False)
-                    }
-                    counter += 1
-                    heapq.heappush(
-                        pq,
-                        (new_cost, new_real_time, counter, v, f"transit_{line}", path + [action])
-                    )
+                        new_cost = cost_metric + eff_wait_sec + ride_sec + transfer_penalty
+                        new_real_time = real_time_sec + eff_wait_sec + ride_sec
+
+                        if new_cost >= best_cost.get(v, float("inf")) or new_cost >= best_cost.get(v_str, float("inf")):
+                            continue
+
+                        best_cost[v] = new_cost
+                        best_cost[v_str] = new_cost
+                        try:
+                            best_cost[int(v)] = new_cost
+                        except (ValueError, TypeError):
+                            pass
+
+                        v_lat = matched_v_stop.get("latitude")
+                        v_lon = matched_v_stop.get("longitude")
+                        dist_m = self.haversine_distance(u_lat, u_lon, v_lat, v_lon) if (v_lat is not None and v_lon is not None) else 0.0
+
+                        action = {
+                            "type": "transit",
+                            "line": line,
+                            "from_id": u,
+                            "to_id": v,
+                            "distance_meters": round(dist_m, 1),
+                            "wait_seconds": eff_wait_sec,
+                            "planned_wait_seconds": wait_sec,
+                            "wait_minutes": round(eff_wait_sec / 60.0, 1),
+                            "ride_seconds": ride_sec,
+                            "ride_minutes": round(ride_sec / 60.0, 1),
+                            "departure_time_str": dep["departure_time_str"],
+                            "arrival_time_str": arr_time_str,
+                            "direction": direction,
+                            "destination_stop": dest_stop,
+                            "delay_minutes": delay_min,
+                            "trip_id": trip_id,
+                            "vehicle_info": veh_info,
+                            "expected_timestamp": int(current_node_dt.timestamp()) + eff_wait_sec,
+                            "is_live": is_live
+                        }
+                        counter += 1
+                        heapq.heappush(
+                            pq,
+                            (new_cost, new_real_time, counter, v, f"transit_{line}", path + [action])
+                        )
 
         return None, []
 
@@ -1745,8 +1892,14 @@ class RoutingEngine:
 
                 u_canon = self.get_canonical_name(u_s)
                 v_canon = self.get_canonical_name(v_s)
+                dep_time_str = act.get("departure_time_str")
+                arr_time_str = act.get("arrival_time_str")
 
-                wait_instr = f"Počkaj na linku {line} na zastávke {u_canon} (čakacia doba cca {wait_min} min"
+                if dep_time_str:
+                    wait_instr = f"Počkaj na linku {line} na zastávke {u_canon} (odchod {dep_time_str}, čakacia doba cca {wait_min} min"
+                else:
+                    wait_instr = f"Počkaj na linku {line} na zastávke {u_canon} (čakacia doba cca {wait_min} min"
+
                 if not is_future and delay_min > 0:
                     wait_instr += f", meškanie +{delay_min} min"
                 if not is_future and veh_info:
@@ -1765,6 +1918,7 @@ class RoutingEngine:
                     "delay_minutes": delay_min,
                     "vehicle_info": veh_info,
                     "trip_id": trip_id,
+                    "departure_time_str": dep_time_str,
                     "instruction": wait_instr,
                     "icon": "⏳"
                 })
@@ -1797,6 +1951,10 @@ class RoutingEngine:
                     "distance_meters": dist_m,
                     "stops_count": stops_count,
                     "intermediate_stops": intermediate_names,
+                    "departure_time_str": dep_time_str,
+                    "arrival_time_str": arr_time_str,
+                    "direction": act.get("direction"),
+                    "destination_stop": act.get("destination_stop"),
                     "from_coords": [u_s["latitude"], u_s["longitude"]],
                     "to_coords": [v_s["latitude"], v_s["longitude"]],
                     "polyline": polyline_coords,
