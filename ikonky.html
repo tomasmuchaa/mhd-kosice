@@ -1895,15 +1895,148 @@
       </svg>`;
     }
 
-    // 14. Solaris Urbino 18 & 18,75 III - masívny kĺbový autobus podľa autentickej 3. generácie:
-    // Kompaktnejšie a usadenejšie proporcie (44×42 px, viditeľne menší ako električky), bordová karoséria (#881337),
-    // čisté BIELE asymetrické čelné sklo (fill="#ffffff", spodná línia klesá šikmo vľavo) s jemným odleskom,
-    // veľké tučné TMAVÉ číslo linky (#0f172a), horizontálna lišta meškania na samom vrchu bieleho okna,
-    // minimalistické logo 'S' v ovále uprostred pod sklom a realistické stlmené svetlomety
-    function renderSolarisU18Svg(line, delayColorOrMinutes = '', isExtraLong = false, evNum = '') {
+    // 14. Solaris Urbino 18 III - autentický kĺbový 18m autobus DPMK (č. 3905):
+    // Masívna 18m kĺbová geometria (44×42 px), čistý tmavý obrys (#0f172a),
+    // autentické ASYMETRICKÉ biele čelné sklo (fill="#ffffff", spodná hrana klesá šikmo vľavo),
+    // obrovské tučné tmavé číslo linky (#0f172a), integrovaná lišta meškania cez clipPath (100% šírky okna),
+    // snehobiela maska s ev. č. 3905 a zeleným jazvečíkom Solaris napravo,
+    // žlto-oranžové pruhy a svetlomodrý (azúrový) nárazník s 3 svetlometmi na každej strane
+    function renderSolaris18IIISvg(line, delayColorOrMinutes = '', evNum = '3905') {
       const safeLine = escapeXml(line || '71');
-      const defaultEv = isExtraLong ? '3901' : '3701';
-      const displayEv = escapeXml(String(evNum || defaultEv).trim() || defaultEv);
+      const displayEv = escapeXml(String(evNum || '3905').trim() || '3905');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
+
+      const delayColor = getDelayBarColor(delayColorOrMinutes);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const cleanSpz = (displayEv === '3905') ? 'KE·748ON' : ('KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv));
+      const clipId = 'ws-clip-sol18-' + Math.random().toString(36).substr(2, 7);
+
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 42" width="44" height="42" class="veh-front-svg veh-solaris-u18">
+          <defs>
+            <filter id="sol18-shadow" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1.2" stdDeviation="1.0" flood-color="#000000" flood-opacity="0.35"/>
+            </filter>
+            <!-- CLIP PATH PRE ASYMETRICKÉ ČELNÉ SKLO -->
+            <clipPath id="${clipId}">
+              <path d="M 4.8 7.2 L 39.2 7.2 L 39.2 21.5 C 28 21.5 19 23.8 4.8 28.8 Z"/>
+            </clipPath>
+          </defs>
+
+          <!-- KOLESÁ (pod nárazníkom) -->
+          <g fill="#0f172a">
+            <rect x="5.5" y="37" width="5" height="3.8" rx="1.2"/>
+            <rect x="33.5" y="37" width="5" height="3.8" rx="1.2"/>
+          </g>
+
+          <!-- MASÍVNE ČIERNE SPÄTNÉ ZRKADLÁ PO BOKOCH -->
+          <!-- Ľavé spätné zrkadlo -->
+          <rect x="0.5" y="8" width="2.5" height="9" rx="1" fill="#0f172a" stroke="#18181b" stroke-width="0.6"/>
+          <rect x="0.9" y="8.8" width="1.5" height="7.4" rx="0.5" fill="#1e293b"/>
+          <line x1="2.9" y1="9.5" x2="4.8" y2="9.5" stroke="#0f172a" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="2.9" y1="14" x2="4.8" y2="14" stroke="#0f172a" stroke-width="1.2" stroke-linecap="round"/>
+          <!-- Pravé spätné zrkadlo -->
+          <rect x="41" y="8" width="2.5" height="9" rx="1" fill="#0f172a" stroke="#18181b" stroke-width="0.6"/>
+          <rect x="41.6" y="8.8" width="1.5" height="7.4" rx="0.5" fill="#1e293b"/>
+          <line x1="41" y1="9.5" x2="39.2" y2="9.5" stroke="#0f172a" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="41" y1="14" x2="39.2" y2="14" stroke="#0f172a" stroke-width="1.2" stroke-linecap="round"/>
+
+          <!-- JEMNÁ MODRÁ KLIMATIZÁCIA NA STRECHE (Solaris Urbino III) -->
+          <rect x="13" y="0.8" width="18" height="2.8" rx="1" fill="#0284c7" stroke="#0f172a" stroke-width="0.8"/>
+          <line x1="16" y1="1.8" x2="16" y2="2.8" stroke="#0369a1" stroke-width="0.6"/>
+          <line x1="18.5" y1="1.8" x2="18.5" y2="2.8" stroke="#0369a1" stroke-width="0.6"/>
+          <line x1="21" y1="1.8" x2="21" y2="2.8" stroke="#0369a1" stroke-width="0.6"/>
+          <line x1="23" y1="1.8" x2="23" y2="2.8" stroke="#0369a1" stroke-width="0.6"/>
+          <line x1="25.5" y1="1.8" x2="25.5" y2="2.8" stroke="#0369a1" stroke-width="0.6"/>
+          <line x1="28" y1="1.8" x2="28" y2="2.8" stroke="#0369a1" stroke-width="0.6"/>
+
+          <!-- MASÍVNA HLAVNÁ KAROSÉRIA (široká silueta, čistý tmavý obrys #0f172a) -->
+          <rect x="4.8" y="3.5" width="34.4" height="35" rx="2.5" fill="#0f172a" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" filter="url(#sol18-shadow)"/>
+
+          <!-- HORNÝ PANEL NAD OKNOM A DISPLEJ TRASY -->
+          <path d="M 4.8 7.2 L 4.8 5.2 C 4.8 4.2 5.6 3.5 6.6 3.5 L 37.4 3.5 C 38.4 3.5 39.2 4.2 39.2 5.2 L 39.2 7.2 Z" fill="#0f172a"/>
+          <circle cx="6.8" cy="4.8" r="0.55" fill="#fef08a" opacity="0.85"/>
+          <circle cx="37.2" cy="4.8" r="0.55" fill="#fef08a" opacity="0.85"/>
+          <rect x="11.5" y="4.2" width="21" height="2.2" rx="0.6" fill="#18181b" stroke="#27272a" stroke-width="0.4"/>
+          <line x1="13.5" y1="5.3" x2="30.5" y2="5.3" stroke="#f59e0b" stroke-width="0.5" stroke-dasharray="1 0.8"/>
+
+          <!-- ASYMETRICKÉ ČELNÉ SKLO (ČISTÁ BIELA #ffffff, VĽAVO KLESÁ NIŽŠIE) -->
+          <path d="M 4.8 7.2 L 39.2 7.2 L 39.2 21.5 C 28 21.5 19 23.8 4.8 28.8 Z"
+                fill="#ffffff" stroke="#0f172a" stroke-width="1.1" stroke-linejoin="round"/>
+
+          <!-- DIAGONÁLNY POLOPRIEHLADNÝ ODLESK SKLA -->
+          <polygon points="25,7.2 29.5,7.2 18,24 13.5,25" fill="#e2e8f0" opacity="0.45" clip-path="url(#${clipId})"/>
+
+          <!-- INTEGROVANÁ LIŠTA MEŠKANIA (100% šírky horného rovného okraja skla cez clipPath) -->
+          <rect class="veh-delay-bar" x="4.8" y="7.2" width="34.4" height="3.8"
+                fill="${delayFill}" clip-path="url(#${clipId})" style="${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="4.8" y1="11" x2="39.2" y2="11" stroke="#0f172a" stroke-width="0.8"/>` : ''}
+
+          <!-- ČÍSLO LINKY (OBROVSKÉ, TUČNÉ, ČIERNE/TMAVÉ #0f172a ZA SKLOM) -->
+          <text x="22" y="16.2" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- BIELA MASKA POD ASYMETRICKÝM OKNOM -->
+          <path d="M 4.8 28.8 C 19 23.8 28 21.5 39.2 21.5 L 39.2 31.2 L 4.8 31.2 Z"
+                fill="#ffffff" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round"/>
+
+          <!-- EVIDENČNÉ ČÍSLO V STREDE BIELEHO PANELU -->
+          <text x="21" y="27.2" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.6px"
+                fill="#0f172a" letter-spacing="0.3px">${displayEv}</text>
+
+          <!-- ZELENÝ JAZVEČÍK SOLARIS V PRAVEJ ČASTI BIELEHO PANELU -->
+          <g transform="translate(33.6, 25.6)">
+            <rect x="0.7" y="1.0" width="2.8" height="1.1" rx="0.45" fill="#16a34a"/>
+            <circle cx="3.9" cy="0.8" r="0.65" fill="#16a34a"/>
+            <rect x="4.1" y="0.85" width="0.8" height="0.5" rx="0.25" fill="#16a34a"/>
+            <path d="M 3.7 0.5 C 3.5 0.9 3.5 1.4 3.7 1.6" stroke="#15803d" stroke-width="0.3" fill="none"/>
+            <rect x="3.1" y="2.0" width="0.45" height="0.7" rx="0.2" fill="#16a34a"/>
+            <rect x="0.9" y="2.0" width="0.45" height="0.7" rx="0.2" fill="#16a34a"/>
+            <path d="M 0.7 1.1 Q 0.2 0.7 0.1 0.3" stroke="#16a34a" stroke-width="0.4" stroke-linecap="round" fill="none"/>
+          </g>
+
+          <!-- ŽLTO-ORANŽOVÉ PRUHY POD BIELOU MASKOU -->
+          <rect x="4.8" y="31.2" width="34.4" height="0.8" fill="#eab308"/>
+          <rect x="4.8" y="32.0" width="34.4" height="0.8" fill="#f97316"/>
+          <line x1="4.8" y1="32.8" x2="39.2" y2="32.8" stroke="#0f172a" stroke-width="0.7"/>
+
+          <!-- SVETLOMODRÝ (AZÚROVÝ) NÁRAZNÍK (#0ea5e9) -->
+          <path d="M 4.8 32.8 L 39.2 32.8 L 39.2 36.6 C 39.2 38.2 37.8 39.2 35.5 39.2 L 8.5 39.2 C 6.2 39.2 4.8 38.2 4.8 36.6 Z"
+                fill="#0ea5e9" stroke="#0f172a" stroke-width="1.1"/>
+
+          <!-- ZHLUKY 3 SVETLOMETOV V NÁRAZNÍKU (svietiace neutrálnou bielo-žltou) -->
+          <!-- Ľavý zhluk -->
+          <g>
+            <rect x="6.2" y="33.6" width="6.8" height="2.6" rx="0.8" fill="#0f172a" stroke="#1e293b" stroke-width="0.35"/>
+            <circle cx="7.4" cy="34.9" r="0.75" fill="#ffffff" stroke="#94a3b8" stroke-width="0.2"/>
+            <circle cx="9.6" cy="34.9" r="0.7" fill="#fef08a" stroke="#ca8a04" stroke-width="0.2"/>
+            <circle cx="11.7" cy="34.9" r="0.65" fill="#fef9c3" stroke="#94a3b8" stroke-width="0.2"/>
+          </g>
+          <!-- Pravý zhluk -->
+          <g>
+            <rect x="31.0" y="33.6" width="6.8" height="2.6" rx="0.8" fill="#0f172a" stroke="#1e293b" stroke-width="0.35"/>
+            <circle cx="32.3" cy="34.9" r="0.65" fill="#fef9c3" stroke="#94a3b8" stroke-width="0.2"/>
+            <circle cx="34.4" cy="34.9" r="0.7" fill="#fef08a" stroke="#ca8a04" stroke-width="0.2"/>
+            <circle cx="36.6" cy="34.9" r="0.75" fill="#ffffff" stroke="#94a3b8" stroke-width="0.2"/>
+          </g>
+
+          <!-- ŠPZ V STREDE NÁRAZNÍKA -->
+          <rect x="16.5" y="35.2" width="11" height="2.6" rx="0.5" fill="#ffffff" stroke="#0f172a" stroke-width="0.4"/>
+          <text x="22" y="36.5" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.4px"
+                fill="#0f172a" letter-spacing="0.2px">${cleanSpz}</text>
+        </svg>
+      `;
+    }
+
+    // 14b. Solaris Urbino 18,75 III - predĺžený kĺbový gigant (č. 3901, bordová karoséria):
+    function renderSolarisU1875Svg(line, delayColorOrMinutes = '', evNum = '3901') {
+      const safeLine = escapeXml(line || '71');
+      const displayEv = escapeXml(String(evNum || '3901').trim() || '3901');
       const len = safeLine.length;
       const fontSize = len <= 1 ? 14 : (len === 2 ? 13 : (len === 3 ? 10.5 : 8.5));
 
@@ -1911,13 +2044,17 @@
       const isDelayed = (delayColor && delayColor !== 'transparent');
       const delayFill = isDelayed ? delayColor : 'transparent';
       const cleanSpz = 'KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv);
+      const clipId = 'ws-clip-sol1875-' + Math.random().toString(36).substr(2, 7);
 
       return `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 42" width="44" height="42" class="veh-front-svg veh-solaris-u18">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 42" width="44" height="42" class="veh-front-svg veh-solaris-u1875">
           <defs>
-            <filter id="sol18-shadow" x="-12%" y="-10%" width="124%" height="120%">
+            <filter id="sol1875-shadow" x="-12%" y="-10%" width="124%" height="120%">
               <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.32"/>
             </filter>
+            <clipPath id="${clipId}">
+              <path d="M 5 7.2 L 39 7.2 L 39 22 L 5 29.5 Z"/>
+            </clipPath>
           </defs>
 
           <!-- KOLESÁ (tmavé, pod nárazníkom) -->
@@ -1927,23 +2064,21 @@
           </g>
 
           <!-- MASÍVNE, HRUBÉ ČIERNE SPÄTNÉ ZRKADLÁ PO BOKOCH HORNEJ ČASTI -->
-          <!-- Ľavé zrkadlo -->
           <rect x="0.5" y="9" width="2.4" height="8" rx="1" fill="#0f172a" stroke="#18181b" stroke-width="0.6"/>
           <rect x="0.9" y="9.8" width="1.4" height="6.4" rx="0.5" fill="#1e293b"/>
           <line x1="2.9" y1="10.5" x2="4.5" y2="10.5" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
           <line x1="2.9" y1="14.5" x2="4.5" y2="14.5" stroke="#0f172a" stroke-width="1.3" stroke-linecap="round"/>
-          <!-- Pravé zrkadlo -->
           <rect x="41.1" y="9" width="2.4" height="8" rx="1" fill="#0f172a" stroke="#18181b" stroke-width="0.6"/>
           <rect x="41.7" y="9.8" width="1.4" height="6.4" rx="0.5" fill="#1e293b"/>
           <line x1="41.1" y1="10.5" x2="39.5" y2="10.5" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
           <line x1="41.1" y1="14.5" x2="39.5" y2="14.5" stroke="#0f172a" stroke-width="1.3" stroke-linecap="round"/>
 
-          <!-- STREŠNÝ BOX KLIMATIZÁCIE (masívny kĺbový Solaris Urbino 18) -->
+          <!-- STREŠNÝ BOX KLIMATIZÁCIE -->
           <rect x="13" y="1" width="18" height="2.2" rx="0.9" fill="#f8fafc" stroke="#0f172a" stroke-width="0.8"/>
           <line x1="15" y1="2.1" x2="29" y2="2.1" stroke="#94a3b8" stroke-width="0.5"/>
 
-          <!-- HLAVNÁ KAROSÉRIA (kompaktnejšia, širšia silueta, bordová farba #881337) -->
-          <rect x="4.5" y="3.5" width="35" height="34.5" rx="2.5" fill="#881337" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" filter="url(#sol18-shadow)"/>
+          <!-- HLAVNÁ KAROSÉRIA (bordová farba #881337) -->
+          <rect x="4.5" y="3.5" width="35" height="34.5" rx="2.5" fill="#881337" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" filter="url(#sol1875-shadow)"/>
 
           <!-- HORNÁ HRANA NAD ČELNÝM SKLOM A DISPLEJ TRASY -->
           <path d="M 4.8 7.2 L 4.8 5.4 C 4.8 4.3 5.7 3.5 6.8 3.5 L 37.2 3.5 C 38.3 3.5 39.2 4.3 39.2 5.4 L 39.2 7.2 Z" fill="#881337"/>
@@ -1951,29 +2086,23 @@
           <line x1="13.5" y1="5.3" x2="30.5" y2="5.3" stroke="#f97316" stroke-width="0.5" stroke-dasharray="1 0.8"/>
           <line x1="4.8" y1="7.2" x2="39.2" y2="7.2" stroke="#0f172a" stroke-width="0.8"/>
 
-          <!-- AUTENTICKÉ ASYMETRICKÉ ČELNÉ SKLO SOLARIS GEN III:
-               Čisté BIELE pozadie (fill="#ffffff"), spodná línia skla klesá šikmo zprava (y=22) doľava (y=29.5) -->
+          <!-- AUTENTICKÉ ASYMETRICKÉ ČELNÉ SKLO (fill="#ffffff") -->
           <path d="M 5 7.2 L 39 7.2 L 39 22 L 5 29.5 Z"
                 fill="#ffffff" stroke="#0f172a" stroke-width="1.2" stroke-linejoin="round"/>
+          <polygon points="25,7.2 30,7.2 19,25.5 14,26.5" fill="#e2e8f0" opacity="0.45" clip-path="url(#${clipId})"/>
 
-          <!-- REALISTICKÝ DIAGONÁLNY POLOPRIEHLADNÝ BIELY/SVETLOSIVÝ ODLESK SKLA -->
-          <polygon points="25,7.2 30,7.2 19,25.5 14,26.5" fill="#e2e8f0" opacity="0.45"/>
-          <polygon points="32,7.2 34.5,7.2 26,23.8 23.5,24.5" fill="#e2e8f0" opacity="0.25"/>
-
-          <!-- INDIKAČNÁ LIŠTA MEŠKANIA (na samom vrchu bieleho skla na celú šírku) -->
-          <path class="veh-delay-bar" d="M 5 10.8 L 5 8 C 5 7.4 5.6 7.2 6.4 7.2 L 37.6 7.2 C 38.4 7.2 39 7.4 39 8 L 39 10.8 Z"
-                fill="${delayFill}" style="${isDelayed ? '' : 'display: none;'}"/>
+          <!-- INDIKAČNÁ LIŠTA MEŠKANIA -->
+          <rect class="veh-delay-bar" x="5" y="7.2" width="34" height="3.6"
+                fill="${delayFill}" clip-path="url(#${clipId})" style="${isDelayed ? '' : 'display: none;'}"/>
           ${isDelayed ? `<line x1="5" y1="10.8" x2="39" y2="10.8" stroke="#0f172a" stroke-width="0.8"/>` : ''}
 
-          <!-- OBROVSKÉ, TUČNÉ A STRIKTNE TMAVÉ ČÍSLO LINKY VYCENTROVANÉ V STREDE BIELÉHO SKLA -->
+          <!-- OBROVSKÉ TUČNÉ TMAVÉ ČÍSLO LINKY -->
           <text x="22" y="16.5" text-anchor="middle" dominant-baseline="central"
                 font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
                 fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
 
           <!-- PREDNÁ MASKA POD ASYMETRICKÝM SKLOM -->
           <path d="M 4.8 29.5 L 5 29.5 L 39 22 L 39.2 22 L 39.2 31.5 L 4.8 31.5 Z" fill="#9f1239"/>
-
-          <!-- MINIMALISTICKÉ ELEGANTNÉ LOGO SOLARIS (OVÁL S PÍSMENOM 'S') UPROSTRED -->
           <g transform="translate(22, 27.8)">
             <ellipse cx="0" cy="0" rx="2.8" ry="1.5" fill="#18181b" stroke="#cbd5e1" stroke-width="0.5"/>
             <text x="0" y="0.2" text-anchor="middle" dominant-baseline="central"
@@ -1985,16 +2114,13 @@
           <path d="M 4.8 31.5 L 39.2 31.5 L 39.2 36.5 C 39.2 38 37.8 39 35.5 39 L 8.5 39 C 6.2 39 4.8 38 4.8 36.5 Z" fill="#881337"/>
           <line x1="4.8" y1="31.5" x2="39.2" y2="31.5" stroke="#0f172a" stroke-width="0.8"/>
 
-          <!-- REALISTICKÉ MENŠIE A STLMENÉ SVETLOMETY:
-               3 malé kruhové svetlá na každej strane so sivým okrajom a neutrálnym svetlým vnútrom -->
-          <!-- Ľavý zhluk 3 svetiel -->
+          <!-- REALISTICKÉ SVETLOMETY -->
           <g>
             <rect x="6.5" y="32.8" width="6.2" height="2.6" rx="0.7" fill="#0f172a" stroke="#334155" stroke-width="0.3"/>
             <circle cx="7.6" cy="34.1" r="0.7" fill="#f8fafc" stroke="#64748b" stroke-width="0.25"/>
             <circle cx="9.6" cy="34.1" r="0.65" fill="#f1f5f9" stroke="#64748b" stroke-width="0.25"/>
             <circle cx="11.6" cy="34.1" r="0.6" fill="#f8fafc" stroke="#64748b" stroke-width="0.25"/>
           </g>
-          <!-- Pravý zhluk 3 svetiel -->
           <g>
             <rect x="31.3" y="32.8" width="6.2" height="2.6" rx="0.7" fill="#0f172a" stroke="#334155" stroke-width="0.3"/>
             <circle cx="32.4" cy="34.1" r="0.6" fill="#f8fafc" stroke="#64748b" stroke-width="0.25"/>
@@ -2002,13 +2128,21 @@
             <circle cx="36.4" cy="34.1" r="0.7" fill="#f8fafc" stroke="#64748b" stroke-width="0.25"/>
           </g>
 
-          <!-- MALÁ ŠPZ V STREDE NÁRAZNÍKA -->
+          <!-- ŠPZ -->
           <rect x="17.5" y="35" width="9" height="2.5" rx="0.5" fill="#ffffff" stroke="#0f172a" stroke-width="0.4"/>
           <text x="22" y="36.2" text-anchor="middle" dominant-baseline="central"
                 font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.4px"
                 fill="#0f172a">${cleanSpz}</text>
         </svg>
       `;
+    }
+
+    // Spätná kompatibilita pre renderSolarisU18Svg
+    function renderSolarisU18Svg(line, delayColorOrMinutes = '', isExtraLong = false, evNum = '') {
+      if (isExtraLong) {
+        return renderSolarisU1875Svg(line, delayColorOrMinutes, evNum || '3901');
+      }
+      return renderSolaris18IIISvg(line, delayColorOrMinutes, evNum || '3905');
     }
 
     // 15. Solaris Urbino 15
@@ -2498,18 +2632,18 @@
       {
         id: 'solaris-u18',
         name: 'Solaris Urbino 18 III',
-        sub: 'Solaris Bus & Coach • Kĺbový veľkokapacitný (č. 3701)',
+        sub: 'Solaris Bus & Coach • Kĺbový veľkokapacitný (č. 3905)',
         category: 'articulated',
         tagText: 'Kĺbový 18m',
         tagClass: 'tag-articulated',
         dimensions: '44 × 42 px',
-        render: (l, d) => renderSolarisU18Svg(l, d, false, '3701'),
+        render: (l, d) => renderSolaris18IIISvg(l, d, '3905'),
         features: [
-          'Kompaktnejšie proporcie (44 × 42 px), usadenejší a viditeľne menší ako električka',
-          'Autentické ASYMETRICKÉ čelné sklo (spodná línia klesá šikmo vľavo)',
-          'Čisté BIELE pozadie skla (#ffffff) s veľkým tučným TMAVÝM číslom linky (#0f172a)',
-          'Predná maska a nárazník v bordovej farbe (#881337) s oválnym logom S',
-          'Realistické stlmené svetlomety (3 malé kruhové svetlá), spätné zrkadlá a lišta meškania'
+          'Autentický 18m kĺbový autobus DPMK Košice (ev. č. 3905)',
+          'Autentické ASYMETRICKÉ biele čelné sklo (fill="#ffffff", vľavo klesá šikmo nižšie)',
+          'Snehobiela predná maska s ev. č. 3905 a detailom zeleného jazvečíka Solaris napravo',
+          'Žlto-oranžové pruhy a svetlomodrý (azúrový) nárazník s 3 svetlometmi na každej strane',
+          'Jemná modrá strešná klimatizácia, masívne spätné zrkadlá a integrovaná lišta meškania cez clipPath'
         ]
       },
       {
@@ -2520,7 +2654,7 @@
         tagText: 'Kĺbový 18,75m',
         tagClass: 'tag-articulated',
         dimensions: '44 × 42 px',
-        render: (l, d) => renderSolarisU18Svg(l, d, true, '3901'),
+        render: (l, d) => renderSolarisU1875Svg(l, d, '3901'),
         features: [
           'Predĺžená 18,75 m veľkokapacitná verzia (ev. č. 3901) pre nosné linky',
           'Kompaktnejšie proporcie (44 × 42 px) s čistým BIELYM asymetrickým sklom',
