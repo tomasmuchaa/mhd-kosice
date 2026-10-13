@@ -1805,7 +1805,7 @@
       padding: 4px !important;
       pointer-events: auto !important;
       max-width: 85vw !important;
-      max-height: 50dvh !important;
+      max-height: 65vh !important;
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
       box-sizing: border-box !important;
@@ -1844,7 +1844,7 @@
       line-height: 1.45;
       pointer-events: auto !important;
       max-width: 85vw !important;
-      max-height: 50dvh !important;
+      max-height: 65vh !important;
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
       box-sizing: border-box !important;
@@ -5645,14 +5645,14 @@
     /* Agresívne CSS limity s najvyššou prioritou: bublina sa prispôsobí a nepretečie */
     .leaflet-popup-content-wrapper {
       max-width: 85vw !important;
-      max-height: 50dvh !important;
+      max-height: 65vh !important;
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
       box-sizing: border-box !important;
     }
     .leaflet-popup-content {
       max-width: 85vw !important;
-      max-height: 50dvh !important;
+      max-height: 65vh !important;
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
       box-sizing: border-box !important;
@@ -12420,9 +12420,11 @@
       marker._vehicleId = v.vehicle_id;
       marker._tripId = v.trip_id;
       marker._targetLatLng = [v.latitude, v.longitude];
-      // Vypnutie Leaflet AutoPan: striktne autoPan: false, aby mapa pri kliknutí neodskakovala
+      // Inteligentný Leaflet AutoPan: posunie mapu len keď bublina narazí na okraj, s 80px rezervou hore pre hlavičku
       marker.bindPopup(popupContent, {
-        autoPan: false,
+        autoPan: true,
+        autoPanPaddingTopLeft: [10, 80],
+        autoPanPaddingBottomRight: [10, 20],
         closeButton: true
       });
       marker.on('click', () => {
@@ -12438,7 +12440,9 @@
       marker.on('popupopen', (e) => {
         const popup = e.popup;
         if (popup && popup.options) {
-          popup.options.autoPan = false;
+          popup.options.autoPan = true;
+          popup.options.autoPanPaddingTopLeft = [10, 80];
+          popup.options.autoPanPaddingBottomRight = [10, 20];
         }
         if (window.innerWidth <= 768) {
           marker.closePopup();
