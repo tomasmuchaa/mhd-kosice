@@ -707,6 +707,18 @@ class FleetService:
 
         return None
 
+    def is_vehicle_verified(self, vehicle_id: Any = None, ev_cislo: Any = None) -> bool:
+        """
+        Zistí, či je vozidlo overené (nachádza sa v MANUAL_OVERRIDES resp. má verified: true).
+        Ostatné vozidlá majú is_verified = False.
+        """
+        ov = self.get_override(vehicle_id=vehicle_id, ev_cislo=ev_cislo)
+        if not ov:
+            return False
+        if "verified" in ov:
+            return bool(ov["verified"])
+        return True
+
     RETIRED_MODELS = (
         "Karosa", "Ikarus", "Škoda", "Jelcz", "Chavdar", "TAM", 
         "Novoplan", "Iveco Citelis", "Tedom"
@@ -725,14 +737,22 @@ class FleetService:
         clean_ev = str(ev_cislo).strip()
         item = self.ev_index.get(clean_ev)
         override = self.get_override(ev_cislo=clean_ev)
+        is_ver = self.is_vehicle_verified(ev_cislo=clean_ev)
         if override:
             res = dict(item) if item else {"evidencne_cislo": clean_ev}
             res.update(override)
+            res["is_verified"] = is_ver
+            res["verified"] = is_ver
             return res
         if only_active and item:
             if not self.is_active_model(item.get("model")):
                 return None
-        return item
+        if item:
+            res = dict(item)
+            res["is_verified"] = is_ver
+            res["verified"] = is_ver
+            return res
+        return None
 
     def get_by_spz(self, spz: str, only_active: bool = False) -> Optional[Dict[str, Any]]:
         clean = spz.replace(" ", "").replace("-", "").upper()
@@ -1023,6 +1043,7 @@ class FleetService:
         # NAJVYŠŠIA AUTORITA PRAVDY: Kontrola MANUAL_OVERRIDES tesne pred vrátením dát
         matched_ev = match.get("evidencne_cislo") if match else (s_vid[-4:] if len(s_vid) >= 4 else None)
         override = self.get_override(vehicle_id=s_vid, ev_cislo=matched_ev)
+        is_ver = self.is_vehicle_verified(vehicle_id=s_vid, ev_cislo=matched_ev)
         if override:
             res = dict(match) if match else {
                 "evidencne_cislo": override.get("evidencne_cislo", s_vid),
@@ -1032,6 +1053,14 @@ class FleetService:
                 "vin": override.get("vin"),
             }
             res.update(override)
+            res["is_verified"] = is_ver
+            res["verified"] = is_ver
+            return res
+
+        if match:
+            res = dict(match)
+            res["is_verified"] = is_ver
+            res["verified"] = is_ver
             return res
 
         return match
@@ -1049,6 +1078,9 @@ class FleetService:
             override = self.get_override(ev_cislo=ev)
             if override:
                 v.update(override)
+            is_ver = self.is_vehicle_verified(ev_cislo=ev)
+            v["is_verified"] = is_ver
+            v["verified"] = is_ver
             vehicles.append(v)
 
         def sort_key(x):

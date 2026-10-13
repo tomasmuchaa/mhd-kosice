@@ -799,7 +799,7 @@ def get_live_vehicles(
                 final_model = "Autobus DPMK"
 
         # 3. NAJVYŠŠIA AUTORITA PRAVDY: MANUAL_OVERRIDES bezpodmienečne prepisuje Ubian aj CSV!
-        is_verified = False
+        is_verified = fleet_service.is_vehicle_verified(vehicle_id=v["vehicle_id"], ev_cislo=final_ev)
         override = fleet_service.get_override(vehicle_id=v["vehicle_id"], ev_cislo=final_ev)
         if override:
             if override.get("model"):
@@ -1209,6 +1209,7 @@ def get_fleet(
         "total_fleet": len(all_vehicles),
         "total_in_service": len(all_vehicles) - len(parked),
         "total_parked": len(parked),
+        "total_verified": sum(1 for x in all_vehicles if x.get("is_verified")),
         "total": len(result_vehicles),
         "vehicles": result_vehicles
     }

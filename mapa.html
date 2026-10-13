@@ -4966,6 +4966,36 @@
       color: #ffffff;
       box-shadow: 0 4px 14px rgba(99, 102, 241, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.25);
     }
+    .garage-chip.dev-only-chip {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.35);
+      color: #fcd34d;
+    }
+    .garage-chip.dev-only-chip:hover {
+      background: rgba(245, 158, 11, 0.22);
+      border-color: rgba(245, 158, 11, 0.6);
+      color: #ffffff;
+    }
+    .garage-chip.dev-only-chip.active {
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.5), rgba(245, 158, 11, 0.35));
+      border-color: #f59e0b;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    }
+    .garage-dev-verified-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 11px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      white-space: nowrap;
+      user-select: none;
+    }
 
     /* Skupiny v Garáži */
     .garage-group-section {
@@ -6076,12 +6106,16 @@
           <div class="view-header-sub">Prehľad vozového parku: v premávke aj v garáži</div>
         </div>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center;">
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
         <button id="garage-requests-btn" class="garage-requests-btn" style="display: none;" onclick="openGarageRequestsModal()" title="Centrum schvaľovania úprav flotily (Developer Mode)">
           <span>📬</span>
           <span>Návrhy úprav</span>
           <span id="requests-badge" class="requests-badge" style="display: none;">0</span>
         </button>
+        <div id="garage-dev-verified-stat" class="garage-dev-verified-stat" style="display: none;" title="Pomer overených vozidiel v celej flotile (Developer Mode)">
+          <span>✅ Overené vozidlá:</span>
+          <span style="color: #ffffff; font-family: 'JetBrains Mono', monospace;"><span id="garage-verified-count">--</span> / <span id="garage-verified-total">--</span></span>
+        </div>
         <button class="refresh-btn" onclick="openIconGalleryModal()" style="padding: 7px 12px; font-size: 0.82rem; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;" title="Otvoriť galériu všetkých modelov a ich SVG ikoniek">🎨 Modely & Ikonky</button>
         <button class="refresh-btn" onclick="fetchVehicles()" style="padding: 7px 14px; font-size: 0.82rem;">↻ Obnoviť</button>
       </div>
@@ -6134,6 +6168,7 @@
       <button type="button" class="garage-chip" data-filter="solo" onclick="setGarageFilter('solo')">🚌 Sólo / Štandard</button>
       <button type="button" class="garage-chip" data-filter="depo_bardejovska" id="chip-depo-bardejovska" onclick="setGarageFilter('depo_bardejovska')">🏢 Depo Bardejovská</button>
       <button type="button" class="garage-chip" data-filter="depo_hornadska" id="chip-depo-hornadska" onclick="setGarageFilter('depo_hornadska')">🏭 Depo Hornádska</button>
+      <button type="button" class="garage-chip dev-only-chip" data-filter="unverified" id="chip-unverified" style="display: none;" onclick="setGarageFilter('unverified')">❓ Neoverené</button>
     </div>
 
     <!-- Zoznam skupín vozidiel generovaný dynamicky -->
@@ -7111,13 +7146,51 @@
       const garageBadge = document.getElementById('dev-mode-pill-garage');
       const drawerLabel = document.getElementById('dev-mode-drawer-label');
       const garageReqBtn = document.getElementById('garage-requests-btn');
+      const garageVerifiedStat = document.getElementById('garage-dev-verified-stat');
+      const chipUnverified = document.getElementById('chip-unverified');
+
       if (mapBadge) mapBadge.style.display = isDevMode ? 'inline-flex' : 'none';
       if (garageBadge) garageBadge.style.display = isDevMode ? 'inline-flex' : 'none';
       if (garageReqBtn) garageReqBtn.style.display = isDevMode ? 'inline-flex' : 'none';
+      if (garageVerifiedStat) garageVerifiedStat.style.display = isDevMode ? 'inline-flex' : 'none';
+      if (chipUnverified) chipUnverified.style.display = isDevMode ? 'inline-flex' : 'none';
+
       if (drawerLabel) drawerLabel.innerText = isDevMode ? '🛠️ Developer Mode (ZAPNUTÝ)' : '🛠️ Developer Mode (Overridy)';
-      if (isDevMode && typeof checkPendingRequestsCount === 'function') {
-        checkPendingRequestsCount();
+      if (isDevMode) {
+        if (typeof checkPendingRequestsCount === 'function') {
+          checkPendingRequestsCount();
+        }
+        updateGarageVerifiedCounter();
+      } else {
+        if (currentGarageFilter === 'unverified') {
+          setGarageFilter('all');
+        }
       }
+    }
+
+    function updateGarageVerifiedCounter() {
+      const statEl = document.getElementById('garage-dev-verified-stat');
+      const countEl = document.getElementById('garage-verified-count');
+      const totalEl = document.getElementById('garage-verified-total');
+      if (!statEl) return;
+      if (!isDevMode) {
+        statEl.style.display = 'none';
+        return;
+      }
+      statEl.style.display = 'inline-flex';
+      const list = fleetDatabaseCache || [];
+      const total = list.length;
+      if (total === 0) {
+        if (typeof loadFleetDatabase === 'function' && !fleetLoadingPromise) {
+          loadFleetDatabase();
+        }
+        if (countEl) countEl.innerText = '--';
+        if (totalEl) totalEl.innerText = String(fleetTotalCount || '--');
+        return;
+      }
+      const verified = list.filter(v => isVehicleVerified(v)).length;
+      if (countEl) countEl.innerText = String(verified);
+      if (totalEl) totalEl.innerText = String(total);
     }
 
     let logoClickCount = 0;
@@ -8320,6 +8393,8 @@
           const isTramOrEbn = item.trakcia === 'TRAM' || /elektri[cč]ka|vario|kt8|t6|ebn/i.test(m);
           item.depo = isTramOrEbn ? 'Depo Bardejovská' : 'Depo Hornádska';
         }
+        item.is_verified = isVehicleVerified(item);
+        item.verified = item.is_verified;
         return item;
       });
     }
@@ -8367,6 +8442,9 @@
         const garageCount = inactiveCountParam !== null ? inactiveCountParam : Math.max(0, (fleetTotalCount || fleetDatabaseCache.length) - activeCount);
         if (statGarage) statGarage.innerText = garageCount;
         if (statFleet) statFleet.innerText = fleetTotalCount || (activeCount + garageCount);
+      }
+      if (typeof updateGarageVerifiedCounter === 'function') {
+        updateGarageVerifiedCounter();
       }
     }
 
@@ -9087,6 +9165,9 @@
 
     function matchesGarageFilter(v, filterKey) {
       if (!filterKey || filterKey === 'all') return true;
+      if (filterKey === 'unverified') {
+        return !isVehicleVerified(v);
+      }
       const fleet = v.fleet_info || v || {};
       const model = String(fleet.model || v.model || '').trim();
       const modelLower = model.toLowerCase();
@@ -9217,6 +9298,7 @@
         const isLive = (ev && activeEvSet.has(ev)) || (spzClean && activeSpzSet.has(spzClean));
         return !isLive;
       }).map(item => {
+        const isVer = isVehicleVerified(item);
         return {
           isDepot: true,
           vehicle_id: null,
@@ -9225,6 +9307,8 @@
           trakcia: item.trakcia || '',
           depo: item.depo || item.garaz || '',
           destination: 'neaktívne (v garáži/pauza)',
+          is_verified: isVer,
+          verified: isVer,
           fleet_info: {
             evidencne_cislo: item.evidencne_cislo,
             spz: item.spz,
@@ -9232,7 +9316,9 @@
             rok_vyroby: item.rok_vyroby,
             vin: item.vin,
             trakcia: item.trakcia,
-            depo: item.depo || item.garaz
+            depo: item.depo || item.garaz,
+            is_verified: isVer,
+            verified: isVer
           },
           evidencne_cislo: item.evidencne_cislo,
           spz: item.spz,
@@ -9271,7 +9357,8 @@
           articulated: '🪗 Kĺbové',
           solo: '🚌 Sólo / Štandard',
           depo_bardejovska: '🏢 Depo Bardejovská',
-          depo_hornadska: '🏭 Depo Hornádska'
+          depo_hornadska: '🏭 Depo Hornádska',
+          unverified: '❓ Neoverené'
         };
         const activeFilterDesc = q
           ? `"${q}"`
