@@ -1199,6 +1199,7 @@ class OverrideRequest(BaseModel):
     model: str
     spz: Optional[str] = None
     verified: Optional[bool] = None
+    note: Optional[str] = None
 
 
 @app.post("/api/v1/admin/override")
@@ -1206,6 +1207,7 @@ def create_or_update_override(req: OverrideRequest, request: Request):
     """
     Developer Mode endpoint pre manuálnu korekciu priradeného modelu, evidenčného čísla a ŠPZ vozidla.
     Zabezpečený tajným administrátorským tokenom (X-Admin-Token).
+    Automaticky vyrieši kolízie evidenčných čísel prečíslovaním pôvodného vozidla na 90xxx.
     """
     verify_admin_token(request)
 
@@ -1214,13 +1216,14 @@ def create_or_update_override(req: OverrideRequest, request: Request):
     if not req.model or not req.model.strip():
         raise HTTPException(status_code=400, detail="Model nesmie byť prázdny.")
 
-    res = fleet_service.add_override(
+    res = fleet_service.set_override(
         model=req.model.strip(),
         evidencne_cislo=str(req.evidencne_cislo).strip() if req.evidencne_cislo is not None and str(req.evidencne_cislo).strip() else None,
         original_evidencne_cislo=str(req.original_evidencne_cislo).strip() if req.original_evidencne_cislo is not None and str(req.original_evidencne_cislo).strip() else None,
         vehicle_id=str(req.vehicle_id).strip() if req.vehicle_id is not None and str(req.vehicle_id).strip() else None,
         spz=req.spz.strip() if req.spz else None,
-        verified=req.verified
+        verified=req.verified,
+        note=req.note.strip() if req.note else None
     )
     return {
         "status": "ok",

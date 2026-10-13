@@ -154,13 +154,21 @@ class FleetService:
         target["status"] = "approved"
         target["reviewed_at"] = datetime.now().isoformat()
 
+        # Vyriešenie prípadnej kolízie evidenčného čísla pred schválením
+        if target.get("evidencne_cislo"):
+            self.resolve_evidencne_cislo_conflict(
+                target_vehicle_id=target.get("vehicle_id"),
+                new_ev_cislo=target.get("evidencne_cislo")
+            )
+
         # Aplikujeme schválené údaje priamo do existujúceho systému perzistentných prepisov
         self.add_override(
             model=target.get("suggested_model", "Autobus DPMK"),
             evidencne_cislo=target.get("evidencne_cislo"),
             vehicle_id=target.get("vehicle_id"),
             spz=target.get("suggested_spz"),
-            verified=True
+            verified=True,
+            note=target.get("note")
         )
 
         self.save_pending_requests()
@@ -183,6 +191,189 @@ class FleetService:
         self.save_pending_requests()
         return target
 
+    def _get_next_free_reassign_ev(self) -> str:
+        """
+        Nájde najnižšie voľné číslo v rozsahu 90000 až 99999 (napr. 90001, 90002...),
+        ktoré zatiaľ nie je priradené žiadnemu vozidlu v systéme.
+        """
+        used_numbers = set()
+        for ev in self.ev_index.keys():
+            used_numbers.add(str(ev).strip())
+        for ev in self.TRANSDATA_MAPPING.values():
+            used_numbers.add(str(ev).strip())
+        for k, ov in self.MANUAL_OVERRIDES.items():
+            used_numbers.add(str(k).strip())
+            if isinstance(ov, dict):
+                ev_val = ov.get("evidencne_cislo")
+                if ev_val:
+                    used_numbers.add(str(ev_val).strip())
+
+        for n in range(90001, 100000):
+            cand = str(n)
+            if cand not in used_numbers:
+                return cand
+        return "99999"
+
+    def resolve_evidencne_cislo_conflict(
+        self,
+        target_vehicle_id: Optional[str],
+        new_ev_cislo: Optional[str],
+        original_evidencne_cislo: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Deteguje a automaticky vyrieši kolíziu evidenčných čísel vozidiel.
+        Ak new_ev_cislo už patrí inému vozidlu v systéme (v MANUAL_OVERRIDES,
+        TRANSDATA_MAPPING alebo v načítanej flotile z CSV/ev_index), ktorého
+        vehicle_id != target_vehicle_id:
+        1. Nájde najnižšie voľné náhradné číslo v rozsahu 90000–99999 (napr. 90001, 90002...).
+        2. Pôvodnému kolíznemu vozidlu nastaví toto náhradné číslo (90xxx)
+           a zapíše ho do MANUAL_OVERRIDES pod jeho pôvodným vehicle_id
+           s poznámkou 'kolízne prečíslovanie'.
+        3. Uloží zmeny do data/overrides.json.
+        Vráti zoznam vyriešených kolízií.
+        """
+        if not new_ev_cislo:
+            return []
+
+        target_ev = str(new_ev_cislo).strip()
+        if not target_ev:
+            return []
+
+        target_vid = str(target_vehicle_id).strip() if target_vehicle_id is not None and str(target_vehicle_id).strip() else None
+        orig_ev = str(original_evidencne_cislo).strip() if original_evidencne_cislo is not None and str(original_evidencne_cislo).strip() else None
+
+        # Ak cieľové vozidlo nemení evidenčné číslo, nejde o kolíziu
+        if orig_ev and orig_ev == target_ev and not target_vid:
+            return []
+
+        conflicts = []
+        seen_keys = set()
+
+        # 1. Kontrola MANUAL_OVERRIDES
+        for k, ov in list(self.MANUAL_OVERRIDES.items()):
+            if not isinstance(ov, dict):
+                continue
+            ov_ev = str(ov.get("evidencne_cislo") or k).strip()
+            if ov_ev == target_ev:
+                # Ak ide o samotné cieľové vozidlo, preskočíme
+                if target_vid and k == target_vid:
+                    continue
+                if not target_vid and orig_ev and orig_ev == k:
+                    continue
+                conflicts.append((k, ov))
+                seen_keys.add(k)
+
+        # 2. Kontrola TRANSDATA_MAPPING
+        for tid, mapped_ev in list(self.TRANSDATA_MAPPING.items()):
+            if str(mapped_ev).strip() == target_ev:
+                if target_vid and tid == target_vid:
+                    continue
+                if tid in seen_keys:
+                    continue
+                # Ak už má v MANUAL_OVERRIDES iné evidenčné číslo, už bolo prečíslované
+                if tid in self.MANUAL_OVERRIDES:
+                    curr_ev = str(self.MANUAL_OVERRIDES[tid].get("evidencne_cislo", "")).strip()
+                    if curr_ev and curr_ev != target_ev:
+                        continue
+                conflicts.append((tid, None))
+                seen_keys.add(tid)
+
+        # 3. Kontrola načítanej flotily z CSV (ev_index)
+        if target_ev in self.ev_index:
+            is_target_self = False
+            if target_vid:
+                if target_vid == target_ev:
+                    is_target_self = True
+                elif self.TRANSDATA_MAPPING.get(target_vid) == target_ev:
+                    is_target_self = True
+                elif target_vid in self.MANUAL_OVERRIDES and str(self.MANUAL_OVERRIDES[target_vid].get("evidencne_cislo", "")).strip() == target_ev:
+                    is_target_self = True
+            elif orig_ev and orig_ev == target_ev:
+                is_target_self = True
+
+            if not is_target_self:
+                mapped_vids = [tid for tid, mev in self.TRANSDATA_MAPPING.items() if str(mev).strip() == target_ev]
+                already_covered = any(v in seen_keys for v in mapped_vids) or (target_ev in seen_keys)
+                if not already_covered:
+                    if target_ev in self.MANUAL_OVERRIDES:
+                        curr_ev = str(self.MANUAL_OVERRIDES[target_ev].get("evidencne_cislo", "")).strip()
+                        if curr_ev and curr_ev != target_ev:
+                            already_covered = True
+
+                    if not already_covered:
+                        conflicts.append((target_ev, self.ev_index.get(target_ev)))
+                        seen_keys.add(target_ev)
+
+        if not conflicts:
+            return []
+
+        resolved_conflicts = []
+
+        for conf_key, existing_data in conflicts:
+            replacement_ev = self._get_next_free_reassign_ev()
+
+            # Zistenie modelu a ŠPZ kolízneho vozidla
+            model = "Autobus DPMK"
+            spz = None
+            verified = False
+
+            if existing_data and isinstance(existing_data, dict):
+                model = existing_data.get("model") or model
+                spz = existing_data.get("spz")
+                verified = existing_data.get("verified", False)
+            elif conf_key in self.MANUAL_OVERRIDES:
+                ov = self.MANUAL_OVERRIDES[conf_key]
+                model = ov.get("model") or model
+                spz = ov.get("spz")
+                verified = ov.get("verified", False)
+            elif conf_key in self.ev_index:
+                base = self.ev_index[conf_key]
+                model = base.get("model") or model
+                spz = base.get("spz")
+
+            # Priradenie náhradného čísla (90xxx) s poznámkou "kolízne prečíslovanie"
+            entry = {
+                "model": model,
+                "evidencne_cislo": replacement_ev,
+                "spz": spz,
+                "verified": verified,
+                "note": "kolízne prečíslovanie"
+            }
+
+            # Ak conf_key je hardware vehicle_id (alebo ľubovoľný kľúč odlišný od target_ev):
+            if conf_key != target_ev:
+                self.MANUAL_OVERRIDES[conf_key] = entry
+                if conf_key in self.TRANSDATA_MAPPING:
+                    self.TRANSDATA_MAPPING[conf_key] = replacement_ev
+            else:
+                # Vozidlo z CSV bez samostatného hardware vehicle_id
+                self.MANUAL_OVERRIDES[replacement_ev] = entry
+                if target_ev in self.MANUAL_OVERRIDES:
+                    del self.MANUAL_OVERRIDES[target_ev]
+
+            # Aktualizácia indexov v pamäti
+            self.ev_index[replacement_ev] = {
+                "evidencne_cislo": replacement_ev,
+                "spz": spz,
+                "model": model
+            }
+            if spz:
+                clean_spz = spz.replace("-", "").replace(" ", "").upper()
+                if clean_spz in self.spz_index:
+                    self.spz_index[clean_spz]["evidencne_cislo"] = replacement_ev
+
+            resolved_item = {
+                "vehicle_id": conf_key,
+                "old_evidencne_cislo": target_ev,
+                "new_evidencne_cislo": replacement_ev,
+                "note": "kolízne prečíslovanie"
+            }
+            resolved_conflicts.append(resolved_item)
+            print(f"[FleetService] Kolízia evidenčného čísla {target_ev}: vozidlo '{conf_key}' bolo automaticky prečíslované na '{replacement_ev}' (kolízne prečíslovanie).")
+
+        self.save_overrides()
+        return resolved_conflicts
+
     def add_override(
         self,
         model: str,
@@ -190,7 +381,8 @@ class FleetService:
         vehicle_id: Optional[str] = None,
         spz: Optional[str] = None,
         original_evidencne_cislo: Optional[str] = None,
-        verified: Optional[bool] = None
+        verified: Optional[bool] = None,
+        note: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Dynamicky pridá alebo aktualizuje override pre model, evidenčné číslo vozidla a ŠPZ,
@@ -198,12 +390,22 @@ class FleetService:
         Dôsledne izoluje vozidlá podľa ich unikátneho hardvérového vehicle_id,
         čím zabraňuje duplicite a nechcenému prepisovaniu iných vozidiel.
         Podporuje príznak 'verified' (overené vozidlo v Developer Mode).
+        Automaticky deteguje a rieši kolízie evidenčných čísel prečíslovaním pôvodného vozidla na 90xxx.
         """
         vid = str(vehicle_id).strip() if vehicle_id else None
         ev = str(evidencne_cislo).strip() if evidencne_cislo else None
         clean_spz = spz.strip().upper() if spz and str(spz).strip() else None
 
         final_ev = ev or (str(original_evidencne_cislo).strip() if original_evidencne_cislo else (vid if vid else ""))
+
+        # Automatické riešenie kolízií evidenčného čísla:
+        # Ak final_ev už patrí inému vozidlu, pôvodné vozidlo je automaticky prečíslované na 90000–99999
+        if final_ev:
+            self.resolve_evidencne_cislo_conflict(
+                target_vehicle_id=vid,
+                new_ev_cislo=final_ev,
+                original_evidencne_cislo=original_evidencne_cislo
+            )
 
         # Zistenie predchádzajúceho stavu overenia
         prev_verified = False
@@ -227,6 +429,10 @@ class FleetService:
             "spz": clean_spz,
             "verified": final_verified
         }
+        if note is not None and str(note).strip():
+            entry["note"] = str(note).strip()
+        elif vid and vid in self.MANUAL_OVERRIDES and self.MANUAL_OVERRIDES[vid].get("note"):
+            entry["note"] = self.MANUAL_OVERRIDES[vid]["note"]
 
         # 1. Ak ide o reálne vozidlo z live telemetrie s vlastným vehicle_id:
         if vid:
@@ -234,6 +440,16 @@ class FleetService:
             self.MANUAL_OVERRIDES[vid] = entry
             if final_ev:
                 self.TRANSDATA_MAPPING[vid] = final_ev
+                if final_ev not in self.ev_index:
+                    self.ev_index[final_ev] = {
+                        "evidencne_cislo": final_ev,
+                        "spz": clean_spz,
+                        "model": entry["model"]
+                    }
+                else:
+                    self.ev_index[final_ev]["model"] = entry["model"]
+                    if clean_spz:
+                        self.ev_index[final_ev]["spz"] = clean_spz
 
             # Bezpečnostné čistenie: ak v minulosti existoval chybný záznam pod pôvodným ev číslom,
             # ktorý ukazoval na iné vozidlo (cross-kontaminácia), odstránime ho.
@@ -249,6 +465,12 @@ class FleetService:
                 self.ev_index[final_ev]["model"] = entry["model"]
                 if clean_spz:
                     self.ev_index[final_ev]["spz"] = clean_spz
+            else:
+                self.ev_index[final_ev] = {
+                    "evidencne_cislo": final_ev,
+                    "spz": clean_spz,
+                    "model": entry["model"]
+                }
 
         # Aktualizácia indexu pre vyhľadávanie podľa ŠPZ
         if clean_spz:
@@ -262,6 +484,30 @@ class FleetService:
 
         self.save_overrides()
         return entry
+
+    def set_override(
+        self,
+        model: str,
+        evidencne_cislo: Optional[str] = None,
+        vehicle_id: Optional[str] = None,
+        spz: Optional[str] = None,
+        original_evidencne_cislo: Optional[str] = None,
+        verified: Optional[bool] = None,
+        note: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Nastaví manuálny override pre vozidlo.
+        Automaticky deteguje a rieši kolízie evidenčných čísel prečíslovaním pôvodného vozidla na 90xxx.
+        """
+        return self.add_override(
+            model=model,
+            evidencne_cislo=evidencne_cislo,
+            vehicle_id=vehicle_id,
+            spz=spz,
+            original_evidencne_cislo=original_evidencne_cislo,
+            verified=verified,
+            note=note
+        )
 
     def set_verified(
         self,
@@ -452,6 +698,11 @@ class FleetService:
                 # Prísna ochrana pred cross-kontamináciou:
                 # Override pod kľúčom s_ev musí patriť výhradne tomuto evidenčnému číslu!
                 if str(ov.get("evidencne_cislo", "")).strip() == s_ev:
+                    return ov
+
+            # Tiež skontrolujeme, či niektoré vozidlo s iným vehicle_id nemá override s týmto evidencne_cislo
+            for k, ov in self.MANUAL_OVERRIDES.items():
+                if isinstance(ov, dict) and str(ov.get("evidencne_cislo", "")).strip() == s_ev:
                     return ov
 
         return None
