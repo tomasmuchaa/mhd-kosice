@@ -1,0 +1,20 @@
+{
+  "KE811JF": {
+    "spz": "KE811JF",
+    "evidencne_cislo": "4755",
+    "model": "SOR NB 18 City",
+    "rok_vyroby": "2013",
+    "vin": "TK9F8XXA8DLSL5399",
+    "url": "https://evidencia-dopravcov.eu/voz/15035",
+    "source": "evidencia-dopravcov.eu"
+  },
+  "EL739CC": {
+    "spz": "EL739CC",
+    "evidencne_cislo": "4903",
+    "model": "SOR NS 18 Electric",
+    "rok_vyroby": "2026",
+    "vin": "TK9S8ENX1SLSL5012",
+    "url": "https://evidencia-dopravcov.eu/voz/40938",
+    "source": "evidencia-dopravcov.eu"
+  }
+}

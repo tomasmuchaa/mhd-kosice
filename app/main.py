@@ -770,7 +770,7 @@ def get_live_vehicles(
         if not fleet_data:
             fleet_data = fleet_service.match_live_vehicle(
                 vehicle_id=v["vehicle_id"],
-                license_number=ubian_spz if not is_tram else None,
+                license_number=ubian_spz,
                 line=v.get("line"),
                 line_type=v.get("line_type"),
                 raw_vehicle=v

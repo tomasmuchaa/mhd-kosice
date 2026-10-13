@@ -48,6 +48,47 @@ class DpmkLiveFeed:
         # Každý hotspot: {"lat": float, "lng": float, "delta": int, "timestamp": float, "line": str}
         self.delay_hotspots: List[Dict[str, Any]] = []
 
+        # In-memory TTL vyrovnávacia pamäť pre reálne dispečerské dáta jázd (tripID -> ŠPZ / stav)
+        # Umožňuje získať skutočnú ŠPZ z /navigation/vehicles/get_real bez opakovanej záťaže
+        self._trip_real_cache: Dict[Any, Dict[str, Any]] = {}
+
+    def _fetch_real_vehicle_state(
+        self,
+        trip_id: Any,
+        firma_id: Any = 1000,
+        line: Any = None,
+        trip_number: Any = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Stiahne detailné dispečerské dáta vozidla (vrátane reálnej ŠPZ / čísla električky)
+        priamo z Ubian endpointu /navigation/vehicles/get_real.
+        """
+        if not trip_id:
+            return None
+        url = f"{self.UBIAN_BASE_URL}/navigation/vehicles/get_real?tripID={trip_id}"
+        if firma_id:
+            url += f"&firmaID={firma_id}"
+        if line:
+            url += f"&line={line}"
+        if trip_number:
+            url += f"&tripNumber={trip_number}"
+
+        req = urllib.request.Request(url, headers=self.headers)
+        try:
+            with urllib.request.urlopen(req, timeout=3.5) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                return data.get("vehicle")
+        except Exception:
+            try:
+                # Fallback na dpmk-odchody.ubian.sk
+                alt_url = url.replace("www.ubian.sk", "dpmk-odchody.ubian.sk")
+                req_alt = urllib.request.Request(alt_url, headers=self.headers)
+                with urllib.request.urlopen(req_alt, timeout=3.5) as response:
+                    data = json.loads(response.read().decode("utf-8"))
+                    return data.get("vehicle")
+            except Exception:
+                return None
+
     def _fetch_center_vehicles(self, center: tuple) -> List[Dict[str, Any]]:
         """Stiahne vozidlá pre jeden geografický bod/centrum."""
         lat, lng = center
@@ -167,6 +208,44 @@ class DpmkLiveFeed:
                     "wifi": trip.get("wifi", False),
                     "bicycle": trip.get("bicycle", False)
                 }
+
+        # Obohatenie o reálne ŠPZ a ev. čísla priamo z dispečerského endpointu /navigation/vehicles/get_real
+        now_time = time.time()
+        missing_real_trips = []
+        for dedup_key, veh in unique_vehicles.items():
+            tid = veh.get("trip_id")
+            if not veh.get("license_number") and tid:
+                cached_real = self._trip_real_cache.get(tid)
+                if cached_real and (now_time - cached_real.get("timestamp", 0) < 600):  # 10 min TTL
+                    real_veh = cached_real.get("vehicle") or {}
+                    real_lic = real_veh.get("licenseNumber")
+                    if real_lic:
+                        veh["license_number"] = str(real_lic).strip()
+                        if real_veh.get("lastStopOrder") is not None and not veh.get("last_stop_order"):
+                            veh["last_stop_order"] = real_veh["lastStopOrder"]
+                else:
+                    missing_real_trips.append((dedup_key, tid, veh.get("line"), veh.get("trip_number")))
+
+        if missing_real_trips:
+            def fetch_single(item):
+                dkey, tid, line, trip_num = item
+                res = self._fetch_real_vehicle_state(trip_id=tid, firma_id=1000, line=line, trip_number=trip_num)
+                return dkey, tid, res
+
+            with ThreadPoolExecutor(max_workers=min(10, len(missing_real_trips))) as executor:
+                for dkey, tid, real_veh in executor.map(fetch_single, missing_real_trips):
+                    if real_veh:
+                        self._trip_real_cache[tid] = {"timestamp": now_time, "vehicle": real_veh}
+                        real_lic = real_veh.get("licenseNumber")
+                        if real_lic and dkey in unique_vehicles:
+                            unique_vehicles[dkey]["license_number"] = str(real_lic).strip()
+                            if real_veh.get("lastStopOrder") is not None and not unique_vehicles[dkey].get("last_stop_order"):
+                                unique_vehicles[dkey]["last_stop_order"] = real_veh["lastStopOrder"]
+
+        # Automatické prečistenie starých záznamov v _trip_real_cache
+        if len(self._trip_real_cache) > 200:
+            cutoff = now_time - 1800
+            self._trip_real_cache = {k: v for k, v in self._trip_real_cache.items() if v.get("timestamp", 0) > cutoff}
 
         # Spracovanie nárastu meškania (delay_delta) a zaznamenanie ohnísk vzniku zápch
         now_ts = time.time()

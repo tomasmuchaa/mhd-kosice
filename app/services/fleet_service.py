@@ -706,6 +706,35 @@ class FleetService:
             self.ev_index[ev] = item
             self.spz_index[spz.replace("-", "").replace(" ", "").upper()] = item
 
+        # 6. Električky DPMK (Vario LF2+, Tatra KT8D5.RN2, Tatra T6A5)
+        # Vario LF2+ (evid. čísla 801 - 846)
+        for num in range(801, 847):
+            ev_str = str(num)
+            if ev_str not in self.ev_index:
+                self.ev_index[ev_str] = {
+                    "evidencne_cislo": ev_str,
+                    "spz": None,
+                    "model": "Vario LF2+"
+                }
+        # Tatra KT8D5.RN2 (zmodernizované trojčlánkové obojsmerné električky s NP stredom)
+        for num in [500, 508, 509, 512, 513, 517, 521, 522, 523, 525, 528, 529, 531, 534, 536, 537, 538]:
+            ev_str = str(num)
+            if ev_str not in self.ev_index:
+                self.ev_index[ev_str] = {
+                    "evidencne_cislo": ev_str,
+                    "spz": None,
+                    "model": "Tatra KT8D5.RN2"
+                }
+        # Tatra T6A5 (evid. čísla 600 - 629)
+        for num in range(600, 630):
+            ev_str = str(num)
+            if ev_str not in self.ev_index:
+                self.ev_index[ev_str] = {
+                    "evidencne_cislo": ev_str,
+                    "spz": None,
+                    "model": "Tatra T6A5"
+                }
+
     def get_override(self, vehicle_id: Any = None, ev_cislo: Any = None) -> Optional[Dict[str, Any]]:
         """
         Skontroluje, či pre dané vehicle_id alebo evidenčné číslo existuje záznam v MANUAL_OVERRIDES.
@@ -790,14 +819,44 @@ class FleetService:
     def get_by_spz(self, spz: str, only_active: bool = False) -> Optional[Dict[str, Any]]:
         clean = spz.replace(" ", "").replace("-", "").upper()
         item = self.spz_index.get(clean)
+
+        # Ak sa ŠPZ nenachádza v lokálnom CSV indexe, skúsime online vyhľadanie cez evidencia-dopravcov.eu
+        if not item:
+            try:
+                from app.services.evidencia_scraper import evidencia_scraper
+                scraped = evidencia_scraper.lookup_by_spz(clean)
+                if scraped:
+                    ev_num = scraped.get("evidencne_cislo")
+                    model = scraped.get("model") or "Autobus DPMK"
+                    item = {
+                        "evidencne_cislo": ev_num,
+                        "spz": spz,
+                        "model": model,
+                        "rok_vyroby": scraped.get("rok_vyroby"),
+                        "vin": scraped.get("vin")
+                    }
+                    if clean:
+                        self.spz_index[clean] = item
+                    if ev_num:
+                        self.ev_index[ev_num] = item
+            except Exception:
+                pass
+
         if item:
             override = self.get_override(ev_cislo=item.get("evidencne_cislo"))
+            is_ver = self.is_vehicle_verified(ev_cislo=item.get("evidencne_cislo"))
             if override:
                 res = dict(item)
                 res.update(override)
+                res["is_verified"] = is_ver
+                res["verified"] = is_ver
                 return res
             if only_active and not self.is_active_model(item.get("model")):
                 return None
+            res = dict(item)
+            res["is_verified"] = is_ver
+            res["verified"] = is_ver
+            return res
         return item
 
     TRAM_LINES = {
@@ -930,7 +989,20 @@ class FleetService:
         ):
             raw = raw_vehicle if isinstance(raw_vehicle, dict) else {}
 
-            # Hľadanie skutočného názvu električky v Ubian dátach
+            raw_ev = raw.get("evidencne_cislo") or raw.get("vehicleNumber")
+            # Ubian v dispečerskom get_real posiela číslo električky v poli license_number (napr. "824")
+            clean_lic = str(license_number or raw.get("license_number") or "").strip().replace("#", "")
+            if not raw_ev and clean_lic.isdigit():
+                raw_ev = clean_lic
+
+            if raw_ev and str(raw_ev).strip():
+                tram_ev = str(raw_ev).strip().replace("#", "")
+            else:
+                tram_ev = s_vid if s_vid else None
+
+            # Hľadanie modelu električky v našom vozovom parku (Vario LF2+, Tatra KT8D5.RN2, Tatra T6A5)
+            fleet_item = self.ev_index.get(str(tram_ev).strip()) if tram_ev else None
+
             raw_model = (
                 raw.get("vehicleName")
                 or raw.get("model")
@@ -939,16 +1011,12 @@ class FleetService:
                 or kwargs.get("model")
             )
 
-            if raw_model and str(raw_model).strip() and str(raw_model).strip().upper() != "TRAM":
+            if fleet_item and fleet_item.get("model"):
+                tram_model = fleet_item["model"]
+            elif raw_model and str(raw_model).strip() and str(raw_model).strip().upper() != "TRAM":
                 tram_model = str(raw_model).strip()
             else:
                 tram_model = "Električka DPMK"
-
-            raw_ev = raw.get("evidencne_cislo") or raw.get("vehicleNumber")
-            if raw_ev and str(raw_ev).strip():
-                tram_ev = str(raw_ev).strip().replace("#", "")
-            else:
-                tram_ev = s_vid if s_vid else None
 
             tram_vin = raw.get("vehicle_vin") or raw.get("vehicleIdentificationNumber") or (s_vid if s_vid else None)
 
@@ -956,7 +1024,7 @@ class FleetService:
                 "evidencne_cislo": str(tram_ev) if tram_ev else None,
                 "spz": None,
                 "model": tram_model,
-                "rok_vyroby": None,
+                "rok_vyroby": fleet_item.get("rok_vyroby") if fleet_item else None,
                 "vin": str(tram_vin) if tram_vin else None
             }
             ov = self.get_override(vehicle_id=s_vid, ev_cislo=tram_ev)
