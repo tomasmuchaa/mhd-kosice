@@ -9705,7 +9705,8 @@
 
       if (v.latitude && v.longitude) {
         startFollowingVehicle(v);
-        map.flyTo([v.latitude, v.longitude], 16, { animate: true, duration: 1.0 });
+        const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(v.latitude, v.longitude) : [v.latitude, v.longitude];
+        map.flyTo(targetCenter, 16, { animate: true, duration: 1.0 });
         setTimeout(() => {
           syncVisibleMarkers();
           if (markers[vehicleId]) {
@@ -13024,6 +13025,50 @@
     }
 
     // ========================================================
+    // VERTIKÁLNY OFFSET PRE FOLLOW MODE (OFFSET PANNING)
+    // ========================================================
+    /**
+     * Vypočíta cieľový stred mapy pre sledovanie vozidla (Follow Mode)
+     * s vertikálnym posunom (Offset Panning) cez map.project() a map.unproject().
+     * V režime sledovania posúva stred mapy o cca 150 - 200 pixelov smerom nahor (na sever)
+     * od markera, vďaka čomu zostane na obrazovke vycentrovaná celá informačná lišta / popup
+     * a neuteká mimo horný okraj obrazovky počas plynulého pohybu.
+     * @param {number} lat
+     * @param {number} lng
+     * @param {number} [offsetY] - Vertikálny posun v pixeloch nahor od markera
+     * @returns {L.LatLng|Array<number>}
+     */
+    function getFollowCenterLatLng(lat, lng, offsetY) {
+      if (!map || typeof map.project !== 'function' || typeof map.unproject !== 'function') {
+        return [lat, lng];
+      }
+      const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768);
+      let targetOffset = offsetY;
+      if (targetOffset === undefined) {
+        if (isMobile) {
+          const isSheetOpen = document.getElementById('history-bottom-sheet')?.classList.contains('open');
+          targetOffset = isSheetOpen ? -80 : 0;
+        } else {
+          const mapHeight = (map.getSize && typeof map.getSize === 'function') ? map.getSize().y : window.innerHeight;
+          targetOffset = Math.min(190, Math.max(140, Math.round(mapHeight * 0.22)));
+        }
+      }
+      if (!targetOffset) {
+        return [lat, lng];
+      }
+      try {
+        const zoom = map.getZoom();
+        const pt = map.project([lat, lng], zoom);
+        // Odčítaním targetOffset posúvame stred mapy nahor (v pixelových súradniciach Y rastie nadol)
+        const targetPt = L.point(pt.x, pt.y - targetOffset);
+        return map.unproject(targetPt, zoom);
+      } catch (e) {
+        return [lat, lng];
+      }
+    }
+    window.getFollowCenterLatLng = getFollowCenterLatLng;
+
+    // ========================================================
     // PLYNULÝ POHYB VOZIDIEL NA MAPE (ROUTE-SNAPPED LIVE INTERPOLÁCIA - 35s)
     // ========================================================
     /**
@@ -13072,10 +13117,17 @@
       // Priama vzdialenosť
       const directDist = getDistanceMeters([startLat, startLng], [targetLat, targetLng]);
 
+      const isMobileDevice = (typeof window !== 'undefined' && window.innerWidth <= 768);
+      const isFollowed = options.isFollowed || (typeof followingVehicleId !== 'undefined' && followingVehicleId !== null && (String(marker._vehicleId) === String(followingVehicleId)));
+
       // 2. Vozidlo stojí (< 2.5 metra - prah šumu) -> animáciu nespúšťame
       if (directDist < 2.5) {
         marker.setLatLng([targetLat, targetLng]);
         marker._targetLatLng = [targetLat, targetLng];
+        if (isFollowed && typeof map !== 'undefined' && map) {
+          const targetCenter = getFollowCenterLatLng(targetLat, targetLng);
+          map.panTo(targetCenter, { animate: false });
+        }
         if (options.onComplete) options.onComplete();
         return;
       }
@@ -13084,13 +13136,15 @@
       if (directDist > 500) {
         marker.setLatLng([targetLat, targetLng]);
         marker._targetLatLng = [targetLat, targetLng];
+        if (isFollowed && typeof map !== 'undefined' && map) {
+          const targetCenter = getFollowCenterLatLng(targetLat, targetLng);
+          map.panTo(targetCenter, { animate: false });
+        }
         if (options.onComplete) options.onComplete();
         return;
       }
 
       // 4. Viewport Culling pre neviditeľné markery (iba na mobile pri polohe mimo obrazovky)
-      const isMobileDevice = (typeof window !== 'undefined' && window.innerWidth <= 768);
-      const isFollowed = options.isFollowed || (typeof followingVehicleId !== 'undefined' && marker._vehicleId === followingVehicleId);
       if (!isFollowed && typeof map !== 'undefined') {
         const bounds = (map.getBounds && typeof map.getBounds === 'function') ? map.getBounds() : null;
         if (!map.hasLayer(marker) || (isMobileDevice && bounds && bounds.isValid && bounds.isValid() && !bounds.contains([targetLat, targetLng]) && !bounds.contains([startLat, startLng]))) {
@@ -13185,6 +13239,11 @@
           const finalPt = waypoints[waypoints.length - 1];
           marker.setLatLng(finalPt);
           marker._slideAnim = null;
+          const stillFollowed = (typeof followingVehicleId !== 'undefined' && followingVehicleId !== null && String(marker._vehicleId) === String(followingVehicleId));
+          if (stillFollowed && typeof map !== 'undefined' && map) {
+            const targetCenter = getFollowCenterLatLng(finalPt[0], finalPt[1]);
+            map.panTo(targetCenter, { animate: false });
+          }
           if (options.onComplete) {
             options.onComplete();
           }
@@ -13215,10 +13274,10 @@
       marker._vehicleId = v.vehicle_id;
       marker._tripId = v.trip_id;
       marker._targetLatLng = [v.latitude, v.longitude];
-      // Inteligentný Leaflet AutoPan: posunie mapu len keď bublina narazí na okraj, s 80px rezervou hore pre hlavičku
+      // Inteligentný Leaflet AutoPan: posunie mapu s dostatočnou rezervou hore (220px) pre vysokú informačnú bublinu
       marker.bindPopup(popupContent, {
         autoPan: true,
-        autoPanPaddingTopLeft: [10, 80],
+        autoPanPaddingTopLeft: [10, 220],
         autoPanPaddingBottomRight: [10, 20],
         closeButton: true
       });
@@ -13230,13 +13289,17 @@
             marker.closePopup();
             openVehicleDetailBottomSheet(v);
           }, 0);
+        } else {
+          // Na desktope okamžite plynulo vycentrujeme mapu s vertikálnym offsetom pre popup
+          const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(v.latitude, v.longitude) : [v.latitude, v.longitude];
+          map.panTo(targetCenter, { animate: true, duration: 0.5 });
         }
       });
       marker.on('popupopen', (e) => {
         const popup = e.popup;
         if (popup && popup.options) {
           popup.options.autoPan = true;
-          popup.options.autoPanPaddingTopLeft = [10, 80];
+          popup.options.autoPanPaddingTopLeft = [10, 220];
           popup.options.autoPanPaddingBottomRight = [10, 20];
         }
         if (window.innerWidth <= 768) {
@@ -13770,6 +13833,20 @@
 
       const banner = document.getElementById('follow-banner');
       if (banner) banner.style.display = 'flex';
+
+      // Pri spustení sledovania na desktope okamžite plynulo posunieme mapu s vertikálnym offsetom
+      if (typeof map !== 'undefined' && map && window.innerWidth > 768) {
+        let pLat = (typeof v === 'object' ? v.latitude : null);
+        let pLng = (typeof v === 'object' ? v.longitude : null);
+        if ((!pLat || !pLng) && markers[followingVehicleId]) {
+          const pos = markers[followingVehicleId].getLatLng();
+          if (pos) { pLat = pos.lat; pLng = pos.lng; }
+        }
+        if (pLat && pLng) {
+          const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(pLat, pLng) : [pLat, pLng];
+          map.panTo(targetCenter, { animate: true, duration: 0.5 });
+        }
+      }
     }
 
     function stopFollowingVehicle() {
@@ -15075,7 +15152,8 @@
         const fleet = foundVehicle.fleet_info || {};
         feedback.innerText = `Nájdené: Linka ${foundVehicle.line} (${fleet.spz || 'ev. č. ' + fleet.evidencne_cislo})`;
 
-        map.flyTo([foundVehicle.latitude, foundVehicle.longitude], 15, { duration: 1.2 });
+        const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(foundVehicle.latitude, foundVehicle.longitude) : [foundVehicle.latitude, foundVehicle.longitude];
+        map.flyTo(targetCenter, 15, { duration: 1.2 });
         if (window.innerWidth <= 768 && typeof closeMobileDrawer === 'function') {
           closeMobileDrawer();
         }
@@ -15717,7 +15795,8 @@
         const marker = markers[vehicleId] || markers[sId] || markers[numId];
         if (v && v.latitude && v.longitude) {
           startFollowingVehicle(v);
-          map.flyTo([v.latitude, v.longitude], 16, { animate: true, duration: 1.0 });
+          const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(v.latitude, v.longitude) : [v.latitude, v.longitude];
+          map.flyTo(targetCenter, 16, { animate: true, duration: 1.0 });
           setTimeout(() => {
             syncVisibleMarkers();
             const m = markers[vehicleId] || markers[sId] || markers[numId];
@@ -15729,7 +15808,8 @@
           }, 350);
         } else if (marker) {
           const latlng = marker.getLatLng();
-          map.flyTo(latlng, 16, { animate: true, duration: 1.0 });
+          const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(latlng.lat, latlng.lng) : latlng;
+          map.flyTo(targetCenter, 16, { animate: true, duration: 1.0 });
           marker.openPopup();
         }
       }, 120);
@@ -15826,16 +15906,17 @@
 
         // Follow Mode: Plynulý posun mapy na sledované vozidlo
         if (followingVehicleId) {
-          const followed = vehicles.find(v => v.vehicle_id === followingVehicleId);
+          const followed = vehicles.find(v => String(v.vehicle_id) === String(followingVehicleId));
           if (followed && followed.latitude && followed.longitude) {
-            // Ak marker sledovaného vozidla ešte nie je na mape, vycentrujeme mapu
+            // Ak marker sledovaného vozidla ešte nie je na mape, vycentrujeme mapu s vertikálnym offsetom
             if (!markers[followingVehicleId]) {
-              map.panTo([followed.latitude, followed.longitude], {
+              const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(followed.latitude, followed.longitude) : [followed.latitude, followed.longitude];
+              map.panTo(targetCenter, {
                 animate: true,
                 duration: 1.0
               });
             }
-          } else if (!activeIds.has(followingVehicleId)) {
+          } else if (!activeIds.has(followingVehicleId) && !activeIds.has(Number(followingVehicleId)) && !activeIds.has(String(followingVehicleId))) {
             stopFollowingVehicle();
           }
         }
@@ -15854,7 +15935,7 @@
             markers[id].setIcon(icon);
             markers[id].setPopupContent(popupContent);
 
-            const isFollowed = (followingVehicleId === id);
+            const isFollowed = (followingVehicleId !== null && String(followingVehicleId) === String(id));
             const mapBounds = (typeof map !== 'undefined' && map.getBounds) ? map.getBounds() : null;
             const isVisible = isVehicleVisibleOnMap(v, mapBounds);
 
@@ -15875,9 +15956,10 @@
               isFollowed: isFollowed,
               tripId: v.trip_id,
               onStep: (curLat, curLng) => {
-                // Ak je aktívny Follow Mode, plynulo zosúladíme kameru s pohybom vozidla
-                if (followingVehicleId === id) {
-                  map.panTo([curLat, curLng], { animate: false });
+                // Ak je aktívny Follow Mode, plynulo zosúladíme kameru s pohybom vozidla (s vertikálnym offsetom pre popup)
+                if (followingVehicleId !== null && String(followingVehicleId) === String(id)) {
+                  const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(curLat, curLng) : [curLat, curLng];
+                  map.panTo(targetCenter, { animate: false });
                 }
               }
             });
