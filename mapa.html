@@ -11398,11 +11398,12 @@
         return;
       }
 
-      // 4. Viewport Culling pre neviditeľné markery
+      // 4. Viewport Culling pre neviditeľné markery (iba na mobile pri polohe mimo obrazovky)
+      const isMobileDevice = (typeof window !== 'undefined' && window.innerWidth <= 768);
       const isFollowed = options.isFollowed || (typeof followingVehicleId !== 'undefined' && marker._vehicleId === followingVehicleId);
       if (!isFollowed && typeof map !== 'undefined') {
         const bounds = (map.getBounds && typeof map.getBounds === 'function') ? map.getBounds() : null;
-        if (!map.hasLayer(marker) || (bounds && bounds.isValid && bounds.isValid() && !bounds.contains([targetLat, targetLng]) && !bounds.contains([startLat, startLng]))) {
+        if (!map.hasLayer(marker) || (isMobileDevice && bounds && bounds.isValid && bounds.isValid() && !bounds.contains([targetLat, targetLng]) && !bounds.contains([startLat, startLng]))) {
           marker.setLatLng([targetLat, targetLng]);
           marker._targetLatLng = [targetLat, targetLng];
           if (options.onComplete) options.onComplete();
@@ -13146,10 +13147,8 @@
     window.handleMapSearchFocus = handleMapSearchFocus;
 
     // ========================================================
-    // INTELIGENTNÝ VÝKONNOSTNÝ FILTER & VIEWPORT CULLING
+    // RESPONZÍVNY FILTER VIDITEĽNOSTI VOZIDIEL (PLNÉ ZOBRAZENIE NA PC)
     // ========================================================
-    const MAX_VISIBLE_VEHICLES = (typeof window !== 'undefined' && window.innerWidth <= 768) ? 25 : 45;
-    const GPS_PROXIMITY_RADIUS_METERS = 1800; // Okruh 1.8 km okolo používateľa pri oddialenej mape (< 14)
     let latestVisibleVehicleIds = null;
 
     function computeVisibleVehicleIds(rawList) {
@@ -13158,12 +13157,10 @@
         return visibleIds;
       }
 
-      const currentZoom = (map && typeof map.getZoom === 'function') ? map.getZoom() : 13;
+      const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768);
       let mapBounds = null;
-      let mapCenter = null;
       try {
-        mapBounds = map.getBounds();
-        mapCenter = map.getCenter();
+        mapBounds = (map && typeof map.getBounds === 'function') ? map.getBounds() : null;
       } catch (e) {
         // Fallback ak mapa ešte nie je inicializovaná
       }
@@ -13176,7 +13173,7 @@
         searchQuery.length > 0
       );
 
-      // 1. Follow Mode výnimka: sledované vozidlo je VŽDY viditeľné bez ohľadu na zoom či vzdialenosť
+      // 1. Follow Mode výnimka: sledované vozidlo je VŽDY viditeľné bez ohľadu na zoom či výrez
       if (followingVehicleId) {
         visibleIds.add(followingVehicleId);
         visibleIds.add(String(followingVehicleId));
@@ -13184,8 +13181,7 @@
       }
 
       // 2. VÝNIMKA PRE AKTÍVNE VYHĽADÁVANIE (Search & Model Filter Bypass):
-      // Ak používateľ aktívne vyhľadá konkrétnu linku (napr. 19), model (napr. SOR), evidenčné číslo alebo ŠPZ,
-      // pravidlá obmedzujúceho zoomu a rádiusu sa pre nájdené vozidlá dočasne vypnú, aby fungovalo celkové zobrazenie aj map.fitBounds().
+      // Ak používateľ aktívne vyhľadá konkrétnu linku, model, evidenčné číslo alebo ŠPZ
       if (hasActiveSearch) {
         rawList.forEach(v => {
           const id = v.vehicle_id;
@@ -13206,54 +13202,37 @@
         return visibleIds;
       }
 
-      // 3. BEŽNÝ REŽIM (Proximity Filter + Zoom Level Threshold):
-      const userGps = (userLastKnownCoords && userLastKnownCoords.lat && userLastKnownCoords.lng)
-        ? L.latLng(userLastKnownCoords.lat, userLastKnownCoords.lng)
-        : null;
+      // 3. DESKTOP / PC (window.innerWidth > 768):
+      // Plné zobrazenie VŠETKÝCH aktívnych vozidiel po celých Košiciach bez obmedzenia zoomu,
+      // bez akéhokoľvek stropu počtu a bez proximity rádiusu.
+      if (!isMobile) {
+        rawList.forEach(v => {
+          const id = v.vehicle_id;
+          if (!v.latitude || !v.longitude) return;
+          if (disabledLines.has(v.line) && id !== followingVehicleId) return;
+          visibleIds.add(id);
+        });
+        return visibleIds;
+      }
 
-      const candidates = [];
-
+      // 4. MOBIL (window.innerWidth <= 768) - Responzívny Viewport Culling:
+      // Žiadny zákaz nízkeho zoomu (< 14) ani proximity filter!
+      // Pri oddialení na celé mesto výrez obrazovky zahŕňa celé Košice, takže sa zobrazia VŠETKY vozidlá.
+      // Pri priblížení na detail ulice sa mimo výrezu markery nezobrazujú pre šetrenie výkonu.
       rawList.forEach(v => {
         const id = v.vehicle_id;
         if (!v.latitude || !v.longitude) return;
-        if (id === followingVehicleId) return; // Už pridané vyššie
-        if (disabledLines.has(v.line)) return;
+        if (disabledLines.has(v.line) && id !== followingVehicleId) return;
 
-        const vLatLng = L.latLng(v.latitude, v.longitude);
-
-        if (currentZoom < 14) {
-          // Pravidlo úrovne priblíženia: Oddialená mapa (< 14)
-          // Plošne nevykresľuj vozidlá po celých Košiciach.
-          // Zobrazuj iba najbližšie vozidlá v okolí používateľa (ak je GPS aktívne), inak nezobrazuj žiadne markery.
-          if (userGps) {
-            const distToUser = vLatLng.distanceTo(userGps);
-            if (distToUser <= GPS_PROXIMITY_RADIUS_METERS) {
-              candidates.push({ v, dist: distToUser });
-            }
+        if (mapBounds && mapBounds.isValid && mapBounds.isValid()) {
+          const vLatLng = L.latLng(v.latitude, v.longitude);
+          if (mapBounds.contains(vLatLng)) {
+            visibleIds.add(id);
           }
-          // Ak GPS nie je k dispozícii, nezobrazujeme žiadne markery.
         } else {
-          // Pravidlo úrovne priblíženia: Priblížená mapa (>= 14)
-          // Aktivuj Viewport Culling – vykresli iba tie vozidlá, ktoré sa fyzicky nachádzajú v aktuálnom výreze obrazovky.
-          if (mapBounds && mapBounds.isValid && mapBounds.isValid() && mapBounds.contains(vLatLng)) {
-            const distToCenter = mapCenter ? vLatLng.distanceTo(mapCenter) : 0;
-            candidates.push({ v, dist: distToCenter });
-          }
+          visibleIds.add(id);
         }
       });
-
-      // 4. TVRDÝ LIMIT POČTU VYKRESLENÝCH MARKEROV (Max DOM Limit = 25 na mobile):
-      // Ak by sa vo výreze nachádzalo viac ako 25 vozidiel, vyber iba 25 najbližších k stredu displeja.
-      if (candidates.length > MAX_VISIBLE_VEHICLES) {
-        candidates.sort((a, b) => a.dist - b.dist);
-        candidates.slice(0, MAX_VISIBLE_VEHICLES).forEach(c => {
-          visibleIds.add(c.v.vehicle_id);
-        });
-      } else {
-        candidates.forEach(c => {
-          visibleIds.add(c.v.vehicle_id);
-        });
-      }
 
       return visibleIds;
     }
@@ -14123,6 +14102,9 @@
           }
         }
 
+        // Prepočet množiny povolených vozidiel (Plné zobrazenie na PC, Responzívny Viewport Culling na mobile)
+        latestVisibleVehicleIds = computeVisibleVehicleIds(vehicles);
+
         // Aktualizácia telemetrie a plynulý posun (SlideTo) pre existujúce markery
         vehicles.forEach(v => {
           const id = v.vehicle_id;
@@ -14205,7 +14187,7 @@
         map.invalidateSize();
       }
 
-      // Prepočet množiny povolených vozidiel (Proximity, Zoom < 14, Viewport Culling, Max 25 limit, Search Bypass)
+      // Prepočet množiny povolených vozidiel (Plné zobrazenie na PC, Responzívny Viewport Culling na mobile, Search Bypass)
       latestVisibleVehicleIds = computeVisibleVehicleIds(rawList);
 
       // Asynchrónne prednačítanie trás (Trip Route Prefetch) pre viditeľné a sledované vozidlá
