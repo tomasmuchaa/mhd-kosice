@@ -497,12 +497,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
       cursor: pointer;
       filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.65));
-      transform: rotate(var(--veh-heading, 0deg));
-      transform-origin: center center;
-      transition: transform 0.22s linear, filter 0.18s;
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s;
       user-select: none;
       -webkit-user-select: none;
       background: transparent !important;
@@ -510,7 +507,7 @@
     }
 
     .modern-veh-marker:hover {
-      transform: rotate(var(--veh-heading, 0deg)) scale(1.22);
+      transform: scale(1.22);
       filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.85));
       z-index: 9999 !important;
     }
@@ -518,26 +515,6 @@
     .modern-veh-marker.veh-stale {
       opacity: 0.72;
       filter: grayscale(0.4) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
-    }
-
-    .veh-heading-arrow {
-      position: absolute;
-      top: -7px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 4.5px solid transparent;
-      border-right: 4.5px solid transparent;
-      border-bottom: 7px solid #38bdf8;
-      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.85));
-      pointer-events: none;
-      z-index: 10;
-      transition: border-bottom-color 0.2s ease;
-    }
-
-    .modern-veh-marker.veh-stale .veh-heading-arrow {
-      border-bottom-color: #94a3b8;
     }
 
     .veh-front-svg {
@@ -10140,7 +10117,7 @@
     function renderLongBusSvg(b, s, line, d) { return renderSorNb18Svg(line, d); }
 
     // Tvorba dynamickej front-view SVG ikony vozidla pre konkrétny model
-    function createVehicleMarkerIcon(v, isStale, heading = 0) {
+    function createVehicleMarkerIcon(v, isStale) {
       const cat = getVehicleCategory(v) || {};
       const line = String(v.line || '?');
       const modelKey = getVehicleModelKey(v);
@@ -10320,12 +10297,10 @@
       const stopInfo = (v.is_on_stop && v.current_stop_name) ? ` • Stojí na: ${v.current_stop_name}` : '';
       const tooltipTitle = `Linka ${line} • ${cat.name || 'Vozidlo'}${stopInfo} • ${v.destination || 'Neznámy smer'}`;
 
-      const validHeading = (typeof heading === 'number' && !isNaN(heading)) ? heading : 0;
       return L.divIcon({
         className: 'custom-modern-veh-icon',
         html: `
-          <div class="modern-veh-marker ${isStale ? 'veh-stale' : ''}" style="--veh-heading: ${validHeading}deg;" title="${tooltipTitle}">
-            <div class="veh-heading-arrow"></div>
+          <div class="modern-veh-marker ${isStale ? 'veh-stale' : ''}" title="${tooltipTitle}">
             ${svgHtml}
           </div>
         `,
@@ -10857,49 +10832,6 @@
     }
 
     /**
-     * Výpočet azimutu (bearing v stupňoch 0..360) z p1 do p2.
-     */
-    function getBearingBetween(p1, p2) {
-      if (!p1 || !p2) return 0;
-      const lat1 = Number(p1[0] !== undefined ? p1[0] : p1.lat) * (Math.PI / 180.0);
-      const lon1 = Number(p1[1] !== undefined ? p1[1] : p1.lng) * (Math.PI / 180.0);
-      const lat2 = Number(p2[0] !== undefined ? p2[0] : p2.lat) * (Math.PI / 180.0);
-      const lon2 = Number(p2[1] !== undefined ? p2[1] : p2.lng) * (Math.PI / 180.0);
-      const dLon = lon2 - lon1;
-      const y = Math.sin(dLon) * Math.cos(lat2);
-      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-      const brng = Math.atan2(y, x) * (180.0 / Math.PI);
-      return (brng + 360.0) % 360.0;
-    }
-
-    /**
-     * Vyhladenie zmeny uhla (zabraňuje 360-stupňovému pretočeniu pri prechode cez Sever).
-     */
-    function unwrapAngle(currentAngle, targetAngle) {
-      let diff = (targetAngle - currentAngle) % 360;
-      if (diff < -180) diff += 360;
-      if (diff > 180) diff -= 360;
-      return currentAngle + diff;
-    }
-
-    /**
-     * Nastaví azimut natočenia (heading) na elemente markera.
-     */
-    function updateMarkerHeading(marker, targetBearing) {
-      if (!marker || isNaN(targetBearing)) return;
-      const currentHeading = (typeof marker._currentHeading === 'number') ? marker._currentHeading : targetBearing;
-      const smoothedHeading = unwrapAngle(currentHeading, targetBearing);
-      marker._currentHeading = smoothedHeading;
-
-      if (marker._icon) {
-        const inner = marker._icon.querySelector('.modern-veh-marker');
-        if (inner) {
-          inner.style.setProperty('--veh-heading', `${smoothedHeading}deg`);
-        }
-      }
-    }
-
-    /**
      * Kolmý priemet bodu P na úsečku [A, B].
      */
     function projectPointToSegment(p, a, b) {
@@ -11064,7 +10996,7 @@
     /**
      * Plynulý posun Leaflet markera pozdĺž reálnej trasy spoja cez requestAnimationFrame.
      * Namiesto priamky cez budovy interpoluje marker cez zákrutové body (modelRoutePoints),
-     * rovnomerne rozkladá čas podľa dĺžky uličných segmentov a natáča azimut podľa dotyčnice cesty.
+     * rovnomerne rozkladá čas podľa dĺžky uličných segmentov a zachováva stabilnú vodorovnú orientáciu (uhol 0°).
      * @param {L.Marker} marker - Cieľový Leaflet marker
      * @param {Array<number>} targetLatLng - Cieľové súradnice [lat, lng]
      * @param {number} duration - Trvanie animácie v ms (predvolene 8 500 ms)
@@ -11191,12 +11123,8 @@
 
         marker.setLatLng([curLat, curLng]);
 
-        // Korekcia natočenia: azimut markera podľa dotyčnice k danému segmentu ulice
-        const segBearing = getBearingBetween(pA, pB);
-        updateMarkerHeading(marker, segBearing);
-
         if (options.onStep) {
-          options.onStep(curLat, curLng, progress, segBearing);
+          options.onStep(curLat, curLng, progress);
         }
 
         if (progress < 1.0) {
@@ -11231,12 +11159,11 @@
     // Tvorba kompletného Leaflet markera pre vozidlo (ikona, popup, interakcie)
     function createVehicleMarker(v) {
       const comm = formatLastCommunication(v.last_communication);
-      const icon = createVehicleMarkerIcon(v, comm.isStale, 0);
+      const icon = createVehicleMarkerIcon(v, comm.isStale);
       const popupContent = buildPopupHtml(v);
       const marker = L.marker([v.latitude, v.longitude], { icon: icon });
       marker._vehicleId = v.vehicle_id;
       marker._tripId = v.trip_id;
-      marker._currentHeading = 0;
       // Vypnutie Leaflet AutoPan: striktne autoPan: false, aby mapa pri kliknutí neodskakovala
       marker.bindPopup(popupContent, {
         autoPan: false,
@@ -13842,7 +13769,7 @@
           if (markers[id] && v.latitude && v.longitude) {
             markers[id]._tripId = v.trip_id;
             const comm = formatLastCommunication(v.last_communication);
-            const icon = createVehicleMarkerIcon(v, comm.isStale, markers[id]._currentHeading || 0);
+            const icon = createVehicleMarkerIcon(v, comm.isStale);
             const popupContent = buildPopupHtml(v);
             markers[id].setIcon(icon);
             markers[id].setPopupContent(popupContent);
