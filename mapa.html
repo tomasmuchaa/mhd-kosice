@@ -935,6 +935,249 @@
     }
 
     /* ============================================================ */
+    /* KOMUNITNÝ FAN MODE & CENTRUM SCHVAĽOVANIA V DEVELOPER MODE   */
+    /* ============================================================ */
+    .garage-requests-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+      border-radius: 10px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .garage-requests-btn:hover {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: #f59e0b;
+      color: #fef3c7;
+      transform: translateY(-1px);
+    }
+    .requests-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #ffffff;
+      background: #ef4444;
+      border-radius: 999px;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+      line-height: 1;
+    }
+    .requests-badge.pulse {
+      animation: badgePulse 1.8s infinite;
+    }
+    @keyframes badgePulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        transform: scale(1);
+      }
+      70% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+        transform: scale(1.08);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        transform: scale(1);
+      }
+    }
+    .btn-fan-suggest {
+      width: 100%;
+      padding: 7px 12px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 8px;
+      color: #38bdf8;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn-fan-suggest:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #e0f2fe;
+    }
+    .btn-fan-suggest-full {
+      padding: 7px 14px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+    }
+    .btn-fan-suggest-full:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .garage-requests-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.94);
+      width: 92%;
+      max-width: 620px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1.5px solid rgba(245, 158, 11, 0.4);
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 25px rgba(245, 158, 11, 0.2);
+      z-index: 10061;
+      padding: 22px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      color: #f8fafc;
+      box-sizing: border-box;
+    }
+    .garage-requests-modal.open {
+      opacity: 1;
+      pointer-events: auto !important;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .garage-requests-list {
+      overflow-y: auto;
+      max-height: calc(85vh - 120px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-right: 4px;
+    }
+    .request-card {
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.2s;
+    }
+    .request-card:hover {
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+    .request-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+    .request-card-veh {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    .request-card-time {
+      font-size: 0.74rem;
+      color: #94a3b8;
+    }
+    .request-comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+    }
+    .comparison-col-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+    .comparison-val-curr {
+      color: #cbd5e1;
+      word-break: break-word;
+    }
+    .comparison-val-new {
+      color: #34d399;
+      font-weight: 600;
+      word-break: break-word;
+    }
+    .request-note-box {
+      font-size: 0.78rem;
+      color: #e2e8f0;
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 3px solid #38bdf8;
+      padding: 6px 10px;
+      border-radius: 0 6px 6px 0;
+      font-style: italic;
+    }
+    .request-card-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .btn-req-approve {
+      padding: 7px 14px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+      transition: all 0.2s;
+    }
+    .btn-req-approve:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .btn-req-reject {
+      padding: 7px 14px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 8px;
+      color: #fca5a5;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .btn-req-reject:hover {
+      background: rgba(239, 68, 68, 0.25);
+      color: #ffffff;
+      border-color: #ef4444;
+    }
+
+    /* ============================================================ */
     /* MODÁLNE OKNO: SPÄTNÁ VÄZBA (PREHĽADNÝ ČITATEĽNÝ DIZAJN BEZ BLURU) */
     /* ============================================================ */
     #feedback-modal {
@@ -5544,7 +5787,12 @@
           <div class="view-header-sub">Prehľad vozového parku: v premávke aj v garáži</div>
         </div>
       </div>
-      <div style="display: flex; gap: 8px;">
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button id="garage-requests-btn" class="garage-requests-btn" style="display: none;" onclick="openGarageRequestsModal()" title="Centrum schvaľovania úprav flotily (Developer Mode)">
+          <span>📬</span>
+          <span>Návrhy úprav</span>
+          <span id="requests-badge" class="requests-badge" style="display: none;">0</span>
+        </button>
         <button class="refresh-btn" onclick="openIconGalleryModal()" style="padding: 7px 12px; font-size: 0.82rem; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;" title="Otvoriť galériu všetkých modelov a ich SVG ikoniek">🎨 Modely & Ikonky</button>
         <button class="refresh-btn" onclick="fetchVehicles()" style="padding: 7px 14px; font-size: 0.82rem;">↻ Obnoviť</button>
       </div>
@@ -6161,6 +6409,99 @@
     </div>
   </div>
 
+  <!-- Modálne okno Komunitný Fan Mode: Návrh opravy údajov vozidla -->
+  <div id="fan-edit-modal-backdrop" class="override-modal-backdrop" onclick="closeFanEditModal()"></div>
+  <div id="fan-edit-modal" class="override-modal apple-glass" role="dialog" aria-modal="true" aria-labelledby="fan-edit-modal-title">
+    <div class="override-modal-header">
+      <div class="override-modal-title" id="fan-edit-modal-title" style="color: #38bdf8;">
+        <span>✏️</span>
+        <span>Navrhnúť opravu údajov vozidla</span>
+      </div>
+      <button class="override-modal-close" onclick="closeFanEditModal()" title="Zavrieť">✕</button>
+    </div>
+    <div class="override-modal-body">
+      <div class="override-veh-summary" id="fan-veh-summary">
+        <span>Vozidlo: <strong id="fan-summary-ev">--</strong></span>
+        <span id="fan-summary-id" style="color: #94a3b8; font-size: 0.76rem;">ID: --</span>
+      </div>
+      <form id="fan-edit-form" onsubmit="submitFanEditForm(event)">
+        <input type="hidden" id="fan-vehicle-id" name="vehicle_id" value="" />
+        <input type="hidden" id="fan-current-model" name="current_model" value="" />
+        <input type="hidden" id="fan-current-spz" name="current_spz" value="" />
+
+        <div class="override-field-group" style="margin-bottom: 12px;">
+          <label for="fan-ev-input" class="override-label">Evidenčné číslo vozidla</label>
+          <input type="text" id="fan-ev-input" class="override-input" placeholder="Napr. 5701, 801, 3302..." autocomplete="off" />
+          <div class="override-help">Inventárne číslo DPMK (ponechajte alebo opravte).</div>
+        </div>
+
+        <div class="override-field-group" style="margin-bottom: 12px;">
+          <label for="fan-model-select" class="override-label">Správny model vozidla</label>
+          <select id="fan-model-select" class="override-select" required onchange="handleFanModelSelectChange(this.value)">
+            <option value="SOR NB 18 City">SOR NB 18 City (kĺbový autobus)</option>
+            <option value="SOR NB 12 City">SOR NB 12 City (štandardný autobus)</option>
+            <option value="SOR NSG 18">SOR NSG 18 (plynový kĺbový)</option>
+            <option value="SOR NSG 12">SOR NSG 12 (plynový štandardný)</option>
+            <option value="SOR NS 18 Electric">SOR NS 18 Electric (kĺbový elektrobus)</option>
+            <option value="SOR EBN 11">SOR EBN 11 (elektrobus)</option>
+            <option value="SOR EBN 10.5">SOR EBN 10.5 (elektrobus)</option>
+            <option value="SOR BN 9,5">SOR BN 9,5 (midibus)</option>
+            <option value="SOR C 10,5">SOR C 10,5</option>
+            <option value="Solaris Urbino 18 III">Solaris Urbino 18 III (kĺbový)</option>
+            <option value="Solaris Urbino 18,75 III">Solaris Urbino 18,75 III (veľkokapacitný)</option>
+            <option value="Solaris Urbino 15 II / III">Solaris Urbino 15 II / III (trojnápravový)</option>
+            <option value="Solaris Urbino 12 IV">Solaris Urbino 12 IV</option>
+            <option value="Solaris Urbino 12 III Hybrid">Solaris Urbino 12 III Hybrid</option>
+            <option value="Vario LF2+">Vario LF2+ (kĺbová električka)</option>
+            <option value="Pragoimex Vario LF">Pragoimex Vario LF (krátka električka)</option>
+            <option value="ČKD Tatra KT8D5.RN2">ČKD Tatra KT8D5.RN2 (trojčlánková električka)</option>
+            <option value="ČKD Tatra T6A5">ČKD Tatra T6A5 (električka)</option>
+            <option value="Iveco Rošero First FCLLI">Iveco Rošero First FCLLI (minibus)</option>
+            <option value="Autobus DPMK">Autobus DPMK (všeobecný)</option>
+            <option value="__custom__">✏️ Iný model (zadať ručne)...</option>
+          </select>
+          <input type="text" id="fan-custom-model" class="override-input" placeholder="Zadajte presný názov modelu..." style="display: none; margin-top: 6px;" />
+        </div>
+
+        <div class="override-field-group" style="margin-bottom: 12px;">
+          <label for="fan-spz-input" class="override-label">Správna ŠPZ / EČV</label>
+          <input type="text" id="fan-spz-input" class="override-input" placeholder="Napr. KE-704IY alebo KE-090IY" autocomplete="off" />
+          <div class="override-help">Pre električky alebo vozidlá bez ŠPZ nechajte prázdne.</div>
+        </div>
+
+        <div class="override-field-group" style="margin-bottom: 14px;">
+          <label for="fan-note-input" class="override-label">Poznámka / Kde bolo vozidlo videné</label>
+          <input type="text" id="fan-note-input" class="override-input" placeholder="Napr. Videné na linke 52 o 16:15..." autocomplete="off" />
+          <div class="override-help">Doplňujúce info pre dispečera (nepovinné).</div>
+        </div>
+
+        <div class="override-actions" style="margin-top: 18px; display: flex; gap: 8px;">
+          <button type="button" class="override-btn-cancel" onclick="closeFanEditModal()">Zrušiť</button>
+          <button type="submit" id="fan-submit-btn" class="override-btn-submit" style="background: linear-gradient(135deg, #0284c7, #0369a1); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);" title="Odoslať návrh na overenie">
+            <span>🚀</span>
+            <span>Odoslať návrh</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modálne okno Developer Mode: Centrum schvaľovania čakajúcich návrhov úprav -->
+  <div id="garage-requests-modal-backdrop" class="override-modal-backdrop" onclick="closeGarageRequestsModal()"></div>
+  <div id="garage-requests-modal" class="garage-requests-modal apple-glass" role="dialog" aria-modal="true" aria-labelledby="garage-requests-modal-title">
+    <div class="override-modal-header" style="margin-bottom: 14px; padding-bottom: 10px;">
+      <div class="override-modal-title" id="garage-requests-modal-title" style="color: #fbbf24;">
+        <span>📬</span>
+        <span>Centrum schvaľovania úprav flotily</span>
+        <span id="garage-requests-count-tag" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">0 čakajúcich</span>
+      </div>
+      <button class="override-modal-close" onclick="closeGarageRequestsModal()" title="Zavrieť">✕</button>
+    </div>
+    <div id="garage-requests-container" class="garage-requests-list">
+      <!-- Načítava sa dynamicky JavaScriptom -->
+    </div>
+  </div>
+
   <!-- Modálne okno Katalóg & Galéria SVG ikoniek vozidiel -->
   <div id="icon-gallery-modal-backdrop" class="override-modal-backdrop" onclick="closeIconGalleryModal()"></div>
   <div id="icon-gallery-modal" class="icon-gallery-modal apple-glass" role="dialog" aria-modal="true" aria-labelledby="icon-gallery-modal-title">
@@ -6480,9 +6821,14 @@
       const mapBadge = document.getElementById('dev-mode-pill-map');
       const garageBadge = document.getElementById('dev-mode-pill-garage');
       const drawerLabel = document.getElementById('dev-mode-drawer-label');
+      const garageReqBtn = document.getElementById('garage-requests-btn');
       if (mapBadge) mapBadge.style.display = isDevMode ? 'inline-flex' : 'none';
       if (garageBadge) garageBadge.style.display = isDevMode ? 'inline-flex' : 'none';
+      if (garageReqBtn) garageReqBtn.style.display = isDevMode ? 'inline-flex' : 'none';
       if (drawerLabel) drawerLabel.innerText = isDevMode ? '🛠️ Developer Mode (ZAPNUTÝ)' : '🛠️ Developer Mode (Overridy)';
+      if (isDevMode && typeof checkPendingRequestsCount === 'function') {
+        checkPendingRequestsCount();
+      }
     }
 
     let logoClickCount = 0;
@@ -6522,6 +6868,7 @@
           isDevMode = false;
           localStorage.setItem('isDevMode', 'false');
           sessionStorage.removeItem('adminToken');
+          localStorage.removeItem('adminToken');
           updateDevModeUI();
           if (typeof syncVisibleMarkers === 'function') syncVisibleMarkers();
           if (currentAppView === 'garage') renderGarageView();
@@ -6533,6 +6880,7 @@
       if (pass !== null && pass.trim()) {
         const token = pass.trim();
         sessionStorage.setItem('adminToken', token);
+        localStorage.setItem('adminToken', token);
         isDevMode = true;
         localStorage.setItem('isDevMode', 'true');
         updateDevModeUI();
@@ -6743,6 +7091,436 @@
       if (!modal) return;
       modal.classList.remove('open');
       if (backdrop) backdrop.classList.remove('open');
+    }
+
+    // ============================================================
+    // KOMUNITNÝ SYSTÉM ÚPRAV ÚDAJOV (FAN MODE) & SCHVAĽOVANIE (DEV)
+    // ============================================================
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function openFanEditModal(evCislo, vehicleId, currentModel, currentSpz) {
+      const modal = document.getElementById('fan-edit-modal');
+      const backdrop = document.getElementById('fan-edit-modal-backdrop');
+      if (!modal || !backdrop) return;
+
+      const cleanEv = String(evCislo || '').trim();
+      const cleanVid = String(vehicleId || '').trim();
+      const cleanModel = String(currentModel || '').trim();
+      const cleanSpz = String(currentSpz || '').trim();
+
+      const vidInput = document.getElementById('fan-vehicle-id');
+      const currModelInput = document.getElementById('fan-current-model');
+      const currSpzInput = document.getElementById('fan-current-spz');
+      const evInput = document.getElementById('fan-ev-input');
+      const spzInput = document.getElementById('fan-spz-input');
+      const noteInput = document.getElementById('fan-note-input');
+
+      if (vidInput) vidInput.value = cleanVid;
+      if (currModelInput) currModelInput.value = cleanModel;
+      if (currSpzInput) currSpzInput.value = cleanSpz;
+      if (evInput) evInput.value = cleanEv;
+      if (spzInput) spzInput.value = cleanSpz;
+      if (noteInput) noteInput.value = '';
+
+      const summaryEv = document.getElementById('fan-summary-ev');
+      const summaryId = document.getElementById('fan-summary-id');
+      if (summaryEv) summaryEv.innerText = cleanEv ? `#${cleanEv}` : (cleanVid ? `#${cleanVid}` : 'Neznáme');
+      if (summaryId) summaryId.innerText = cleanVid ? `TransData ID: ${cleanVid}` : '';
+
+      const select = document.getElementById('fan-model-select');
+      const customInput = document.getElementById('fan-custom-model');
+      let found = false;
+
+      if (select) {
+        for (let i = 0; i < select.options.length; i++) {
+          if (select.options[i].value === cleanModel) {
+            select.selectedIndex = i;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          if (cleanModel) {
+            select.value = '__custom__';
+            if (customInput) {
+              customInput.style.display = 'block';
+              customInput.value = cleanModel;
+            }
+          } else {
+            select.selectedIndex = 0;
+            if (customInput) {
+              customInput.style.display = 'none';
+              customInput.value = '';
+            }
+          }
+        } else if (customInput) {
+          customInput.style.display = 'none';
+          customInput.value = '';
+        }
+      }
+
+      const submitBtn = document.getElementById('fan-submit-btn');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>🚀</span><span>Odoslať návrh</span>';
+      }
+
+      backdrop.classList.add('open');
+      modal.classList.add('open');
+    }
+
+    function closeFanEditModal() {
+      const modal = document.getElementById('fan-edit-modal');
+      const backdrop = document.getElementById('fan-edit-modal-backdrop');
+      if (modal) modal.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('open');
+    }
+
+    function handleFanModelSelectChange(val) {
+      const customInput = document.getElementById('fan-custom-model');
+      if (customInput) {
+        if (val === '__custom__') {
+          customInput.style.display = 'block';
+          customInput.focus();
+        } else {
+          customInput.style.display = 'none';
+        }
+      }
+    }
+
+    async function submitFanEditForm(event) {
+      if (event) event.preventDefault();
+
+      const vid = (document.getElementById('fan-vehicle-id')?.value || '').trim();
+      const currModel = (document.getElementById('fan-current-model')?.value || '').trim();
+      const currSpz = (document.getElementById('fan-current-spz')?.value || '').trim();
+      const ev = (document.getElementById('fan-ev-input')?.value || '').trim();
+      const spz = (document.getElementById('fan-spz-input')?.value || '').trim();
+      const note = (document.getElementById('fan-note-input')?.value || '').trim();
+
+      const select = document.getElementById('fan-model-select');
+      const customInput = document.getElementById('fan-custom-model');
+      let finalModel = select ? select.value : '';
+      if (finalModel === '__custom__') {
+        finalModel = customInput ? customInput.value.trim() : '';
+      }
+
+      if (!finalModel) {
+        alert('Prosím, vyberte alebo zadajte správny model vozidla.');
+        return;
+      }
+      if (!vid && !ev) {
+        alert('Chýba identifikátor alebo evidenčné číslo vozidla.');
+        return;
+      }
+
+      const submitBtn = document.getElementById('fan-submit-btn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳</span><span>Odosielam...</span>';
+      }
+
+      try {
+        const payload = {
+          vehicle_id: vid || null,
+          evidencne_cislo: ev || null,
+          current_model: currModel || null,
+          current_spz: currSpz || null,
+          suggested_model: finalModel,
+          suggested_spz: spz || null,
+          note: note || null
+        };
+
+        const resp = await fetch(`${BASE_ORIGIN}/api/v1/fan/suggest-override`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.detail || 'Chyba pri odosielaní návrhu');
+        }
+
+        closeFanEditModal();
+        if (typeof showMapToast === 'function') {
+          showMapToast('Ďakujeme! Váš návrh bol odoslaný dispečerom na overenie.', 'success');
+        } else {
+          alert('Ďakujeme! Váš návrh bol odoslaný dispečerom na overenie.');
+        }
+
+        if (isDevMode && typeof checkPendingRequestsCount === 'function') {
+          checkPendingRequestsCount();
+        }
+      } catch (err) {
+        console.error('Chyba odoslania návrhu fanúšika:', err);
+        alert(`Nepodarilo sa odoslať návrh: ${err.message}`);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>🚀</span><span>Odoslať návrh</span>';
+        }
+      }
+    }
+
+    function getAdminAuthHeaders() {
+      const token = sessionStorage.getItem('adminToken') || localStorage.getItem('adminToken') || 'dpmkadmin';
+      return {
+        'X-Admin-Token': token,
+        'Content-Type': 'application/json'
+      };
+    }
+
+    async function checkPendingRequestsCount() {
+      const reqBtn = document.getElementById('garage-requests-btn');
+      const badge = document.getElementById('requests-badge');
+
+      if (!isDevMode) {
+        if (reqBtn) reqBtn.style.display = 'none';
+        return;
+      }
+
+      if (reqBtn) reqBtn.style.display = 'inline-flex';
+
+      try {
+        const resp = await fetch(`${BASE_ORIGIN}/api/v1/admin/requests?status=pending`, {
+          headers: getAdminAuthHeaders()
+        });
+        if (!resp.ok) {
+          return;
+        }
+        const data = await resp.json();
+        const count = data.count !== undefined ? data.count : (data.requests ? data.requests.length : 0);
+
+        if (badge) {
+          if (count > 0) {
+            badge.style.display = 'inline-flex';
+            badge.textContent = count;
+            badge.classList.add('pulse');
+          } else {
+            badge.style.display = 'none';
+            badge.textContent = '0';
+            badge.classList.remove('pulse');
+          }
+        }
+
+        const tag = document.getElementById('garage-requests-count-tag');
+        if (tag) {
+          tag.textContent = `${count} ${count === 1 ? 'čakajúci' : (count >= 2 && count <= 4 ? 'čakajúce' : 'čakajúcich')}`;
+        }
+      } catch (err) {
+        console.warn('Nepodarilo sa overiť počet čakajúcich požiadaviek:', err);
+      }
+    }
+
+    async function openGarageRequestsModal() {
+      const modal = document.getElementById('garage-requests-modal');
+      const backdrop = document.getElementById('garage-requests-modal-backdrop');
+      if (!modal || !backdrop) return;
+
+      backdrop.classList.add('open');
+      modal.classList.add('open');
+
+      await loadGarageRequestsList();
+    }
+
+    function closeGarageRequestsModal() {
+      const modal = document.getElementById('garage-requests-modal');
+      const backdrop = document.getElementById('garage-requests-modal-backdrop');
+      if (modal) modal.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('open');
+    }
+
+    async function loadGarageRequestsList() {
+      const container = document.getElementById('garage-requests-container');
+      if (!container) return;
+
+      container.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 10px; color: #94a3b8; gap: 10px;">
+          <div style="font-size: 1.8rem;">⏳</div>
+          <div style="font-size: 0.9rem;">Načítavam čakajúce návrhy od komunity...</div>
+        </div>
+      `;
+
+      try {
+        const resp = await fetch(`${BASE_ORIGIN}/api/v1/admin/requests?status=pending`, {
+          headers: getAdminAuthHeaders()
+        });
+
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.detail || `HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        const requests = data.requests || [];
+
+        checkPendingRequestsCount();
+
+        if (requests.length === 0) {
+          container.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 10px; color: #94a3b8; text-align: center; gap: 10px;">
+              <div style="font-size: 2.2rem;">🎉</div>
+              <div style="font-weight: 700; font-size: 1rem; color: #34d399;">Žiadne čakajúce návrhy</div>
+              <div style="font-size: 0.8rem; color: #64748b; max-width: 320px;">Všetky nahlásené úpravy modelov a ŠPZ od cestujúcich a fanúšikov boli spracované.</div>
+            </div>
+          `;
+          return;
+        }
+
+        let html = '';
+        requests.forEach(req => {
+          const createdDate = req.created_at ? new Date(req.created_at).toLocaleString('sk-SK') : 'Nedávno';
+          const evNum = req.evidencne_cislo ? `#${req.evidencne_cislo}` : (req.vehicle_id ? `ID: ${req.vehicle_id}` : 'Neznáme');
+          const vidStr = req.vehicle_id ? `TransData ID: ${req.vehicle_id}` : '';
+          const currModel = req.current_model || 'Neznámy model';
+          const newModel = req.suggested_model;
+          const currSpz = req.current_spz || 'N/A';
+          const newSpz = req.suggested_spz || 'N/A';
+          const noteHtml = req.note ? `<div class="request-note-box">💬 „${escapeHtml(req.note)}“</div>` : '';
+
+          const modelChanged = currModel !== newModel;
+          const spzChanged = req.suggested_spz && (currSpz !== req.suggested_spz);
+
+          html += `
+            <div class="request-card" id="req-card-${req.id}">
+              <div class="request-card-header">
+                <div>
+                  <span class="request-card-veh">Vozidlo ${evNum}</span>
+                  ${vidStr ? `<span style="font-size: 0.72rem; color: #94a3b8; margin-left: 6px;">(${vidStr})</span>` : ''}
+                </div>
+                <span class="request-card-time">🕒 ${createdDate}</span>
+              </div>
+
+              <div class="request-comparison-grid">
+                <div>
+                  <div class="comparison-col-title">Pôvodné údaje</div>
+                  <div class="comparison-val-curr">🚗 Model: <strong>${escapeHtml(currModel)}</strong></div>
+                  <div class="comparison-val-curr" style="margin-top: 3px;">🪪 ŠPZ: <strong>${escapeHtml(currSpz)}</strong></div>
+                </div>
+                <div>
+                  <div class="comparison-col-title" style="color: #38bdf8;">Navrhovaná oprava</div>
+                  <div class="comparison-val-new" style="${modelChanged ? 'color: #34d399;' : 'color: #cbd5e1;'}">
+                    🚗 Model: <strong>${escapeHtml(newModel)}</strong>
+                  </div>
+                  <div class="comparison-val-new" style="margin-top: 3px; ${spzChanged ? 'color: #34d399;' : 'color: #cbd5e1;'}">
+                    🪪 ŠPZ: <strong>${escapeHtml(newSpz)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              ${noteHtml}
+
+              <div class="request-card-actions">
+                <button type="button" class="btn-req-reject" onclick="rejectPendingRequest('${req.id}')" title="Zamietnuť túto požiadavku">
+                  <span>❌</span>
+                  <span>Zamietnuť</span>
+                </button>
+                <button type="button" class="btn-req-approve" onclick="approvePendingRequest('${req.id}')" title="Schváliť a zapísať zmeny do flotily">
+                  <span>✅</span>
+                  <span>Schváliť zmeny</span>
+                </button>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      } catch (err) {
+        console.error('Chyba načítania čakajúcich žiadostí:', err);
+        container.innerHTML = `
+          <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 8px; padding: 14px; color: #fca5a5; font-size: 0.82rem;">
+            ⚠️ Nepodarilo sa načítať čakajúce žiadosti: ${err.message}
+          </div>
+        `;
+      }
+    }
+
+    async function approvePendingRequest(requestId) {
+      if (!confirm('Naozaj chcete schváliť tento návrh? Zmeny sa okamžite zapíšu do flotily.')) {
+        return;
+      }
+
+      const card = document.getElementById(`req-card-${requestId}`);
+      if (card) {
+        card.style.opacity = '0.5';
+        card.style.pointerEvents = 'none';
+      }
+
+      try {
+        const resp = await fetch(`${BASE_ORIGIN}/api/v1/admin/requests/${encodeURIComponent(requestId)}/approve`, {
+          method: 'POST',
+          headers: getAdminAuthHeaders()
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.detail || 'Chyba pri schvaľovaní požiadavky');
+        }
+
+        if (typeof showMapToast === 'function') {
+          showMapToast('✅ Úprava bola schválená a zmeny zapísané do flotily.', 'success');
+        }
+
+        await loadGarageRequestsList();
+
+        if (typeof fetchVehicles === 'function') fetchVehicles();
+        if (typeof renderGarageView === 'function' && currentAppView === 'garage') renderGarageView();
+
+      } catch (err) {
+        console.error('Chyba pri schvaľovaní:', err);
+        alert(`Chyba: ${err.message}`);
+        if (card) {
+          card.style.opacity = '1';
+          card.style.pointerEvents = 'auto';
+        }
+      }
+    }
+
+    async function rejectPendingRequest(requestId) {
+      if (!confirm('Naozaj chcete zamietnuť tento návrh?')) {
+        return;
+      }
+
+      const card = document.getElementById(`req-card-${requestId}`);
+      if (card) {
+        card.style.opacity = '0.5';
+        card.style.pointerEvents = 'none';
+      }
+
+      try {
+        const resp = await fetch(`${BASE_ORIGIN}/api/v1/admin/requests/${encodeURIComponent(requestId)}/reject`, {
+          method: 'POST',
+          headers: getAdminAuthHeaders()
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.detail || 'Chyba pri zamietnutí požiadavky');
+        }
+
+        if (typeof showMapToast === 'function') {
+          showMapToast('❌ Požiadavka bola zamietnutá.', 'info');
+        }
+
+        await loadGarageRequestsList();
+
+      } catch (err) {
+        console.error('Chyba pri zamietnutí:', err);
+        alert(`Chyba: ${err.message}`);
+        if (card) {
+          card.style.opacity = '1';
+          card.style.pointerEvents = 'auto';
+        }
+      }
     }
 
     // ==========================================
@@ -7163,6 +7941,16 @@
     window.isVehicleVerified = isVehicleVerified;
     window.handleOverrideEvInputChange = handleOverrideEvInputChange;
     window.triggerDevModePrompt = triggerDevModePrompt;
+    window.openFanEditModal = openFanEditModal;
+    window.closeFanEditModal = closeFanEditModal;
+    window.handleFanModelSelectChange = handleFanModelSelectChange;
+    window.submitFanEditForm = submitFanEditForm;
+    window.openGarageRequestsModal = openGarageRequestsModal;
+    window.closeGarageRequestsModal = closeGarageRequestsModal;
+    window.checkPendingRequestsCount = checkPendingRequestsCount;
+    window.loadGarageRequestsList = loadGarageRequestsList;
+    window.approvePendingRequest = approvePendingRequest;
+    window.rejectPendingRequest = rejectPendingRequest;
 
     // Globálny stav aplikácie
     const markers = {};                  // vehicle_id -> L.marker
@@ -7949,6 +8737,9 @@
       // 3. Vykreslenie dát v Garáži alebo v Dashboarde
       if (viewName === 'garage') {
         renderGarageView();
+        if (typeof checkPendingRequestsCount === 'function' && isDevMode) {
+          checkPendingRequestsCount();
+        }
       } else if (viewName === 'dashboard') {
         loadAndRenderDashboard();
       }
@@ -10815,7 +11606,15 @@
             title="${isVer ? 'Zrušiť overenie' : 'Označiť údaje ako overené'}">
             <span>${isVer ? 'Overený ✅' : 'Overiť ☑️'}</span>
           </button>
-        </div>` : ''}
+        </div>` : `
+        <div class="popup-actions-row" style="margin-top: 6px;">
+          <button type="button" class="btn-fan-suggest"
+            onclick="event.stopPropagation(); openFanEditModal('${safeEv}', '${safeVehicleId}', '${safeModel}', '${fleet.spz ? String(fleet.spz).replace(/['"\\]/g, '') : ''}');"
+            title="Navrhnúť opravu modelu alebo ŠPZ dispečerom">
+            <span>✏️</span>
+            <span>Navrhnúť opravu údajov</span>
+          </button>
+        </div>`}
 
         <div class="route-active-hint" style="margin-top: 8px;">
           <span>🛣️</span>
@@ -11621,8 +12420,15 @@
             </button>
           `;
         } else {
-          devContainer.style.display = 'none';
-          devContainer.innerHTML = '';
+          devContainer.style.display = 'flex';
+          devContainer.style.gap = '6px';
+          devContainer.innerHTML = `
+            <button type="button" class="btn-fan-suggest" style="padding: 5px 10px; font-size: 0.76rem;" 
+              onclick="event.stopPropagation(); openFanEditModal('${cleanEv}', '${vehicleId || ''}', '${model || ''}', '');" title="Navrhnúť opravu údajov dispečerom">
+              <span>✏️</span>
+              <span>Navrhnúť opravu</span>
+            </button>
+          `;
         }
       }
 
@@ -11671,7 +12477,15 @@
                 <span>${isVer ? 'Overený ✅' : 'Overiť ☑️'}</span>
               </button>
             </div>
-          ` : ''}
+          ` : `
+            <div style="margin-top: 10px;">
+              <button type="button" class="btn-fan-suggest" style="padding: 8px 12px;"
+                onclick="event.stopPropagation(); openFanEditModal('', '${vehicleId || ''}', '${model || ''}', '');">
+                <span>✏️</span>
+                <span>Navrhnúť opravu údajov</span>
+              </button>
+            </div>
+          `}
         `;
         return;
       }
@@ -11720,7 +12534,15 @@
                   <span>${isVer ? 'Overený ✅' : 'Overiť ☑️'}</span>
                 </button>
               </div>
-            ` : ''}
+            ` : `
+              <div style="margin-top: 10px;">
+                <button type="button" class="btn-fan-suggest" style="padding: 8px 12px;"
+                  onclick="event.stopPropagation(); openFanEditModal('${cleanEv}', '${vehicleId || ''}', '${model || ''}', '');">
+                  <span>✏️</span>
+                  <span>Navrhnúť opravu údajov</span>
+                </button>
+              </div>
+            `}
           `;
           setTimeout(() => {
             loadVehicleAssignmentStats(vehicleId, cleanEv, `veh-assignment-box-hist-${cleanEv || vehicleId}`);
@@ -11803,7 +12625,20 @@
                 </button>
               </div>
             </div>
-          ` : ''}
+          ` : `
+            <div style="margin-top: 14px; padding: 12px; background: rgba(56, 189, 248, 0.08); border: 1px dashed rgba(56, 189, 248, 0.35); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 0.8rem; font-weight: 700; color: #38bdf8;">✏️ Komunitná úprava údajov</span>
+                </div>
+                <div style="font-size: 0.72rem; color: #cbd5e1; margin-top: 2px;">Vidíte nesprávny model alebo ŠPZ? Pošlite návrh na opravu.</div>
+              </div>
+              <button type="button" class="btn-fan-suggest-full" style="padding: 7px 14px; font-size: 0.78rem;"
+                onclick="event.stopPropagation(); openFanEditModal('${cleanEv}', '${vehicleId || ''}', '${data.vyrobca || data.model || model || ''}', '${data.spz || ''}');">
+                <span>✏️ Navrhnúť</span>
+              </button>
+            </div>
+          `}
 
           <!-- Pätička s odkazom na imhd.sk -->
           <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center;">
@@ -11821,6 +12656,13 @@
         bodyEl.innerHTML = `
           <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 8px; padding: 12px; color: #fca5a5; font-size: 0.82rem;">
             ⚠️ Nepodarilo sa spojiť so serverom imhd.sk (${err.message}).
+          </div>
+          <div style="margin-top: 10px;">
+            <button type="button" class="btn-fan-suggest" style="padding: 8px 12px;"
+              onclick="event.stopPropagation(); openFanEditModal('${cleanEv}', '${vehicleId || ''}', '${model || ''}', '');">
+              <span>✏️</span>
+              <span>Navrhnúť opravu údajov</span>
+            </button>
           </div>
         `;
       }

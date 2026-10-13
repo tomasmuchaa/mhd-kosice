@@ -1265,6 +1265,95 @@ def get_all_overrides(request: Request):
     }
 
 
+class FanSuggestOverrideRequest(BaseModel):
+    vehicle_id: Optional[Any] = None
+    evidencne_cislo: Optional[str] = None
+    current_model: Optional[str] = None
+    current_spz: Optional[str] = None
+    suggested_model: str
+    suggested_spz: Optional[str] = None
+    note: Optional[str] = None
+
+
+@app.post("/api/v1/fan/suggest-override")
+def suggest_fan_override(req: FanSuggestOverrideRequest):
+    """
+    Verejný endpoint pre fanúšikov dopravy a cestujúcich na navrhnutie opravy údajov vozidla.
+    Požiadavka sa uloží do čakajúceho zoznamu (pending) na overenie dispečerom v Developer móde.
+    """
+    if not req.suggested_model or not req.suggested_model.strip():
+        raise HTTPException(status_code=400, detail="Navrhovaný model nesmie byť prázdny.")
+    if not req.vehicle_id and not req.evidencne_cislo:
+        raise HTTPException(status_code=400, detail="Je potrebné zadať aspoň vehicle_id alebo evidenčné číslo vozidla.")
+
+    record = fleet_service.add_fan_suggestion(
+        suggested_model=req.suggested_model.strip(),
+        evidencne_cislo=str(req.evidencne_cislo).strip() if req.evidencne_cislo is not None and str(req.evidencne_cislo).strip() else None,
+        vehicle_id=str(req.vehicle_id).strip() if req.vehicle_id is not None and str(req.vehicle_id).strip() else None,
+        current_model=req.current_model,
+        current_spz=req.current_spz,
+        suggested_spz=req.suggested_spz,
+        note=req.note
+    )
+
+    return {
+        "status": "ok",
+        "message": "Ďakujeme! Váš návrh bol odoslaný dispečerom na overenie.",
+        "request": record
+    }
+
+
+@app.get("/api/v1/admin/requests")
+def get_admin_pending_requests(request: Request, status: Optional[str] = "pending"):
+    """
+    Developer Mode endpoint: vráti zoznam čakajúcich požiadaviek od fanúšikov dopravy.
+    Vyžaduje X-Admin-Token.
+    """
+    verify_admin_token(request)
+    pending = fleet_service.get_pending_requests(status=status)
+    return {
+        "status": "ok",
+        "count": len(pending),
+        "requests": pending
+    }
+
+
+@app.post("/api/v1/admin/requests/{request_id}/approve")
+def approve_admin_request(request_id: str, request: Request):
+    """
+    Developer Mode endpoint: Schváli čakajúcu požiadavku od fanúšika,
+    automaticky zapíše schválený model a ŠPZ do existujúceho systému perzistentných prepisov (overrides.json)
+    a okamžite aktualizuje pamäť servera a live dáta vozidiel.
+    """
+    verify_admin_token(request)
+    req = fleet_service.approve_request(request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail=f"Požiadavka s ID '{request_id}' nebola nájdená.")
+
+    return {
+        "status": "ok",
+        "message": "Požiadavka bola úspešne schválená a zmeny boli zapísané do flotily.",
+        "request": req
+    }
+
+
+@app.post("/api/v1/admin/requests/{request_id}/reject")
+def reject_admin_request(request_id: str, request: Request):
+    """
+    Developer Mode endpoint: Zamietne čakajúcu požiadavku od fanúšika (nastaví status na 'rejected').
+    """
+    verify_admin_token(request)
+    req = fleet_service.reject_request(request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail=f"Požiadavka s ID '{request_id}' nebola nájdená.")
+
+    return {
+        "status": "ok",
+        "message": "Požiadavka bola zamietnutá.",
+        "request": req
+    }
+
+
 class FeedbackRequest(BaseModel):
     message: str
     category: Optional[str] = "Iné"

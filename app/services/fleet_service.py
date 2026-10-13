@@ -2,6 +2,9 @@ from __future__ import annotations
 import os
 import json
 import csv
+import time
+import uuid
+from datetime import datetime
 from typing import Optional, Dict, Any, List, Union
 
 class FleetService:
@@ -28,10 +31,12 @@ class FleetService:
         "1402220": "3920",  # Solaris Urbino 18,75 III (AA-267TY)
     }
 
-    def __init__(self, csv_path: str, overrides_path: Optional[str] = None):
+    def __init__(self, csv_path: str, overrides_path: Optional[str] = None, pending_requests_path: Optional[str] = None):
         self.csv_path = csv_path
         self.overrides_path = overrides_path or os.path.join(os.path.dirname(self.csv_path), "overrides.json")
+        self.pending_requests_path = pending_requests_path or os.path.join(os.path.dirname(self.csv_path), "pending_requests.json")
         self.MANUAL_OVERRIDES = self._load_overrides()
+        self.pending_requests = self._load_pending_requests()
         self.spz_index = {}
         self.ev_index = {}
         self.vin_prod_index = {
@@ -74,6 +79,109 @@ class FleetService:
         except Exception as e:
             print(f"Chyba pri ukladaní overrides do {self.overrides_path}: {e}")
             return False
+
+    def _load_pending_requests(self) -> List[Dict[str, Any]]:
+        """Dynamicky načíta čakajúce komunitné požiadavky zo súboru data/pending_requests.json."""
+        if os.path.exists(self.pending_requests_path):
+            try:
+                with open(self.pending_requests_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        return data
+            except Exception as e:
+                print(f"Chyba pri načítaní pending requests zo súboru {self.pending_requests_path}: {e}")
+        return []
+
+    def save_pending_requests(self) -> bool:
+        """Uloží zoznam čakajúcich požiadaviek do súboru data/pending_requests.json."""
+        try:
+            os.makedirs(os.path.dirname(self.pending_requests_path), exist_ok=True)
+            with open(self.pending_requests_path, "w", encoding="utf-8") as f:
+                json.dump(self.pending_requests, f, indent=2, ensure_ascii=False)
+            return True
+        except Exception as e:
+            print(f"Chyba pri ukladaní pending requests do {self.pending_requests_path}: {e}")
+            return False
+
+    def add_fan_suggestion(
+        self,
+        suggested_model: str,
+        evidencne_cislo: Optional[str] = None,
+        vehicle_id: Optional[str] = None,
+        current_model: Optional[str] = None,
+        current_spz: Optional[str] = None,
+        suggested_spz: Optional[str] = None,
+        note: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Uloží nový komunitný návrh od fanúšika na schválenie moderátorom."""
+        self.pending_requests = self._load_pending_requests()
+        req_id = f"req_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+        record = {
+            "id": req_id,
+            "created_at": datetime.now().isoformat(),
+            "vehicle_id": str(vehicle_id).strip() if vehicle_id is not None and str(vehicle_id).strip() else None,
+            "evidencne_cislo": str(evidencne_cislo).strip() if evidencne_cislo is not None and str(evidencne_cislo).strip() else None,
+            "current_model": str(current_model).strip() if current_model else None,
+            "current_spz": str(current_spz).strip() if current_spz else None,
+            "suggested_model": str(suggested_model).strip(),
+            "suggested_spz": str(suggested_spz).strip().upper() if suggested_spz and str(suggested_spz).strip() else None,
+            "note": str(note).strip() if note else "",
+            "status": "pending"
+        }
+        self.pending_requests.insert(0, record)
+        self.save_pending_requests()
+        return record
+
+    def get_pending_requests(self, status: Optional[str] = "pending") -> List[Dict[str, Any]]:
+        """Vráti zoznam čakajúcich požiadaviek (alebo podľa statusu)."""
+        self.pending_requests = self._load_pending_requests()
+        if not status:
+            return self.pending_requests
+        return [r for r in self.pending_requests if r.get("status") == status]
+
+    def approve_request(self, request_id: str) -> Optional[Dict[str, Any]]:
+        """Schváli požiadavku, zapíše ju do perzistentných prepisov (MANUAL_OVERRIDES) a uloží."""
+        self.pending_requests = self._load_pending_requests()
+        target = None
+        for r in self.pending_requests:
+            if str(r.get("id")) == str(request_id):
+                target = r
+                break
+
+        if not target:
+            return None
+
+        target["status"] = "approved"
+        target["reviewed_at"] = datetime.now().isoformat()
+
+        # Aplikujeme schválené údaje priamo do existujúceho systému perzistentných prepisov
+        self.add_override(
+            model=target.get("suggested_model", "Autobus DPMK"),
+            evidencne_cislo=target.get("evidencne_cislo"),
+            vehicle_id=target.get("vehicle_id"),
+            spz=target.get("suggested_spz"),
+            verified=True
+        )
+
+        self.save_pending_requests()
+        return target
+
+    def reject_request(self, request_id: str) -> Optional[Dict[str, Any]]:
+        """Zamietne požiadavku a zmení jej status na 'rejected'."""
+        self.pending_requests = self._load_pending_requests()
+        target = None
+        for r in self.pending_requests:
+            if str(r.get("id")) == str(request_id):
+                target = r
+                break
+
+        if not target:
+            return None
+
+        target["status"] = "rejected"
+        target["reviewed_at"] = datetime.now().isoformat()
+        self.save_pending_requests()
+        return target
 
     def add_override(
         self,
