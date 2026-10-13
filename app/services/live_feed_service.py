@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import urllib.request
 import json
@@ -6,7 +7,7 @@ import time
 import unicodedata
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 
 class DpmkLiveFeed:
     UBIAN_BASE_URL = os.getenv("UBIAN_BASE_URL", "https://www.ubian.sk")
