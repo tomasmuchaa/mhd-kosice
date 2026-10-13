@@ -1809,6 +1809,120 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Štatistika nasadzovania vozidla na linky (Liquid Glass štýl) */
+    .vehicle-assignment-box {
+      margin-top: 10px;
+      margin-bottom: 6px;
+      padding: 9px 11px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .veh-assignment-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+    }
+    .veh-assignment-title {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .veh-assignment-total {
+      font-size: 0.68rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .veh-stacked-bar {
+      height: 7px;
+      width: 100%;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+      background: rgba(255, 255, 255, 0.08);
+      margin-bottom: 8px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+    .veh-bar-segment {
+      height: 100%;
+      transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .veh-assignment-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .veh-assignment-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 3px 7px;
+      font-size: 0.73rem;
+      color: #f1f5f9;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      user-select: none;
+    }
+    .veh-assignment-pill:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-1px);
+    }
+    .veh-assignment-pill.non-clickable {
+      cursor: default;
+    }
+    .veh-assignment-pill.non-clickable:hover {
+      background: rgba(30, 41, 59, 0.75);
+      border-color: rgba(255, 255, 255, 0.1);
+      transform: none;
+    }
+    .veh-pill-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.70rem;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    }
+    .veh-pill-pct {
+      font-weight: 700;
+      color: #e2e8f0;
+      font-size: 0.74rem;
+    }
+    .veh-assignment-nodata {
+      font-size: 0.73rem;
+      color: #94a3b8;
+      line-height: 1.4;
+      padding: 2px 0;
+    }
+    .veh-assignment-loading {
+      font-size: 0.72rem;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 0;
+    }
+    .veh-assignment-content {
+      animation: fadeInAssignment 0.25s ease-out forwards;
+    }
+    @keyframes fadeInAssignment {
+      from { opacity: 0; transform: translateY(2px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* Stop marker tooltip */
     .leaflet-tooltip.stop-tooltip {
       background: rgba(15, 23, 42, 0.95);
@@ -9936,6 +10050,16 @@
           </div>
         </div>
 
+        <!-- Štatistika nasadzovania vozidla na linky (Posledných 14 dní) -->
+        <div class="vehicle-assignment-box" id="veh-assignment-box-${safeVehicleId || safeEv}">
+          <div class="veh-assignment-header">
+            <span class="veh-assignment-title">📊 Obvyklé nasadenie (posledných 14 dní)</span>
+          </div>
+          <div class="veh-assignment-loading">
+            <span style="font-size: 0.8rem;">⏳</span> Načítavam históriu jázd...
+          </div>
+        </div>
+
         <!-- Tlačidlo pre načítanie histórie a detailov z imhd.sk -->
         <div class="popup-actions-row">
           <button type="button" class="btn-more-info" 
@@ -10057,6 +10181,125 @@
     }
     window.reportVehicleOccupancy = reportVehicleOccupancy;
 
+    // ========================================================
+    // ŠTATISTIKA NASADZOVANIA VOZIDLA NA LINKY (DATA COLLECTOR)
+    // ========================================================
+    const vehicleAssignmentStatsCache = new Map();
+
+    /**
+     * Asynchrónne načíta a vykreslí štatistiku nasadzovania vozidla na linky za posledných 14 dní
+     * @param {string|number} vehicleId - ID vozidla z Ubian telemetrie
+     * @param {string} evCislo - Evidenčné číslo vozidla (ak je známe)
+     * @param {string} containerId - ID HTML kontajnera pre vloženie štatistiky
+     */
+    async function loadVehicleAssignmentStats(vehicleId, evCislo, containerId) {
+      const cleanVid = String(vehicleId || '').trim();
+      const cleanEv = String(evCislo || '').trim();
+      const targetId = containerId || `veh-assignment-box-${cleanVid || cleanEv}`;
+      const container = document.getElementById(targetId);
+      if (!container) return;
+
+      const cacheKey = `${cleanVid}_${cleanEv}`;
+      if (vehicleAssignmentStatsCache.has(cacheKey)) {
+        renderVehicleAssignmentStatsHtml(container, vehicleAssignmentStatsCache.get(cacheKey));
+        return;
+      }
+
+      try {
+        const queryParam = cleanEv ? `?ev_cislo=${encodeURIComponent(cleanEv)}` : '';
+        const url = `${BASE_ORIGIN}/api/v1/vehicle/${encodeURIComponent(cleanVid || cleanEv)}/assignment-stats${queryParam}`;
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+        vehicleAssignmentStatsCache.set(cacheKey, data);
+        renderVehicleAssignmentStatsHtml(container, data);
+      } catch (err) {
+        console.warn('Nepodarilo sa načítať štatistiku nasadenia vozidla:', err);
+        container.innerHTML = `
+          <div class="veh-assignment-content">
+            <div class="veh-assignment-header">
+              <span class="veh-assignment-title">📊 Obvyklé nasadenie (posledných 14 dní)</span>
+            </div>
+            <div class="veh-assignment-nodata">
+              ℹ️ Zber dát pre toto vozidlo prebieha (zatiaľ nedostatok historických jázd)
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    /**
+     * Vykreslí HTML obsah bloku nasadzovania vozidla (Liquid Glass štýl)
+     */
+    function renderVehicleAssignmentStatsHtml(container, data) {
+      if (!container) return;
+
+      const palette = [
+        { bar: 'linear-gradient(90deg, #38bdf8, #0284c7)', tag: '#0284c7' }, // Sky
+        { bar: 'linear-gradient(90deg, #a855f7, #7c3aed)', tag: '#7c3aed' }, // Purple
+        { bar: 'linear-gradient(90deg, #fbbf24, #d97706)', tag: '#d97706' }, // Amber
+        { bar: 'linear-gradient(90deg, #34d399, #059669)', tag: '#059669' }, // Emerald
+        { bar: 'linear-gradient(90deg, #94a3b8, #64748b)', tag: '#64748b' }  // Slate / Ostatné
+      ];
+
+      if (!data || !data.has_data || !data.lines || data.lines.length === 0) {
+        container.innerHTML = `
+          <div class="veh-assignment-content">
+            <div class="veh-assignment-header">
+              <span class="veh-assignment-title">📊 Obvyklé nasadenie (posledných 14 dní)</span>
+            </div>
+            <div class="veh-assignment-nodata">
+              ℹ️ Zber dát pre toto vozidlo prebieha (zatiaľ nedostatok historických jázd)
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Vykreslenie viacfarebného horizontálneho stacked baru
+      const barSegmentsHtml = data.lines.map((item, idx) => {
+        const color = (item.line === 'Ostatné') ? palette[4] : (palette[idx % 4]);
+        const pct = Math.max(2, item.percentage || 0);
+        return `<div class="veh-bar-segment" style="width: ${pct}%; background: ${color.bar};" title="Linka ${item.line}: ${item.percentage}% (${item.count} záznamov)"></div>`;
+      }).join('');
+
+      // Vykreslenie tabletiek (pills) s číslom linky a percentom
+      const pillsHtml = data.lines.map((item, idx) => {
+        const isOthers = item.line === 'Ostatné';
+        const color = isOthers ? palette[4] : (palette[idx % 4]);
+        const clickHandler = isOthers ? '' : `onclick="event.stopPropagation(); focusLineOnMap('${item.line}');"`;
+        const clickTitle = isOthers ? '' : `title="Kliknutím vyfiltrujete linku ${item.line} na mape"`;
+        const pillClass = isOthers ? 'veh-assignment-pill non-clickable' : 'veh-assignment-pill';
+
+        return `
+          <div class="${pillClass}" ${clickHandler} ${clickTitle}>
+            <span class="veh-pill-tag" style="background: ${color.tag};">${item.line}</span>
+            <span class="veh-pill-pct">${item.percentage}%</span>
+          </div>
+        `;
+      }).join('');
+
+      const totalLabel = data.total_records ? `${data.total_records} vzoriek` : '';
+
+      container.innerHTML = `
+        <div class="veh-assignment-content">
+          <div class="veh-assignment-header">
+            <span class="veh-assignment-title">📊 Obvyklé nasadenie (posledných 14 dní)</span>
+            ${totalLabel ? `<span class="veh-assignment-total">${totalLabel}</span>` : ''}
+          </div>
+          <div class="veh-stacked-bar">
+            ${barSegmentsHtml}
+          </div>
+          <div class="veh-assignment-pills">
+            ${pillsHtml}
+          </div>
+        </div>
+      `;
+    }
+    window.loadVehicleAssignmentStats = loadVehicleAssignmentStats;
+
     // Otvorenie detailov vozidla priamo v existujúcom spodnom paneli (Bottom Sheet pre mobily < 768px)
     function openVehicleDetailBottomSheet(v) {
       if (!v) return;
@@ -10106,6 +10349,11 @@
         backdrop.classList.add('open');
         backdrop.classList.add('active');
       }
+
+      // Asynchrónne načítanie štatistiky nasadzovania vozidla do Bottom Sheetu
+      setTimeout(() => {
+        loadVehicleAssignmentStats(v.vehicle_id, cleanEv, `veh-assignment-box-${v.vehicle_id || cleanEv}`);
+      }, 50);
     }
     window.openVehicleDetailBottomSheet = openVehicleDetailBottomSheet;
 
@@ -10266,6 +10514,11 @@
           L.DomEvent.disableClickPropagation(popupEl);
           L.DomEvent.disableScrollPropagation(popupEl);
         }
+        // Asynchrónne načítanie štatistiky nasadzovania vozidla do desktop popupu
+        const fleetEv = v.fleet_info ? (v.fleet_info.evidencne_cislo || '') : '';
+        setTimeout(() => {
+          loadVehicleAssignmentStats(v.vehicle_id, fleetEv, `veh-assignment-box-${v.vehicle_id || fleetEv}`);
+        }, 50);
       });
       marker.on('popupclose', () => {
         if (followingVehicleId === v.vehicle_id) stopFollowingVehicle();
@@ -10404,6 +10657,16 @@
                 <div class="spec-card-val">${cleanEv}</div>
               </div>
             </div>
+
+            <!-- Štatistika nasadzovania vozidla na linky (Posledných 14 dní) -->
+            <div class="vehicle-assignment-box" id="veh-assignment-box-hist-${cleanEv || vehicleId}">
+              <div class="veh-assignment-header">
+                <span class="veh-assignment-title">📊 Obvyklé nasadenie (posledných 14 dní)</span>
+              </div>
+              <div class="veh-assignment-loading">
+                <span style="font-size: 0.8rem;">⏳</span> Načítavam históriu jázd...
+              </div>
+            </div>
             ${isDevMode ? `
               <div style="margin-top: 10px; display: flex; gap: 6px;">
                 <button type="button" class="btn-dev-override" style="flex: 1; padding: 8px 12px;"
@@ -10418,6 +10681,9 @@
               </div>
             ` : ''}
           `;
+          setTimeout(() => {
+            loadVehicleAssignmentStats(vehicleId, cleanEv, `veh-assignment-box-hist-${cleanEv || vehicleId}`);
+          }, 50);
           return;
         }
 
@@ -10462,6 +10728,16 @@
             </div>
           </div>
 
+          <!-- Štatistika nasadzovania vozidla na linky (Posledných 14 dní) -->
+          <div class="vehicle-assignment-box" id="veh-assignment-box-hist-${cleanEv || vehicleId}">
+            <div class="veh-assignment-header">
+              <span class="veh-assignment-title">📊 Obvyklé nasadenie (posledných 14 dní)</span>
+            </div>
+            <div class="veh-assignment-loading">
+              <span style="font-size: 0.8rem;">⏳</span> Načítavam históriu jázd...
+            </div>
+          </div>
+
           ${timelineHtml}
 
           <!-- Developer Mode Action Banner v detaile -->
@@ -10495,6 +10771,10 @@
             </a>
           </div>
         `;
+
+        setTimeout(() => {
+          loadVehicleAssignmentStats(vehicleId, cleanEv, `veh-assignment-box-hist-${cleanEv || vehicleId}`);
+        }, 50);
 
       } catch (err) {
         bodyEl.innerHTML = `

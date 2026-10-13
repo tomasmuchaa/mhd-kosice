@@ -11,7 +11,7 @@ paralelný zápis popri čítaní bez uzamykania.
 import os
 import sqlite3
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Tuple, List, Optional, Any, Union
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -226,6 +226,98 @@ class TelemetryDB:
             inserted = 0
 
         return inserted, ignored_count
+
+    def get_vehicle_assignment_stats(
+        self,
+        vehicle_ids: List[int],
+        days: int = 14,
+        min_records: int = 10,
+        display_id: Optional[Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Agreguje nasadzovanie vozidla na linky za posledných N dní (predvolene 14 dní).
+        Vráti percentuálne zastúpenie TOP 3 liniek (+ 'Ostatné' ak existujú viac ako 4 linky).
+        """
+        out_vid = display_id
+        if out_vid is None and vehicle_ids:
+            out_vid = vehicle_ids[0]
+        if isinstance(out_vid, str) and out_vid.isdigit():
+            out_vid = int(out_vid)
+
+        if not vehicle_ids:
+            return {
+                "vehicle_id": out_vid,
+                "period_days": days,
+                "total_records": 0,
+                "has_data": False,
+                "lines": []
+            }
+
+        since_iso = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        placeholders = ",".join("?" for _ in vehicle_ids)
+        query = f"""
+            SELECT line, COUNT(*) as samples_count
+            FROM vehicle_positions
+            WHERE vehicle_id IN ({placeholders})
+              AND timestamp >= ?
+              AND line IS NOT NULL AND line != ''
+            GROUP BY line
+            ORDER BY samples_count DESC;
+        """
+
+        with self._lock:
+            conn = self._get_connection()
+            try:
+                cur = conn.cursor()
+                cur.execute(query, (*vehicle_ids, since_iso))
+                rows = cur.fetchall()
+            except Exception as e:
+                print(f"[TelemetryDB] Chyba pri get_vehicle_assignment_stats: {e}")
+                rows = []
+            finally:
+                conn.close()
+
+        total_samples = sum(r[1] for r in rows)
+        if total_samples < min_records or not rows:
+            return {
+                "vehicle_id": out_vid,
+                "period_days": days,
+                "total_records": total_samples,
+                "has_data": False,
+                "lines": []
+            }
+
+        lines_res = []
+        if len(rows) <= 4:
+            target_items = rows
+            others_count = 0
+        else:
+            target_items = rows[:3]
+            others_count = sum(r[1] for r in rows[3:])
+
+        for line_name, count in target_items:
+            pct = round((count / total_samples) * 100)
+            lines_res.append({
+                "line": str(line_name),
+                "percentage": int(pct),
+                "count": int(count)
+            })
+
+        if others_count > 0:
+            others_pct = round((others_count / total_samples) * 100)
+            lines_res.append({
+                "line": "Ostatné",
+                "percentage": int(others_pct),
+                "count": int(others_count)
+            })
+
+        return {
+            "vehicle_id": out_vid,
+            "period_days": days,
+            "total_records": total_samples,
+            "has_data": True,
+            "lines": lines_res
+        }
 
 
 # Globálna inštancia pripravená na použitie v celej aplikácii

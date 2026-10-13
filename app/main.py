@@ -229,6 +229,7 @@ def root(request: Request):
         "stop_departures": "/api/v1/stops/{stop_id}/departures",
         "search_by_spz": "/api/v1/vehicle/search?spz=KE-704IY",
         "vehicle_occupancy": "/api/v1/vehicle/{vehicle_id}/occupancy",
+        "vehicle_assignment_stats": "/api/v1/vehicle/{vehicle_id}/assignment-stats",
         "feedback": "/api/v1/feedback",
         "mapa": "/mapa",
         "ikonky": "/ikonky",
@@ -1025,6 +1026,78 @@ def get_vehicle_history(evidencne_cislo: str):
     Získa podrobný profil, rok výroby, zaradenie a časovú os (timeline) histórie vozidla z portálu imhd.sk.
     """
     return get_imhd_vehicle_history(evidencne_cislo)
+
+
+@app.get("/api/v1/vehicle/{vehicle_id}/assignment-stats")
+def get_vehicle_assignment_stats(
+    vehicle_id: str,
+    ev_cislo: Optional[str] = Query(None, description="Voliteľné evidenčné číslo vozidla pre presné párovanie"),
+    days: int = Query(14, ge=1, le=90, description="Počet dní do minulosti pre štatistiku (predvolene 14)"),
+    min_records: int = Query(10, ge=1, description="Minimálny počet vzoriek pre zobrazenie štatistiky (inak has_data: false)")
+):
+    """
+    Vráti reálnu štatistiku nasadzovania vozidla na linky za posledných N dní (napr. 14 dní).
+    Prepojí zadané vehicle_id / evidenčné číslo s historickými polohami v SQLite databáze.
+    """
+    v_clean = str(vehicle_id).strip()
+    if hasattr(ev_cislo, 'default'):
+        ev_clean = None
+    elif ev_cislo is not None:
+        ev_clean = str(ev_cislo).strip()
+    else:
+        ev_clean = None
+    days_val = int(days.default) if hasattr(days, 'default') else int(days)
+    min_rec_val = int(min_records.default) if hasattr(min_records, 'default') else int(min_records)
+
+    candidate_ids = set()
+    if v_clean.isdigit():
+        candidate_ids.add(int(v_clean))
+    if ev_clean and ev_clean.isdigit():
+        candidate_ids.add(int(ev_clean))
+
+    # 1. Mapovanie cez TRANSDATA_MAPPING
+    for tid, ev in fleet_service.TRANSDATA_MAPPING.items():
+        if v_clean == str(tid) or (ev_clean and ev_clean == str(tid)):
+            if str(ev).isdigit():
+                candidate_ids.add(int(ev))
+        if v_clean == str(ev) or (ev_clean and ev_clean == str(ev)):
+            if str(tid).isdigit():
+                candidate_ids.add(int(tid))
+
+    # 2. Mapovanie cez match_live_vehicle
+    if v_clean.isdigit():
+        m = fleet_service.match_live_vehicle(vehicle_id=v_clean)
+        if m and m.get("evidencne_cislo") and str(m["evidencne_cislo"]).isdigit():
+            candidate_ids.add(int(m["evidencne_cislo"]))
+
+    # 3. MANUAL_OVERRIDES
+    for k, ov in fleet_service.MANUAL_OVERRIDES.items():
+        ov_ev = str(ov.get("evidencne_cislo") or "")
+        if v_clean in (str(k), ov_ev) or (ev_clean and ev_clean in (str(k), ov_ev)):
+            if str(k).isdigit():
+                candidate_ids.add(int(k))
+            if ov_ev.isdigit():
+                candidate_ids.add(int(ov_ev))
+
+    # 4. Ak bolo zadané evidenčné číslo (napr. 5720, 4743), vyhľadáme možné TransData 7-miestne ID
+    target_ev = ev_clean or (v_clean if len(v_clean) <= 4 and v_clean.isdigit() else None)
+    if target_ev and 2 <= len(target_ev) <= 4 and target_ev.isdigit():
+        last2 = target_ev[-2:]
+        for prefix in ('12761', '12762', '12763', '12764', '12765', '12766', '12767', '12770', '12775', '12778', '12779', '12781', '12782'):
+            tid = prefix + last2
+            matched = fleet_service.match_live_vehicle(vehicle_id=tid)
+            if matched and str(matched.get("evidencne_cislo")) == target_ev:
+                candidate_ids.add(int(tid))
+
+    # Identifikátor pre zobrazenie v odpovedi
+    display_id = target_ev if target_ev else (int(v_clean) if v_clean.isdigit() else v_clean)
+
+    return telemetry_db.get_vehicle_assignment_stats(
+        vehicle_ids=sorted(list(candidate_ids)),
+        days=days_val,
+        min_records=min_rec_val,
+        display_id=display_id
+    )
 
 
 @app.get("/api/v1/fleet/all")
