@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /mapa
+Allow: /api/v1/vehicles/live
+Disallow: /api/v1/admin/
+Sitemap: /sitemap.xml

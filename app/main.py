@@ -42,6 +42,8 @@ MAP_PATH = os.path.join(PROJECT_DIR, "mapa.html")
 HISTORICAL_TRACK_PATH = os.path.join(PROJECT_DIR, "data", "historical_track.geojson")
 MANIFEST_PATH = os.path.join(PROJECT_DIR, "manifest.json")
 SERVICE_WORKER_PATH = os.path.join(PROJECT_DIR, "service-worker.js")
+ROBOTS_PATH = os.path.join(PROJECT_DIR, "robots.txt")
+SITEMAP_PATH = os.path.join(PROJECT_DIR, "sitemap.xml")
 ICONS_DIR = os.path.join(PROJECT_DIR, "data", "icons")
 STATIC_ICONS_DIR = os.path.join(PROJECT_DIR, "static", "icons")
 FEEDBACK_DIR = os.path.join(PROJECT_DIR, "data", "feedback")
@@ -171,7 +173,9 @@ def root(request: Request):
         "feedback": "/api/v1/feedback",
         "mapa": "/mapa",
         "ikonky": "/ikonky",
-        "manifest": "/manifest.json"
+        "manifest": "/manifest.json",
+        "robots": "/robots.txt",
+        "sitemap": "/sitemap.xml"
     }
     if DEBUG_MODE:
         endpoints["docs"] = "/docs"
@@ -238,6 +242,20 @@ def get_static_icon(icon_name: str):
     if os.path.exists(icon_path):
         return FileResponse(icon_path, media_type="image/png", headers={"Cache-Control": "no-cache"})
     raise HTTPException(status_code=404, detail="Ikona nebola nájdená.")
+
+@app.get("/robots.txt", response_class=FileResponse)
+def get_robots():
+    """robots.txt pre indexáciu vyhľadávačmi (Google, Bing)."""
+    if os.path.exists(ROBOTS_PATH):
+        return FileResponse(ROBOTS_PATH, media_type="text/plain")
+    raise HTTPException(status_code=404, detail="robots.txt nebol nájdený.")
+
+@app.get("/sitemap.xml", response_class=FileResponse)
+def get_sitemap():
+    """sitemap.xml pre vyhľadávače."""
+    if os.path.exists(SITEMAP_PATH):
+        return FileResponse(SITEMAP_PATH, media_type="application/xml")
+    raise HTTPException(status_code=404, detail="sitemap.xml nebol nájdený.")
 
 @app.get("/api/v1/trip/{trip_id}")
 def get_trip_details(trip_id: int):
