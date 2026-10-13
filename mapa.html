@@ -1925,7 +1925,7 @@
 
     .board-table-header {
       display: grid;
-      grid-template-columns: 50px 1fr 72px 46px;
+      grid-template-columns: 46px 1fr 68px 36px 32px;
       gap: 6px;
       font-size: 0.68rem;
       font-weight: 700;
@@ -1950,7 +1950,7 @@
 
     .board-row {
       display: grid;
-      grid-template-columns: 50px 1fr 72px 46px;
+      grid-template-columns: 46px 1fr 68px 36px 32px;
       gap: 6px;
       align-items: center;
       padding: 6px 8px;
@@ -2062,6 +2062,56 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
+    }
+
+    /* Tlačidlo zvončeka pre upozornenie pred príchodom spoja */
+    .btn-notify-departure {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #94a3b8;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.80rem;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 0;
+      margin: 0;
+      outline: none;
+      user-select: none;
+      -webkit-user-select: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    }
+    .btn-notify-departure:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+    .btn-notify-departure:disabled {
+      opacity: 0.32;
+      cursor: not-allowed;
+      filter: grayscale(1);
+    }
+    .btn-notify-departure.active-alert {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.45), rgba(168, 85, 247, 0.55));
+      border-color: #a855f7;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.65), inset 0 0 6px rgba(255, 255, 255, 0.4);
+      animation: pulse-bell-alert 1.8s infinite ease-in-out;
+    }
+    @keyframes pulse-bell-alert {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
+      }
+      50% {
+        transform: scale(1.15);
+        box-shadow: 0 0 16px rgba(168, 85, 247, 0.95);
+      }
     }
 
     .board-empty-state {
@@ -10884,6 +10934,224 @@
       }
     }
 
+    // ========================================================
+    // UPOZORNENIA PRED PRÍCHODOM SPOJA (WEB NOTIFICATIONS)
+    // ========================================================
+    window.nexigoActiveAlerts = [];
+
+    function loadActiveAlerts() {
+      try {
+        const raw = localStorage.getItem('nexigo_departure_alerts');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const now = Date.now();
+          window.nexigoActiveAlerts = Array.isArray(parsed)
+            ? parsed.filter(a => !a.notified && (a.targetDepartureTimestamp - now) > -120000)
+            : [];
+        } else {
+          window.nexigoActiveAlerts = [];
+        }
+      } catch (e) {
+        window.nexigoActiveAlerts = [];
+      }
+    }
+
+    function saveActiveAlerts() {
+      try {
+        localStorage.setItem('nexigo_departure_alerts', JSON.stringify(window.nexigoActiveAlerts || []));
+      } catch (e) {}
+    }
+
+    // Inicializácia pri štarte
+    loadActiveAlerts();
+
+    /**
+     * Vystaví systémovú notifikáciu (cez Service Worker s fallbackom na new Notification)
+     */
+    async function triggerSystemDepartureNotification(alert) {
+      const line = alert.line || '?';
+      const destination = alert.destination || 'Neznámy smer';
+      const stopName = alert.stopName || 'zastávku';
+
+      const title = `Linka ${line} prichádza o 3 minúty!`;
+      const body = `Smer: ${destination}\nZastávka: ${stopName}`;
+      const icon = '/static/img/nexigo-logo.png';
+      const badge = '/static/icons/icon-192.png';
+
+      // 1. Primárna cesta: Service Worker (funguje v PWA aj na zamknutom displeji)
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          if (reg && reg.showNotification) {
+            await reg.showNotification(title, {
+              body: body,
+              icon: icon,
+              badge: badge,
+              vibrate: [200, 100, 200],
+              tag: `nexigo-alert-${alert.id}`,
+              renotify: true,
+              data: {
+                url: '/mapa',
+                id: alert.id
+              }
+            });
+            return;
+          }
+        } catch (swErr) {
+          console.warn('SW notification fallback to standard Notification:', swErr);
+        }
+      }
+
+      // 2. Sekundárna cesta (Fallback): Štandardné okenné Notification API
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        try {
+          const n = new Notification(title, {
+            body: body,
+            icon: icon,
+            badge: badge,
+            vibrate: [200, 100, 200],
+            tag: `nexigo-alert-${alert.id}`,
+            renotify: true
+          });
+          n.onclick = () => {
+            window.focus();
+            n.close();
+          };
+        } catch (notifErr) {
+          console.error('Chyba pri Notification fallback:', notifErr);
+        }
+      }
+    }
+
+    /**
+     * Kontrola aktívnych upozornení:
+     * Ak zostávajúci čas klesne na <= 3 minúty, odošle systémovú notifikáciu.
+     */
+    function checkActiveDepartureAlerts() {
+      if (!window.nexigoActiveAlerts || window.nexigoActiveAlerts.length === 0) return;
+
+      const now = Date.now();
+      const alertsToKeep = [];
+
+      window.nexigoActiveAlerts.forEach(alert => {
+        if (alert.notified) return;
+
+        const remainingMs = alert.targetDepartureTimestamp - now;
+        const remainingMinutes = remainingMs / 60000;
+
+        // Ak do príchodu zostávajú 3 minúty alebo menej (a spoj ešte neodišiel pred viac ako 2 min)
+        if (remainingMinutes <= 3.0 && remainingMinutes > -2.0) {
+          triggerSystemDepartureNotification(alert);
+          alert.notified = true;
+
+          // Vizuálne prepneme tlačidlo v DOM, ak je odchodová tabuľa otvorená
+          const btn = document.getElementById(`btn-alert-${alert.id}`);
+          if (btn) {
+            btn.classList.remove('active-alert');
+            btn.disabled = true;
+            btn.title = 'Spoj už prichádza';
+          }
+        } else if (remainingMinutes > -2.0) {
+          alertsToKeep.push(alert);
+        }
+      });
+
+      window.nexigoActiveAlerts = alertsToKeep;
+      saveActiveAlerts();
+    }
+
+    // Pravidelná kontrola upozornení každých 10 sekúnd na pozadí
+    setInterval(checkActiveDepartureAlerts, 10000);
+
+    /**
+     * Aktivácia / deaktivácia upozornenia na príchod konkrétneho spoja
+     */
+    async function toggleDepartureAlert(alertId, line, destination, stopName, targetDepartureTimestamp, stopId) {
+      if (!('Notification' in window)) {
+        if (typeof showMapToast === 'function') {
+          showMapToast('Váš prehliadač nepodporuje systémové Web Notifikácie.', 'warning');
+        }
+        return;
+      }
+
+      // Detekcia iOS Safari PWA
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || Boolean(navigator.standalone);
+      if (isIOS && !isStandalone) {
+        if (typeof showMapToast === 'function') {
+          showMapToast('Na iOS Safari pre notifikácie najprv pridajte Nexigo na plochu (Zdieľať ⎋ -> Pridať na plochu ⊞).', 'warning');
+        }
+      }
+
+      // 1. Oprávnenie pre notifikácie
+      if (Notification.permission === 'denied') {
+        if (typeof showMapToast === 'function') {
+          showMapToast('Notifikácie sú v prehliadači zablokované. Povoľte ich v nastaveniach stránky.', 'warning');
+        }
+        return;
+      }
+
+      if (Notification.permission === 'default') {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+            if (typeof showMapToast === 'function') {
+              showMapToast('Oprávnenie na odosielanie notifikácií nebolo udelené.', 'warning');
+            }
+            return;
+          }
+        } catch (permErr) {
+          console.warn('Chyba pri requestPermission:', permErr);
+          return;
+        }
+      }
+
+      // 2. Prepnutie (Toggle off): Ak je už alert aktívny, zrušíme ho
+      const existingIdx = window.nexigoActiveAlerts.findIndex(a => a.id === alertId);
+      const btn = document.getElementById(`btn-alert-${alertId}`);
+
+      if (existingIdx !== -1) {
+        window.nexigoActiveAlerts.splice(existingIdx, 1);
+        saveActiveAlerts();
+        if (btn) {
+          btn.classList.remove('active-alert');
+          btn.title = 'Upozorniť 3 minúty pred príchodom';
+        }
+        if (typeof showMapToast === 'function') {
+          showMapToast(`Upozornenie pre linku ${line} bolo zrušené.`, 'info');
+        }
+        return;
+      }
+
+      // 3. Aktivácia nového alertu (Toggle on)
+      const newAlert = {
+        id: alertId,
+        line: line,
+        destination: destination,
+        stopName: stopName,
+        stopId: stopId,
+        targetDepartureTimestamp: Number(targetDepartureTimestamp),
+        notified: false,
+        createdAt: Date.now()
+      };
+
+      window.nexigoActiveAlerts.push(newAlert);
+      saveActiveAlerts();
+
+      if (btn) {
+        btn.classList.add('active-alert');
+        btn.title = 'Upozornenie aktívne (Kliknutím zrušíte)';
+      }
+
+      if (typeof showMapToast === 'function') {
+        showMapToast(`🔔 Upozornenie nastavené: Dáme vám vedieť 3 minúty pred príchodom linky ${line}.`, 'success');
+      }
+
+      checkActiveDepartureAlerts();
+    }
+    window.toggleDepartureAlert = toggleDepartureAlert;
+    window.checkActiveDepartureAlerts = checkActiveDepartureAlerts;
+
     async function openStopBoard(stopId, latLng, stopName) {
       // Asynchrónne načítanie a vykreslenie peších prestupov do 500 m
       clearWalkingTransfers();
@@ -11002,6 +11270,32 @@
               ? `<span class="board-platform-badge" title="Nástupište ${d.platform}"><span class="plat-icon">🚏</span> Nást. ${d.platform}</span>`
               : '';
 
+            // Výpočet času odchodu a stavu pre Web Notifications
+            const targetDepartureTimestamp = (d.expected_timestamp || d.planned_timestamp)
+              ? (Number(d.expected_timestamp || d.planned_timestamp) * 1000)
+              : (Date.now() + Math.max(0, d.minutes_left || 0) * 60000);
+
+            const remainingMin = (targetDepartureTimestamp - Date.now()) / 60000;
+            const isTooSoon = remainingMin <= 3.0;
+
+            const alertId = d.trip_id
+              ? `trip_${d.trip_id}`
+              : `dep_${stopId}_${d.line || ''}_${(d.destination || '').replace(/\s+/g, '_')}_${targetDepartureTimestamp}`.replace(/[^a-zA-Z0-9_]/g, '_');
+
+            const isAlreadyActive = Array.isArray(window.nexigoActiveAlerts) && window.nexigoActiveAlerts.some(a => a.id === alertId && !a.notified);
+
+            const safeLine = (d.line || '').replace(/'/g, "\\'");
+            const safeDest = (d.destination || 'Neznámy smer').replace(/'/g, "\\'");
+
+            let notifyBtnHtml = '';
+            if (isTooSoon) {
+              notifyBtnHtml = `<button class="btn-notify-departure" disabled title="Spoj už prichádza">🔔</button>`;
+            } else if (isAlreadyActive) {
+              notifyBtnHtml = `<button id="btn-alert-${alertId}" class="btn-notify-departure active-alert" title="Upozornenie aktívne (Kliknutím zrušíte)" onclick="toggleDepartureAlert('${alertId}', '${safeLine}', '${safeDest}', '${finalSafeName}', ${targetDepartureTimestamp}, '${stopId}')">🔔</button>`;
+            } else {
+              notifyBtnHtml = `<button id="btn-alert-${alertId}" class="btn-notify-departure" title="Upozorniť 3 minúty pred príchodom" onclick="toggleDepartureAlert('${alertId}', '${safeLine}', '${safeDest}', '${finalSafeName}', ${targetDepartureTimestamp}, '${stopId}')">🔔</button>`;
+            }
+
             return `
               <div class="board-row">
                 <div>
@@ -11020,6 +11314,9 @@
                 </div>
                 <div class="board-badges-col">
                   ${badges.join('')}
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center;">
+                  ${notifyBtnHtml}
                 </div>
               </div>
             `;
@@ -11047,6 +11344,7 @@
               <span>Smer &amp; Nástupište</span>
               <span style="text-align: right;">Odchod</span>
               <span style="text-align: right;">Info</span>
+              <span style="text-align: center;" title="Upozornenie 3 min pred odchodom">🔔</span>
             </div>
             <div class="board-rows">
               ${rowsHtml}
@@ -12137,6 +12435,9 @@
 
         // Synchronizácia viditeľných markerov (Extrémny Viewport Culling & Search Bypass)
         syncVisibleMarkers();
+
+        // Kontrola aktívnych upozornení na odchody spojov
+        checkActiveDepartureAlerts();
 
       } catch (err) {
         console.error('Chyba pri sťahovaní live dát:', err);

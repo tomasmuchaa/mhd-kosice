@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nexigo-cache-v5';
+const CACHE_NAME = 'nexigo-cache-v6';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/static/icons/favicon.png?v=2',
@@ -91,3 +91,25 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Spracovanie kliknutia na systémovú notifikáciu (Upozornenie pred príchodom spoja)
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = new URL('/mapa', self.location.origin).href;
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Ak už existuje otvorená karta Nexigo, zaostríme ju
+      for (let client of windowClients) {
+        if (client.url === targetUrl || client.url.startsWith(self.location.origin)) {
+          return client.focus();
+        }
+      }
+      // Inak otvoríme novú kartu s mapou
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
