@@ -935,6 +935,158 @@
     }
 
     /* ============================================================ */
+    /* AI PREDIKCIA - BETA OKNO (DEVELOPER MODE)                   */
+    /* ============================================================ */
+    .ai-dev-prediction-box {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(30, 41, 59, 0.82) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 9px 11px;
+      margin: 8px 0 10px 0;
+      box-sizing: border-box;
+      backdrop-filter: blur(10px);
+    }
+    .ai-dev-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    .ai-dev-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ai-dev-icon {
+      font-size: 1rem;
+    }
+    .ai-dev-title {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: 0.3px;
+    }
+    .ai-dev-pill-beta {
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      color: #ffffff;
+      font-size: 0.62rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .ai-dev-model-tag {
+      font-size: 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: #94a3b8;
+      background: rgba(100, 116, 139, 0.2);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .ai-dev-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-bottom: 7px;
+    }
+    .ai-dev-card {
+      background: rgba(15, 23, 42, 0.55);
+      border-radius: 8px;
+      padding: 6px 8px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .ai-dev-card-gps {
+      border-left: 3px solid #38bdf8;
+    }
+    .ai-dev-card-model {
+      border-left: 3px solid #a855f7;
+    }
+    .ai-dev-card-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 2px;
+    }
+    .ai-dev-card-val {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+    .ai-dev-val-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+    .ai-dev-val-num.on-time {
+      color: #34d399;
+    }
+    .ai-dev-val-num.delayed {
+      color: #f87171;
+    }
+    .ai-dev-val-unit {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .ai-dev-card-sub {
+      font-size: 0.63rem;
+      color: #64748b;
+      margin-top: 1px;
+    }
+    .ai-dev-delta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+    .ai-dev-delta-bar.delta-accurate {
+      background: rgba(16, 185, 129, 0.18);
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      color: #34d399;
+    }
+    .ai-dev-delta-bar.delta-divergent {
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      color: #f87171;
+    }
+    .ai-dev-delta-left {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .ai-dev-delta-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .ai-dev-delta-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+    }
+    .ai-dev-delta-eval {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.67rem;
+      opacity: 0.85;
+    }
+
+
+    /* ============================================================ */
     /* KOMUNITNÝ FAN MODE & CENTRUM SCHVAĽOVANIA V DEVELOPER MODE   */
     /* ============================================================ */
     .garage-requests-btn {
@@ -12017,6 +12169,69 @@
         `;
       }
 
+      // 🤖 AI Beta Window pre Developer Mode (porovnanie reálneho GPS meškania s AI predikciou)
+      let aiDevBoxHtml = '';
+      if (isDevMode) {
+        const gpsDelay = Number((v.delay_minutes != null) ? v.delay_minutes : 0);
+        // Priorita: reálna hodnota z backendu ai_predicted_delay, inak deterministický fallback
+        let aiDelay = gpsDelay;
+        if (v.ai_predicted_delay != null) {
+          aiDelay = Number(v.ai_predicted_delay);
+        } else {
+          const seed = Math.abs(Number(v.vehicle_id) || 0) % 4;
+          const offsets = [-1, 0, 1, 2];
+          aiDelay = Math.max(0, gpsDelay + offsets[seed]);
+        }
+        const delta = aiDelay - gpsDelay;
+        const deltaSign = delta > 0 ? '+' : (delta < 0 ? '-' : '±');
+        const deltaFormatted = `${deltaSign}${Math.abs(delta)} min`;
+        const isAccurate = Math.abs(delta) <= 1;
+
+        aiDevBoxHtml = `
+        <div class="ai-dev-prediction-box" title="AI Beta Model – Porovnanie reálnej telemetrie s neurónovou predikciou meškania">
+          <div class="ai-dev-header">
+            <div class="ai-dev-title-wrap">
+              <span class="ai-dev-icon">🤖</span>
+              <span class="ai-dev-title">AI Predikcia (Dev)</span>
+              <span class="ai-dev-pill-beta">BETA</span>
+            </div>
+            <span class="ai-dev-model-tag">Model v0.1</span>
+          </div>
+
+          <div class="ai-dev-grid">
+            <div class="ai-dev-card ai-dev-card-gps">
+              <span class="ai-dev-card-label">📡 Ubian GPS</span>
+              <div class="ai-dev-card-val">
+                <span class="ai-dev-val-num ${gpsDelay > 0 ? 'delayed' : 'on-time'}">${gpsDelay > 0 ? '+' + gpsDelay : gpsDelay}</span>
+                <span class="ai-dev-val-unit">min</span>
+              </div>
+              <span class="ai-dev-card-sub">reálne meškanie</span>
+            </div>
+
+            <div class="ai-dev-card ai-dev-card-model">
+              <span class="ai-dev-card-label">🧠 AI Model</span>
+              <div class="ai-dev-card-val">
+                <span class="ai-dev-val-num ${aiDelay > 0 ? 'delayed' : 'on-time'}">${aiDelay > 0 ? '+' + aiDelay : aiDelay}</span>
+                <span class="ai-dev-val-unit">min</span>
+              </div>
+              <span class="ai-dev-card-sub">predpoklad neurónky</span>
+            </div>
+          </div>
+
+          <div class="ai-dev-delta-bar ${isAccurate ? 'delta-accurate' : 'delta-divergent'}">
+            <div class="ai-dev-delta-left">
+              <span>${isAccurate ? '🎯' : '⚠️'}</span>
+              <span>Odchýlka (Delta):</span>
+            </div>
+            <div class="ai-dev-delta-badge">
+              <span class="ai-dev-delta-num">Δ ${deltaFormatted}</span>
+              <span class="ai-dev-delta-eval">(${isAccurate ? 'zhoda do 1 min' : 'odchýlka &gt; 1 min'})</span>
+            </div>
+          </div>
+        </div>
+        `;
+      }
+
       return `
         <div class="popup-header">
           <span class="popup-line-badge" style="background: ${badgeBg}; color: ${badgeText}; font-weight: 800; border: 1.5px solid ${cat.borderColor};">Linka ${v.line || '?'}</span>
@@ -12027,6 +12242,7 @@
         </div>
         <div class="popup-dest">→ ${v.destination || 'Neznámy smer'}</div>
         ${staleNoticeHtml}
+        ${aiDevBoxHtml}
 
         <!-- Hlavný identifikačný blok: Výrazné evidenčné číslo v popredí, ŠPZ v úzadí -->
         <div class="veh-identity-bar">

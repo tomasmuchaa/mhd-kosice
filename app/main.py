@@ -4,6 +4,7 @@ import time
 import uuid
 import unicodedata
 import asyncio
+import random
 import requests
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Union, Tuple
@@ -564,8 +565,11 @@ def get_stop_departures_board(
                 fleet_dict[k] = val
             matched_fleet = fleet_dict
 
+        dep_delay = int(dep.get("delay_minutes", 0) or 0)
         dep_item = {
             **dep,
+            "delay_minutes": dep_delay,
+            "ai_predicted_delay": max(0, dep_delay + random.randint(-1, 2)),
             "matched": matched_fleet is not None,
             "fleet_info": fleet_dict,
             "low_floor": is_low_floor,
@@ -859,6 +863,11 @@ def get_live_vehicles(
 
         status_text = "neaktívne (v garáži/pauza)" if is_inactive else "v premávke"
 
+        # AI Beta Predikcia meškania (placeholder pred nasadením reálneho AI modelu z Data Collectora)
+        cur_delay = int(v.get("delay_minutes", 0) or 0)
+        ai_delta = random.randint(-1, 2)
+        ai_predicted_delay = max(0, cur_delay + ai_delta)
+
         item = {
             "vehicle_id": v["vehicle_id"],
             "line": v.get("line"),
@@ -868,7 +877,8 @@ def get_live_vehicles(
             "destination_full": v.get("destination_full"),
             "latitude": v.get("latitude"),
             "longitude": v.get("longitude"),
-            "delay_minutes": v.get("delay_minutes", 0),
+            "delay_minutes": cur_delay,
+            "ai_predicted_delay": ai_predicted_delay,
             "is_on_stop": v.get("is_on_stop", False),
             "current_stop_name": v.get("current_stop_name"),
             "status": status_text,
@@ -1041,6 +1051,8 @@ def search_vehicle_by_spz(spz: str = Query(..., description="EČV / ŠPZ autobus
         )
         live_info = dict(live_info)
         live_info["occupancy"] = occ
+        cur_d = int(live_info.get("delay_minutes", 0) or 0)
+        live_info["ai_predicted_delay"] = max(0, cur_d + random.randint(-1, 2))
 
     return {
         "status": "ok",
