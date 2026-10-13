@@ -1,7 +1,8 @@
+from __future__ import annotations
 import os
 import json
 import pandas as pd
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 
 class FleetService:
     # Manuálny filter anomálií (najvyššia autorita pravdy):

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import sys
 import json
@@ -7,7 +8,7 @@ import unicodedata
 import urllib.request
 import re
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Union, Set
 
 sys.stdout.reconfigure(encoding="utf-8")
 
