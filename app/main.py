@@ -1234,18 +1234,23 @@ def create_or_update_override(req: OverrideRequest, request: Request):
     """
     verify_admin_token(request)
 
-    if not req.evidencne_cislo and not req.vehicle_id and not req.original_evidencne_cislo:
+    clean_vid = str(req.vehicle_id).strip().replace("#", "") if req.vehicle_id is not None and str(req.vehicle_id).strip() else None
+    clean_ev = str(req.evidencne_cislo).strip().replace("#", "") if req.evidencne_cislo is not None and str(req.evidencne_cislo).strip() else None
+    clean_orig_ev = str(req.original_evidencne_cislo).strip().replace("#", "") if req.original_evidencne_cislo is not None and str(req.original_evidencne_cislo).strip() else None
+    clean_spz = req.spz.strip().replace("#", "").upper() if req.spz and str(req.spz).strip() else None
+
+    if not clean_ev and not clean_vid and not clean_orig_ev:
         raise HTTPException(status_code=400, detail="Je potrebné zadať evidencne_cislo alebo vehicle_id.")
     if not req.model or not req.model.strip():
         raise HTTPException(status_code=400, detail="Model nesmie byť prázdny.")
 
     res = fleet_service.set_override(
         model=req.model.strip(),
-        evidencne_cislo=str(req.evidencne_cislo).strip() if req.evidencne_cislo is not None and str(req.evidencne_cislo).strip() else None,
-        original_evidencne_cislo=str(req.original_evidencne_cislo).strip() if req.original_evidencne_cislo is not None and str(req.original_evidencne_cislo).strip() else None,
-        vehicle_id=str(req.vehicle_id).strip() if req.vehicle_id is not None and str(req.vehicle_id).strip() else None,
-        spz=req.spz.strip() if req.spz else None,
-        verified=req.verified,
+        evidencne_cislo=clean_ev,
+        original_evidencne_cislo=clean_orig_ev,
+        vehicle_id=clean_vid,
+        spz=clean_spz,
+        verified=True if req.verified is None else bool(req.verified),
         note=req.note.strip() if req.note else None
     )
     return {
@@ -1269,9 +1274,12 @@ def verify_vehicle_endpoint(req: VerifyRequest, request: Request):
     """
     verify_admin_token(request)
 
+    clean_vid = str(req.vehicle_id).strip().replace("#", "") if req.vehicle_id is not None and str(req.vehicle_id).strip() else None
+    clean_ev = str(req.evidencne_cislo).strip().replace("#", "") if req.evidencne_cislo is not None and str(req.evidencne_cislo).strip() else None
+
     success = fleet_service.set_verified(
-        vehicle_id=str(req.vehicle_id).strip() if req.vehicle_id else None,
-        ev_cislo=str(req.evidencne_cislo).strip() if req.evidencne_cislo else None,
+        vehicle_id=clean_vid,
+        ev_cislo=clean_ev,
         verified=req.verified
     )
     return {

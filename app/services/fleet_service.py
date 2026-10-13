@@ -392,11 +392,12 @@ class FleetService:
         Podporuje príznak 'verified' (overené vozidlo v Developer Mode).
         Automaticky deteguje a rieši kolízie evidenčných čísel prečíslovaním pôvodného vozidla na 90xxx.
         """
-        vid = str(vehicle_id).strip() if vehicle_id else None
-        ev = str(evidencne_cislo).strip() if evidencne_cislo else None
-        clean_spz = spz.strip().upper() if spz and str(spz).strip() else None
+        vid = str(vehicle_id).strip().replace("#", "") if vehicle_id else None
+        ev = str(evidencne_cislo).strip().replace("#", "") if evidencne_cislo else None
+        orig_ev = str(original_evidencne_cislo).strip().replace("#", "") if original_evidencne_cislo else None
+        clean_spz = spz.strip().replace("#", "").upper() if spz and str(spz).strip() else None
 
-        final_ev = ev or (str(original_evidencne_cislo).strip() if original_evidencne_cislo else (vid if vid else ""))
+        final_ev = ev or (orig_ev if orig_ev else (vid if vid else ""))
 
         # Automatické riešenie kolízií evidenčného čísla:
         # Ak final_ev už patrí inému vozidlu, pôvodné vozidlo je automaticky prečíslované na 90000–99999
@@ -404,17 +405,11 @@ class FleetService:
             self.resolve_evidencne_cislo_conflict(
                 target_vehicle_id=vid,
                 new_ev_cislo=final_ev,
-                original_evidencne_cislo=original_evidencne_cislo
+                original_evidencne_cislo=orig_ev
             )
 
-        # Zistenie predchádzajúceho stavu overenia
-        prev_verified = False
-        if vid and vid in self.MANUAL_OVERRIDES:
-            prev_verified = self.MANUAL_OVERRIDES[vid].get("verified", False)
-        elif final_ev and final_ev in self.MANUAL_OVERRIDES:
-            prev_verified = self.MANUAL_OVERRIDES[final_ev].get("verified", False)
-
-        final_verified = bool(verified) if verified is not None else prev_verified
+        # Automaticky nastavíme verified: True pri administrátorskom uložení
+        final_verified = True if verified is None else bool(verified)
 
         # Ak používateľ nezadal novú ŠPZ, zachováme existujúcu ŠPZ z predchádzajúceho záznamu alebo CSV
         if not clean_spz:
@@ -436,40 +431,55 @@ class FleetService:
 
         # 1. Ak ide o reálne vozidlo z live telemetrie s vlastným vehicle_id:
         if vid:
-            # Override sa viaže VÝLUČNE na konkrétne hardware vehicle_id tohto terminálu!
-            self.MANUAL_OVERRIDES[vid] = entry
+            clean_key = str(vid).strip().replace("#", "")
+            self.MANUAL_OVERRIDES[clean_key] = entry
+            if f"#{clean_key}" in self.MANUAL_OVERRIDES:
+                del self.MANUAL_OVERRIDES[f"#{clean_key}"]
+
             if final_ev:
-                self.TRANSDATA_MAPPING[vid] = final_ev
+                self.TRANSDATA_MAPPING[clean_key] = final_ev
                 if final_ev not in self.ev_index:
                     self.ev_index[final_ev] = {
                         "evidencne_cislo": final_ev,
                         "spz": clean_spz,
-                        "model": entry["model"]
+                        "model": entry["model"],
+                        "verified": final_verified,
+                        "is_verified": final_verified
                     }
                 else:
                     self.ev_index[final_ev]["model"] = entry["model"]
+                    self.ev_index[final_ev]["verified"] = final_verified
+                    self.ev_index[final_ev]["is_verified"] = final_verified
                     if clean_spz:
                         self.ev_index[final_ev]["spz"] = clean_spz
 
             # Bezpečnostné čistenie: ak v minulosti existoval chybný záznam pod pôvodným ev číslom,
             # ktorý ukazoval na iné vozidlo (cross-kontaminácia), odstránime ho.
-            if original_evidencne_cislo:
-                old_ev = str(original_evidencne_cislo).strip()
-                if old_ev in self.MANUAL_OVERRIDES and self.MANUAL_OVERRIDES[old_ev].get("evidencne_cislo") != old_ev:
-                    del self.MANUAL_OVERRIDES[old_ev]
+            if orig_ev:
+                clean_old = str(orig_ev).strip().replace("#", "")
+                if clean_old in self.MANUAL_OVERRIDES and self.MANUAL_OVERRIDES[clean_old].get("evidencne_cislo") != clean_old:
+                    del self.MANUAL_OVERRIDES[clean_old]
 
         # 2. Ak ide o statické vozidlo bez vehicle_id (napr. úprava vozidla priamo v depe/garáži):
         elif final_ev:
-            self.MANUAL_OVERRIDES[final_ev] = entry
-            if final_ev in self.ev_index:
-                self.ev_index[final_ev]["model"] = entry["model"]
+            clean_key = str(final_ev).strip().replace("#", "")
+            self.MANUAL_OVERRIDES[clean_key] = entry
+            if f"#{clean_key}" in self.MANUAL_OVERRIDES:
+                del self.MANUAL_OVERRIDES[f"#{clean_key}"]
+
+            if clean_key in self.ev_index:
+                self.ev_index[clean_key]["model"] = entry["model"]
+                self.ev_index[clean_key]["verified"] = final_verified
+                self.ev_index[clean_key]["is_verified"] = final_verified
                 if clean_spz:
-                    self.ev_index[final_ev]["spz"] = clean_spz
+                    self.ev_index[clean_key]["spz"] = clean_spz
             else:
-                self.ev_index[final_ev] = {
-                    "evidencne_cislo": final_ev,
+                self.ev_index[clean_key] = {
+                    "evidencne_cislo": clean_key,
                     "spz": clean_spz,
-                    "model": entry["model"]
+                    "model": entry["model"],
+                    "verified": final_verified,
+                    "is_verified": final_verified
                 }
 
         # Aktualizácia indexu pre vyhľadávanie podľa ŠPZ
@@ -515,35 +525,52 @@ class FleetService:
         ev_cislo: Optional[str] = None,
         verified: bool = True
     ) -> bool:
-        """Nastaví príznak overenia (verified) pre vozidlo v overrides.json."""
-        vid = str(vehicle_id).strip() if vehicle_id else None
-        ev = str(ev_cislo).strip() if ev_cislo else None
+        """Nastaví príznak overenia (verified) pre vozidlo v overrides.json pod čistým kľúčom bez '#'."""
+        vid = str(vehicle_id).strip().replace("#", "") if vehicle_id else None
+        ev = str(ev_cislo).strip().replace("#", "") if ev_cislo else None
         target_keys = []
-        if vid and vid in self.MANUAL_OVERRIDES:
-            target_keys.append(vid)
-        if ev and ev in self.MANUAL_OVERRIDES:
-            target_keys.append(ev)
+        if vid:
+            if vid in self.MANUAL_OVERRIDES:
+                target_keys.append(vid)
+            elif f"#{vid}" in self.MANUAL_OVERRIDES:
+                target_keys.append(f"#{vid}")
+        if ev:
+            if ev in self.MANUAL_OVERRIDES:
+                target_keys.append(ev)
+            elif f"#{ev}" in self.MANUAL_OVERRIDES:
+                target_keys.append(f"#{ev}")
 
         if not target_keys:
             key = vid or ev
             if key:
+                clean_key = str(key).strip().replace("#", "")
                 model = "Autobus DPMK"
                 spz = None
                 if ev and ev in self.ev_index:
                     model = self.ev_index[ev].get("model", model)
                     spz = self.ev_index[ev].get("spz")
-                self.MANUAL_OVERRIDES[key] = {
+                self.MANUAL_OVERRIDES[clean_key] = {
                     "model": model,
-                    "evidencne_cislo": ev or key,
+                    "evidencne_cislo": ev or clean_key,
                     "spz": spz,
                     "verified": bool(verified)
                 }
+                if f"#{clean_key}" in self.MANUAL_OVERRIDES:
+                    del self.MANUAL_OVERRIDES[f"#{clean_key}"]
                 self.save_overrides()
                 return True
             return False
 
         for k in target_keys:
-            self.MANUAL_OVERRIDES[k]["verified"] = bool(verified)
+            clean_k = str(k).strip().replace("#", "")
+            val = self.MANUAL_OVERRIDES[k]
+            val["verified"] = bool(verified)
+            if k != clean_k:
+                self.MANUAL_OVERRIDES[clean_k] = val
+                if k in self.MANUAL_OVERRIDES:
+                    del self.MANUAL_OVERRIDES[k]
+            else:
+                self.MANUAL_OVERRIDES[clean_k] = val
         self.save_overrides()
         return True
 
@@ -686,23 +713,29 @@ class FleetService:
         """
         # 1. Prvoradá a striktná autorita: konkrétny hardvérový terminál vozidla (vehicle_id)
         if vehicle_id is not None:
-            s_vid = str(vehicle_id).strip()
+            s_vid = str(vehicle_id).strip().replace("#", "")
             if s_vid in self.MANUAL_OVERRIDES:
                 return self.MANUAL_OVERRIDES[s_vid]
+            if f"#{s_vid}" in self.MANUAL_OVERRIDES:
+                return self.MANUAL_OVERRIDES[f"#{s_vid}"]
 
         # 2. Druhotná autorita: konkrétne evidenčné číslo (len pre vozidlá bez vlastného vehicle_id alebo v garáži)
         if ev_cislo is not None:
-            s_ev = str(ev_cislo).strip()
+            s_ev = str(ev_cislo).strip().replace("#", "")
             if s_ev in self.MANUAL_OVERRIDES:
                 ov = self.MANUAL_OVERRIDES[s_ev]
                 # Prísna ochrana pred cross-kontamináciou:
                 # Override pod kľúčom s_ev musí patriť výhradne tomuto evidenčnému číslu!
-                if str(ov.get("evidencne_cislo", "")).strip() == s_ev:
+                if str(ov.get("evidencne_cislo", "")).strip().replace("#", "") == s_ev:
+                    return ov
+            if f"#{s_ev}" in self.MANUAL_OVERRIDES:
+                ov = self.MANUAL_OVERRIDES[f"#{s_ev}"]
+                if str(ov.get("evidencne_cislo", "")).strip().replace("#", "") == s_ev:
                     return ov
 
             # Tiež skontrolujeme, či niektoré vozidlo s iným vehicle_id nemá override s týmto evidencne_cislo
             for k, ov in self.MANUAL_OVERRIDES.items():
-                if isinstance(ov, dict) and str(ov.get("evidencne_cislo", "")).strip() == s_ev:
+                if isinstance(ov, dict) and str(ov.get("evidencne_cislo", "")).strip().replace("#", "") == s_ev:
                     return ov
 
         return None
@@ -853,7 +886,7 @@ class FleetService:
             license_number = license_number or vehicle_id.get("license_number")
             vehicle_id = vehicle_id.get("vehicle_id")
 
-        s_vid = str(vehicle_id).strip() if vehicle_id is not None else ""
+        s_vid = str(vehicle_id).strip().replace("#", "") if vehicle_id is not None else ""
 
         # =====================================================================
         # 0. NAJVYŠŠIA AUTORITA: Ak máme manuálny override pre tento konkrétny
@@ -913,7 +946,7 @@ class FleetService:
 
             raw_ev = raw.get("evidencne_cislo") or raw.get("vehicleNumber")
             if raw_ev and str(raw_ev).strip():
-                tram_ev = str(raw_ev).strip()
+                tram_ev = str(raw_ev).strip().replace("#", "")
             else:
                 tram_ev = s_vid if s_vid else None
 

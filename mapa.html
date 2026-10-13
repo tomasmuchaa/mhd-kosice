@@ -7290,8 +7290,8 @@
     function isVehicleVerified(v) {
       if (!v) return false;
       const fleet = v.fleet_info || v || {};
-      const ev = String(fleet.evidencne_cislo || v.evidencne_cislo || '').trim();
-      const vid = String(v.vehicle_id || fleet.vehicle_id || '').trim();
+      const ev = String(fleet.evidencne_cislo || v.evidencne_cislo || '').replace(/#/g, '').trim();
+      const vid = String(v.vehicle_id || fleet.vehicle_id || '').replace(/#/g, '').trim();
 
       // 1. Z backendu
       if (fleet.is_verified === true || fleet.verified === true || v.is_verified === true || v.verified === true) {
@@ -7313,8 +7313,8 @@
     function setVehicleVerifiedLocal(ev, vid, verified = true) {
       try {
         const verifiedMap = JSON.parse(localStorage.getItem('verifiedVehicles') || '{}');
-        const cleanEv = String(ev || '').trim();
-        const cleanVid = String(vid || '').trim();
+        const cleanEv = String(ev || '').replace(/#/g, '').trim();
+        const cleanVid = String(vid || '').replace(/#/g, '').trim();
         const entry = { verified: Boolean(verified), updatedAt: new Date().toISOString() };
         if (cleanVid) verifiedMap[cleanVid] = entry;
         if (cleanEv) verifiedMap[cleanEv] = entry;
@@ -7325,11 +7325,13 @@
     }
 
     async function toggleQuickVerify(evCislo, vehicleId, targetState = null) {
-      const current = isVehicleVerified({ vehicle_id: vehicleId, fleet_info: { evidencne_cislo: evCislo } });
+      const cleanEv = String(evCislo || '').replace(/#/g, '').trim();
+      const cleanVid = String(vehicleId || '').replace(/#/g, '').trim();
+      const current = isVehicleVerified({ vehicle_id: cleanVid, fleet_info: { evidencne_cislo: cleanEv } });
       const newState = (targetState !== null) ? Boolean(targetState) : !current;
       const adminToken = sessionStorage.getItem('adminToken') || '';
 
-      setVehicleVerifiedLocal(evCislo, vehicleId, newState);
+      setVehicleVerifiedLocal(cleanEv, cleanVid, newState);
 
       try {
         const resp = await fetch(`${BASE_ORIGIN}/api/v1/admin/verify`, {
@@ -7339,8 +7341,8 @@
             'X-Admin-Token': adminToken
           },
           body: JSON.stringify({
-            evidencne_cislo: evCislo || null,
-            vehicle_id: vehicleId || null,
+            evidencne_cislo: cleanEv || null,
+            vehicle_id: cleanVid || null,
             verified: newState
           })
         });
@@ -7361,7 +7363,7 @@
       if (typeof syncVisibleMarkers === 'function') syncVisibleMarkers();
       if (currentAppView === 'garage' && typeof renderGarageView === 'function') await renderGarageView();
 
-      const msg = newState ? `✅ Vozidlo #${evCislo || vehicleId} označené ako OVERENÉ!` : `ℹ️ Overenie vozidla #${evCislo || vehicleId} bolo zrušené.`;
+      const msg = newState ? `✅ Vozidlo #${cleanEv || cleanVid} označené ako OVERENÉ!` : `ℹ️ Overenie vozidla #${cleanEv || cleanVid} bolo zrušené.`;
       alert(msg);
     }
 
@@ -7370,10 +7372,10 @@
       const backdrop = document.getElementById('override-modal-backdrop');
       if (!modal || !backdrop) return;
 
-      const cleanEv = String(evCislo || '').trim();
-      const cleanVid = String(vehicleId || '').trim();
+      const cleanEv = String(evCislo || '').replace(/#/g, '').trim();
+      const cleanVid = String(vehicleId || '').replace(/#/g, '').trim();
       const cleanModel = String(currentModel || '').trim();
-      const cleanSpz = String(currentSpz || '').trim();
+      const cleanSpz = String(currentSpz || '').replace(/#/g, '').trim();
 
       const origEvInput = document.getElementById('override-orig-ev');
       const evInput = document.getElementById('override-ev-input');
@@ -8204,18 +8206,18 @@
       if (event) event.preventDefault();
       const submitBtn = document.getElementById('override-submit-btn');
       const checkBtn = document.getElementById('override-check-btn');
-      const origEv = (document.getElementById('override-orig-ev')?.value || '').trim();
-      const ev = (document.getElementById('override-ev-input')?.value || '').trim();
-      const vid = (document.getElementById('override-id')?.value || '').trim();
+      const origEv = (document.getElementById('override-orig-ev')?.value || '').replace(/#/g, '').trim();
+      const ev = (document.getElementById('override-ev-input')?.value || '').replace(/#/g, '').trim();
+      const vid = (document.getElementById('override-id')?.value || '').replace(/#/g, '').trim();
       const select = document.getElementById('override-model-select');
       let modelVal = select ? select.value : '';
       if (modelVal === '__custom__') {
         const customInput = document.getElementById('override-custom-model');
         modelVal = customInput ? customInput.value.trim() : '';
       }
-      const spzVal = (document.getElementById('override-spz-input')?.value || '').trim().toUpperCase();
+      const spzVal = (document.getElementById('override-spz-input')?.value || '').replace(/#/g, '').trim().toUpperCase();
 
-      const isVerifiedVal = forceVerified || (document.getElementById('override-verified-checkbox')?.checked === true);
+      const isVerifiedVal = true; // Každé uloženie cez Developer Mode automaticky overuje vozidlo
 
       if (!modelVal) {
         alert("Prosím vyberte alebo zadajte model vozidla.");
@@ -8235,7 +8237,7 @@
         const payload = {
           model: modelVal,
           spz: spzVal || null,
-          verified: isVerifiedVal
+          verified: true
         };
         if (ev) payload.evidencne_cislo = ev;
         if (origEv) payload.original_evidencne_cislo = origEv;
@@ -8266,11 +8268,11 @@
         }
 
         // Uložíme do lokálneho zoznamu
-        setVehicleVerifiedLocal(ev || origEv, vid, isVerifiedVal);
+        setVehicleVerifiedLocal(ev || origEv, vid, true);
 
         closeOverrideModal();
 
-        // Okamžitá invalidácia cache a obnova
+        // Okamžitá invalidácia cache a vynútený refresh live vozidiel
         fleetDatabaseCache = null;
         if (typeof fetchVehicles === 'function') {
           await fetchVehicles();
@@ -8282,6 +8284,24 @@
           await renderGarageView();
         }
 
+        // Okamžité prekreslenie markera na mape a aktualizácia popupu
+        const targetVid = vid || origEv || ev;
+        const updatedVeh = (latestVehiclesList || []).find(x => {
+          const xVid = String(x.vehicle_id || '').replace(/#/g, '');
+          const xEv = String(x.fleet_info?.evidencne_cislo || x.evidencne_cislo || '').replace(/#/g, '');
+          return (vid && xVid === vid) || (ev && xEv === ev) || (origEv && xEv === origEv);
+        });
+
+        if (updatedVeh && typeof markers !== 'undefined' && markers) {
+          const markerKey = updatedVeh.vehicle_id;
+          const marker = markers[markerKey] || (vid ? markers[vid] : null);
+          if (marker && typeof marker.setIcon === 'function') {
+            const comm = formatLastCommunication(updatedVeh.last_communication);
+            marker.setIcon(createVehicleMarkerIcon(updatedVeh, comm.isStale));
+            marker.setPopupContent(buildPopupHtml(updatedVeh));
+          }
+        }
+
         // Aktualizácia názvu v paneli histórie, ak je otvorený
         const titleEl = document.getElementById('veh-hist-title');
         const displayedEv = ev || origEv;
@@ -8290,11 +8310,16 @@
           if (subtitleEl) subtitleEl.innerText = modelVal;
         }
 
-        if (isVerifiedVal) {
-          alert(`✅ Údaje boli úspešne OVERENÉ a uložené!\n${ev ? 'Číslo vozidla: #' + ev + '\n' : ''}Model: ${modelVal}${spzVal ? '\nŠPZ: ' + spzVal : ''}\n\nPri rozkliknutom buse v Developer Mode sa teraz zobrazuje ikonka: Overený ✅`);
-        } else {
-          alert(`💾 Oprava úspešne uložená!\n${ev ? 'Číslo vozidla: #' + ev + '\n' : ''}Model: ${modelVal}${spzVal ? '\nŠPZ: ' + spzVal : ''}`);
+        // Aktualizácia otvoreného spodného panela
+        const bsPanel = document.getElementById('history-bottom-sheet') || document.getElementById('vehicle-history-panel');
+        if (bsPanel && bsPanel.classList.contains('open') && updatedVeh) {
+          const bodyEl = document.getElementById('history-sheet-body') || document.getElementById('veh-hist-body');
+          if (bodyEl) {
+            bodyEl.innerHTML = `<div class="vehicle-bottom-sheet-content" style="padding: 4px 6px 14px 6px;">` + buildPopupHtml(updatedVeh) + `</div>`;
+          }
         }
+
+        alert(`✅ Údaje boli úspešne OVERENÉ a uložené!\n${ev ? 'Číslo vozidla: #' + ev + '\n' : ''}Model: ${modelVal}${spzVal ? '\nŠPZ: ' + spzVal : ''}\n\nPri rozkliknutí vozidla sa teraz zobrazuje ikonka: Overený ✅`);
 
       } catch (err) {
         console.error('Chyba pri ukladaní override:', err);
