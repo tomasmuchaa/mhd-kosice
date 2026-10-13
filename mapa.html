@@ -1923,6 +1923,178 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Tlačidlo obľúbenej zastávky (⭐ / ☆) */
+    .btn-fav-stop {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #94a3b8;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 0;
+      margin: 0;
+      outline: none;
+      user-select: none;
+    }
+    .btn-fav-stop:hover {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: rgba(251, 191, 36, 0.5);
+      color: #fbbf24;
+      transform: scale(1.12);
+    }
+    .btn-fav-stop.is-fav {
+      background: rgba(251, 191, 36, 0.22);
+      border-color: #fbbf24;
+      color: #fbbf24;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+      animation: favStarPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes favStarPop {
+      0% { transform: scale(0.8); }
+      50% { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+
+    /* Hviezdička v zozname liniek */
+    .line-chip .line-fav-star {
+      font-size: 0.76rem;
+      margin-left: 2px;
+      padding: 0 2px;
+      cursor: pointer;
+      opacity: 0.45;
+      transition: all 0.2s ease;
+      line-height: 1;
+    }
+    .line-chip:hover .line-fav-star {
+      opacity: 0.85;
+    }
+    .line-chip .line-fav-star.is-fav {
+      opacity: 1;
+      color: #fbbf24;
+      filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.6));
+    }
+    .line-chip.is-fav {
+      border-color: rgba(251, 191, 36, 0.45);
+    }
+
+    /* Rýchly prístup k obľúbeným položkám (Favorites Quick Access) */
+    .favorites-quick-access {
+      margin-top: 8px;
+      margin-bottom: 8px;
+      padding: 9px 11px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+    }
+    .fav-quick-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .fav-quick-title {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #fbbf24;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .fav-quick-empty {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      line-height: 1.35;
+      padding: 2px 0;
+    }
+    .fav-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .fav-row-label {
+      font-size: 0.68rem;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .fav-row-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    }
+    .fav-chip-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      border-radius: 6px;
+      padding: 2px 6px 2px 4px;
+      font-size: 0.75rem;
+      color: #f1f5f9;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      user-select: none;
+    }
+    .fav-chip-line:hover {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: #fbbf24;
+      transform: translateY(-1px);
+    }
+    .fav-star-icon {
+      font-size: 0.72rem;
+      line-height: 1;
+    }
+    .fav-line-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.72rem;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #ffffff;
+    }
+    .fav-chip-stop {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      user-select: none;
+      max-width: 100%;
+    }
+    .fav-chip-stop:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .fav-stop-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 180px;
+    }
+
     /* Stop marker tooltip */
     .leaflet-tooltip.stop-tooltip {
       background: rgba(15, 23, 42, 0.95);
@@ -5284,10 +5456,15 @@
           placeholder="Model, ŠPZ, linka, zastávka..." 
           onkeydown="if(event.key==='Enter') executeSearch(); if(event.key==='Escape') clearModelFilter();"
           oninput="handleMapSearchInput(this.value)"
+          onfocus="handleMapSearchFocus()"
         />
         <button class="search-btn" onclick="executeSearch()">Hľadať</button>
       </div>
       <div id="search-feedback" class="search-feedback"></div>
+      <!-- Rýchly prístup k obľúbeným položkám (Favorites Quick Access) -->
+      <div id="favorites-quick-access" class="favorites-quick-access">
+        <!-- Generované dynamicky cez FavoritesManager -->
+      </div>
     </div>
 
     <!-- Filter liniek -->
@@ -11432,6 +11609,257 @@
     window.toggleDepartureAlert = toggleDepartureAlert;
     window.checkActiveDepartureAlerts = checkActiveDepartureAlerts;
 
+    // ========================================================
+    // MANAŽÉR OBĽÚBENÝCH POLOŽIEK (FAVORITES MANAGER)
+    // ========================================================
+    const FavoritesManager = {
+      STORAGE_KEY: 'nexigo_favorites',
+      _cache: null,
+
+      getFavorites() {
+        if (this._cache) return this._cache;
+        try {
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            this._cache = {
+              lines: Array.isArray(parsed.lines) ? parsed.lines : [],
+              stops: Array.isArray(parsed.stops) ? parsed.stops : []
+            };
+          } else {
+            this._cache = { lines: [], stops: [] };
+          }
+        } catch (e) {
+          this._cache = { lines: [], stops: [] };
+        }
+        return this._cache;
+      },
+
+      saveFavorites() {
+        try {
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this._cache || { lines: [], stops: [] }));
+        } catch (e) {}
+      },
+
+      isFavoriteLine(line) {
+        if (!line) return false;
+        const favs = this.getFavorites();
+        return favs.lines.includes(String(line).trim());
+      },
+
+      toggleFavoriteLine(line) {
+        if (!line) return false;
+        const lineStr = String(line).trim();
+        const favs = this.getFavorites();
+        const idx = favs.lines.indexOf(lineStr);
+        let isNowFav = false;
+
+        if (idx !== -1) {
+          favs.lines.splice(idx, 1);
+          isNowFav = false;
+          if (typeof showMapToast === 'function') {
+            showMapToast(`Linka ${lineStr} bola odstránená z obľúbených.`, 'info');
+          }
+        } else {
+          favs.lines.push(lineStr);
+          isNowFav = true;
+          if (typeof showMapToast === 'function') {
+            showMapToast(`⭐ Linka ${lineStr} bola pridaná medzi obľúbené.`, 'success');
+          }
+        }
+
+        this.saveFavorites();
+        this.syncUI();
+        return isNowFav;
+      },
+
+      isFavoriteStop(stopId) {
+        if (!stopId) return false;
+        const idStr = String(stopId).trim();
+        const favs = this.getFavorites();
+        return favs.stops.some(s => String(s.id).trim() === idStr);
+      },
+
+      toggleFavoriteStop(stopId, stopName, latLng) {
+        if (!stopId) return false;
+        const idStr = String(stopId).trim();
+        const nameStr = String(stopName || '').trim();
+        const favs = this.getFavorites();
+        const idx = favs.stops.findIndex(s => String(s.id).trim() === idStr);
+        let isNowFav = false;
+
+        if (idx !== -1) {
+          favs.stops.splice(idx, 1);
+          isNowFav = false;
+          if (typeof showMapToast === 'function') {
+            showMapToast(`Zastávka ${nameStr} bola odstránená z obľúbených.`, 'info');
+          }
+        } else {
+          let coords = Array.isArray(latLng) && latLng.length === 2 ? latLng : null;
+          if (!coords && Array.isArray(allStopsList)) {
+            const found = allStopsList.find(s => String(s.id).trim() === idStr);
+            if (found && found.latitude && found.longitude) {
+              coords = [found.latitude, found.longitude];
+            }
+          }
+
+          favs.stops.push({
+            id: idStr,
+            name: nameStr,
+            lat: coords ? coords[0] : null,
+            lng: coords ? coords[1] : null
+          });
+          isNowFav = true;
+          if (typeof showMapToast === 'function') {
+            showMapToast(`⭐ Zastávka ${nameStr} bola pridaná medzi obľúbené.`, 'success');
+          }
+        }
+
+        this.saveFavorites();
+        this.syncUI();
+        return isNowFav;
+      },
+
+      syncUI() {
+        // 1. Aktualizácia zoznamu filtrov liniek
+        if (typeof updateLinesFilterUI === 'function' && Array.isArray(latestVehiclesList)) {
+          updateLinesFilterUI(latestVehiclesList);
+        }
+
+        // 2. Aktualizácia tlačidiel hviezdičiek v otvorenej odchodovej tabuli
+        const favs = this.getFavorites();
+        document.querySelectorAll('.btn-fav-stop').forEach(btn => {
+          const sId = btn.getAttribute('data-stop-id');
+          if (sId) {
+            const isFav = favs.stops.some(s => String(s.id).trim() === String(sId).trim());
+            btn.classList.toggle('is-fav', isFav);
+            btn.innerText = isFav ? '⭐' : '☆';
+            btn.title = isFav ? 'Odstrániť z obľúbených' : 'Pridať medzi obľúbené';
+          }
+        });
+
+        // 3. Prekreslenie rýchleho prístupu k obľúbeným v paneli
+        if (typeof renderFavoritesQuickAccess === 'function') {
+          renderFavoritesQuickAccess();
+        }
+      }
+    };
+    window.FavoritesManager = FavoritesManager;
+
+    function toggleFavoriteLine(line) {
+      FavoritesManager.toggleFavoriteLine(line);
+    }
+    window.toggleFavoriteLine = toggleFavoriteLine;
+
+    function toggleFavoriteStop(stopId, stopName, latLng) {
+      FavoritesManager.toggleFavoriteStop(stopId, stopName, latLng);
+    }
+    window.toggleFavoriteStop = toggleFavoriteStop;
+
+    function handleFavoriteLineClick(line) {
+      focusLineOnMap(line);
+      if (typeof closeMobileDrawer === 'function') {
+        closeMobileDrawer();
+      }
+    }
+    window.handleFavoriteLineClick = handleFavoriteLineClick;
+
+    function handleFavoriteStopClick(stopId, stopName, lat, lng) {
+      let targetCoords = [lat, lng];
+      if ((!lat || !lng) && Array.isArray(allStopsList)) {
+        const found = allStopsList.find(s => String(s.id).trim() === String(stopId).trim());
+        if (found && found.latitude && found.longitude) {
+          targetCoords = [found.latitude, found.longitude];
+        }
+      }
+
+      switchAppView('map');
+      if (typeof closeMobileDrawer === 'function') {
+        closeMobileDrawer();
+      }
+
+      if (targetCoords[0] && targetCoords[1]) {
+        map.flyTo(targetCoords, 16, { duration: 0.8 });
+        setTimeout(() => {
+          openStopBoard(stopId, targetCoords, stopName);
+        }, 400);
+      } else {
+        openStopBoard(stopId, [48.7164, 21.2611], stopName);
+      }
+    }
+    window.handleFavoriteStopClick = handleFavoriteStopClick;
+
+    function renderFavoritesQuickAccess() {
+      const container = document.getElementById('favorites-quick-access');
+      if (!container) return;
+
+      const favs = FavoritesManager.getFavorites();
+      const hasLines = favs.lines && favs.lines.length > 0;
+      const hasStops = favs.stops && favs.stops.length > 0;
+
+      if (!hasLines && !hasStops) {
+        container.innerHTML = `
+          <div class="fav-quick-header">
+            <span class="fav-quick-title">⭐ Obľúbené položky</span>
+          </div>
+          <div class="fav-quick-empty">
+            Kliknite na hviezdičku ⭐ pri linke alebo zastávke pre rýchly prístup.
+          </div>
+        `;
+        return;
+      }
+
+      let linesRowHtml = '';
+      if (hasLines) {
+        const lineChips = favs.lines.map(line => {
+          const isNight = String(line).startsWith('N');
+          const bg = isNight ? '#334155' : '#0284c7';
+          return `
+            <div class="fav-chip-line" onclick="handleFavoriteLineClick('${line}')" title="Aktivovať linku ${line} na mape">
+              <span class="fav-star-icon">⭐</span>
+              <span class="fav-line-num" style="background: ${bg};">${line}</span>
+            </div>
+          `;
+        }).join('');
+        linesRowHtml = `
+          <div class="fav-row">
+            <div class="fav-row-label">Linky:</div>
+            <div class="fav-row-chips">${lineChips}</div>
+          </div>
+        `;
+      }
+
+      let stopsRowHtml = '';
+      if (hasStops) {
+        const stopChips = favs.stops.map(st => {
+          const safeName = (st.name || 'Zastávka').replace(/'/g, "\\'");
+          const lat = (st.lat !== null && st.lat !== undefined) ? st.lat : 0;
+          const lng = (st.lng !== null && st.lng !== undefined) ? st.lng : 0;
+          return `
+            <div class="fav-chip-stop" onclick="handleFavoriteStopClick('${st.id}', '${safeName}', ${lat}, ${lng})" title="Zobraziť odchody pre ${st.name}">
+              <span>🚏</span>
+              <span class="fav-stop-name">${st.name}</span>
+            </div>
+          `;
+        }).join('');
+        stopsRowHtml = `
+          <div class="fav-row" style="margin-top: 6px;">
+            <div class="fav-row-label">Zastávky:</div>
+            <div class="fav-row-chips">${stopChips}</div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="fav-quick-header">
+          <span class="fav-quick-title">⭐ Obľúbené spojenia</span>
+        </div>
+        ${linesRowHtml}
+        ${stopsRowHtml}
+      `;
+    }
+    window.renderFavoritesQuickAccess = renderFavoritesQuickAccess;
+
     async function openStopBoard(stopId, latLng, stopName) {
       // Asynchrónne načítanie a vykreslenie peších prestupov do 500 m
       clearWalkingTransfers();
@@ -11603,12 +12031,22 @@
           }).join('');
         }
 
+        const isFavStop = FavoritesManager.isFavoriteStop(stopId);
         const nowTime = new Date().toLocaleTimeString('sk-SK');
         const boardHtml = `
           <div class="departure-board-popup">
             <div class="board-header">
               <div>
-                <div class="board-title">🚏 ${finalStopName}</div>
+                <div class="board-title" style="display: flex; align-items: center; gap: 8px;">
+                  <span>🚏 ${finalStopName}</span>
+                  <button id="btn-fav-stop-${stopId}" 
+                          data-stop-id="${stopId}"
+                          class="btn-fav-stop ${isFavStop ? 'is-fav' : ''}" 
+                          onclick="event.stopPropagation(); toggleFavoriteStop('${stopId}', '${finalSafeName}', [${latLng[0]}, ${latLng[1]}]);" 
+                          title="${isFavStop ? 'Odstrániť z obľúbených' : 'Pridať medzi obľúbené'}">
+                    ${isFavStop ? '⭐' : '☆'}
+                  </button>
+                </div>
                 <div class="board-subtitle">Virtuálna odchodová tabuľa${platformSubtitle} • ${nowTime}</div>
                 <div id="board-transfers-badge-${stopId}" style="font-size: 0.68rem; color: #34d399; font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
                   <span>🚶</span>
@@ -11648,7 +12086,16 @@
         popup.setContent(`
           <div class="departure-board-popup">
             <div class="board-header">
-              <div class="board-title">🚏 ${stopName}</div>
+              <div class="board-title" style="display: flex; align-items: center; gap: 8px;">
+                <span>🚏 ${stopName}</span>
+                <button id="btn-fav-stop-${stopId}" 
+                        data-stop-id="${stopId}"
+                        class="btn-fav-stop ${FavoritesManager.isFavoriteStop(stopId) ? 'is-fav' : ''}" 
+                        onclick="event.stopPropagation(); toggleFavoriteStop('${stopId}', '${stopName.replace(/'/g, "\\'")}', [${latLng[0]}, ${latLng[1]}]);" 
+                        title="${FavoritesManager.isFavoriteStop(stopId) ? 'Odstrániť z obľúbených' : 'Pridať medzi obľúbené'}">
+                  ${FavoritesManager.isFavoriteStop(stopId) ? '⭐' : '☆'}
+                </button>
+              </div>
             </div>
             <div class="board-empty-state">Chyba pripojenia k serveru odchodov.</div>
           </div>
@@ -11659,6 +12106,7 @@
     // Dynamická aktualizácia zoznamu liniek pre filter
     function updateLinesFilterUI(vehicles) {
       const container = document.getElementById('lines-filter-container');
+      if (!container) return;
       const linesCount = {};
 
       vehicles.forEach(v => {
@@ -11675,9 +12123,14 @@
 
       sortedLines.forEach(line => {
         const isExcluded = disabledLines.has(line);
+        const isFav = FavoritesManager.isFavoriteLine(line);
         const chip = document.createElement('div');
-        chip.className = `line-chip ${isExcluded ? 'inactive' : 'active'}`;
-        chip.innerHTML = `<span>${line}</span><span class="line-count">(${linesCount[line]})</span>`;
+        chip.className = `line-chip ${isExcluded ? 'inactive' : 'active'}${isFav ? ' is-fav' : ''}`;
+        chip.innerHTML = `
+          <span>${line}</span>
+          <span class="line-count">(${linesCount[line]})</span>
+          <span class="line-fav-star ${isFav ? 'is-fav' : ''}" onclick="event.stopPropagation(); toggleFavoriteLine('${line}');" title="${isFav ? 'Odstrániť z obľúbených' : 'Pridať medzi obľúbené'}">${isFav ? '⭐' : '☆'}</span>
+        `;
         chip.onclick = () => toggleLineFilter(line);
         container.appendChild(chip);
       });
@@ -11746,6 +12199,16 @@
     // Okamžitá reakcia na zmenu textu vo vyhľadávači (Search Bypass)
     function handleMapSearchInput(val) {
       const q = (val || '').trim();
+      const favContainer = document.getElementById('favorites-quick-access');
+      if (favContainer) {
+        if (q.length > 0) {
+          favContainer.style.display = 'none';
+        } else {
+          favContainer.style.display = 'block';
+          renderFavoritesQuickAccess();
+        }
+      }
+
       if (!q) {
         if (activeModelFilter) {
           clearModelFilter();
@@ -11756,6 +12219,19 @@
       }
       syncVisibleMarkers();
     }
+
+    function handleMapSearchFocus() {
+      const searchInput = document.getElementById('search-input');
+      const val = searchInput ? searchInput.value.trim() : '';
+      const favContainer = document.getElementById('favorites-quick-access');
+      if (favContainer) {
+        if (val.length === 0) {
+          favContainer.style.display = 'block';
+          renderFavoritesQuickAccess();
+        }
+      }
+    }
+    window.handleMapSearchFocus = handleMapSearchFocus;
 
     // Rozhodovacie pravidlo viditeľnosti vozidla na mape (Extrémny Viewport Culling & Search Bypass)
     function isVehicleVisibleOnMap(v, mapBounds) {
@@ -14152,6 +14628,7 @@
     fetchStops();
     fetchVehicles();
     loadFleetDatabase();
+    renderFavoritesQuickAccess();
 
     // Automatická aktualizácia každých 10 sekúnd
     setInterval(fetchVehicles, 10000);
