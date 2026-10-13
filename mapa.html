@@ -3418,6 +3418,116 @@
 
     /* Mobilná responzivita (pre max-width: 768px) */
     @media (max-width: 768px) {
+      /* Zamedzenie nechceného pull-to-refresh potiahnutím nadol */
+      html, body {
+        overscroll-behavior-y: contain;
+      }
+
+      /* Odstránenie 300ms tap delay a sivého prebliknutia na dotykových prvkoch */
+      button,
+      .bottom-nav-bar,
+      .nav-tab,
+      .line-chip,
+      .garage-chip,
+      .btn-fav-stop,
+      .fav-chip-line,
+      .fav-chip-stop,
+      .interactive-card,
+      .stat-card,
+      .leaflet-popup-close-button,
+      .sheet-close-btn,
+      .btn-notify-departure,
+      .filter-reset-link,
+      .sheet-grab-bar,
+      .search-cancel-btn,
+      .pill-follow-cancel-btn,
+      a {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* Kompaktný zjednotený horný HUD na mobile (Logo + Aktívne sledovanie) */
+      .map-live-pill {
+        height: 36px !important;
+        max-height: 36px !important;
+        min-height: 36px !important;
+        padding: 0 10px !important;
+        border-radius: 18px !important;
+        font-size: 0.78rem !important;
+        gap: 6px !important;
+        line-height: 1 !important;
+        max-width: calc(100vw - 110px) !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+      }
+      .map-live-pill .map-count-badge {
+        padding: 2px 6px !important;
+        font-size: 0.68rem !important;
+      }
+      .map-live-pill.is-following {
+        background: rgba(14, 165, 233, 0.25) !important;
+        border-color: rgba(56, 189, 248, 0.45) !important;
+        box-shadow: 0 0 14px rgba(14, 165, 233, 0.35) !important;
+      }
+      .map-live-pill.is-following #map-pill-normal {
+        display: none !important;
+      }
+      .map-live-pill.is-following #map-pill-following {
+        display: inline-flex !important;
+      }
+
+      /* Mobilné vyhľadávanie bezpečné pred virtuálnou klávesnicou (Search UX) */
+      .control-panel.mobile-search-mode {
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+        border: none !important;
+        padding-top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+        padding-bottom: max(320px, 45vh) !important;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+        background: rgba(10, 15, 29, 0.96) !important;
+        backdrop-filter: blur(32px) !important;
+        -webkit-backdrop-filter: blur(32px) !important;
+        z-index: 10060 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        transform: translateX(0) !important;
+      }
+      .control-panel.mobile-search-mode .mobile-drawer-header,
+      .control-panel.mobile-search-mode .theme-selector-section,
+      .control-panel.mobile-search-mode .developer-mode-section {
+        display: none !important;
+      }
+      .control-panel.mobile-search-mode .panel-search-section {
+        margin-top: 4px;
+        margin-bottom: 12px;
+      }
+      .control-panel.mobile-search-mode .search-box-wrapper {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(15, 23, 42, 0.9);
+        backdrop-filter: blur(16px);
+        padding: 4px 6px;
+        border-radius: 14px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+      }
+      .control-panel.mobile-search-mode .search-cancel-btn {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+      }
+      .control-panel.mobile-search-mode .search-btn {
+        display: none !important;
+      }
+
       /* Mobilné tlačidlo hamburger */
       .mobile-menu-btn {
         display: flex !important;
@@ -3508,11 +3618,9 @@
       .status-bar {
         display: none;
       }
-      .follow-banner {
-        margin-top: 4px;
-        padding: 6px 10px;
-        font-size: 0.74rem;
-        border-radius: 12px;
+      .follow-banner,
+      #follow-banner {
+        display: none !important;
       }
 
       /* Pravý ovládací panel schovaný do vysúvacieho bočného menu */
@@ -3585,7 +3693,7 @@
       /* Plynulé vysúvanie odchodových tabúľ a detailov vozidla zospodu (BOTTOM SHEET - UKOTVENÝ PRE MOBIL) */
       .leaflet-popup {
         position: fixed !important;
-        bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+        bottom: calc(68px + max(10px, env(safe-area-inset-bottom, 0px))) !important;
         left: 0 !important;
         right: 0 !important;
         top: auto !important;
@@ -3657,7 +3765,7 @@
       .vehicle-history-panel {
         position: fixed !important;
         top: auto !important;
-        bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+        bottom: calc(68px + max(10px, env(safe-area-inset-bottom, 0px))) !important;
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
@@ -3778,6 +3886,65 @@
       letter-spacing: 0.2px;
     }
 
+    .map-pill-inner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .map-pill-inner-following {
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+    .map-pill-following-label {
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 175px;
+      color: #38bdf8;
+    }
+    .pill-follow-cancel-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .pill-follow-cancel-btn:active {
+      background: rgba(239, 68, 68, 0.6);
+      transform: scale(0.9);
+    }
+
+    .search-cancel-btn {
+      display: none;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #94a3b8;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 10px;
+      padding: 6px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .search-cancel-btn:active {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
     /* Spodná Navigačná Lišta (Bottom Navigation Bar - Pevne ukotvená k spodnej hrane) */
     .bottom-nav-bar {
       position: fixed !important;
@@ -3786,7 +3953,7 @@
       right: 0 !important;
       width: 100% !important;
       max-width: 100vw !important;
-      height: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+      height: calc(60px + max(10px, env(safe-area-inset-bottom, 0px))) !important;
       background: rgba(15, 23, 42, 0.85);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
@@ -3797,7 +3964,7 @@
       border-radius: 0;
       display: flex;
       align-items: flex-start;
-      padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px)) 12px;
+      padding: 6px 12px max(10px, env(safe-area-inset-bottom, 0px)) 12px !important;
       box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
       z-index: 10035 !important;
       margin: 0 !important;
@@ -4987,10 +5154,16 @@
 
     <!-- Čistý mapový stavový pill (kliknutím prepne do Garáže, 5x klik pre Developer Mode) -->
     <div class="map-live-pill apple-glass" id="app-logo-title" onclick="handleLogoClick(event)" title="Nexigo (5x klik pre Developer Mode)" style="cursor: pointer;">
-      <span class="pulse-dot"></span>
-      <span id="app-logo-text">Nexigo</span>
-      <span id="dev-mode-pill-map" class="dev-mode-pill" style="display: none;">DEV</span>
-      <span class="map-count-badge" id="map-pill-count">-- vozidiel</span>
+      <div id="map-pill-normal" class="map-pill-inner">
+        <span class="pulse-dot"></span>
+        <span id="app-logo-text">Nexigo</span>
+        <span id="dev-mode-pill-map" class="dev-mode-pill" style="display: none;">DEV</span>
+        <span class="map-count-badge" id="map-pill-count">-- vozidiel</span>
+      </div>
+      <div id="map-pill-following" class="map-pill-inner-following">
+        <span id="map-pill-following-label" class="map-pill-following-label">🎯 #--</span>
+        <button type="button" class="pill-follow-cancel-btn" onclick="event.stopPropagation(); stopFollowingVehicle();" title="Ukončiť sledovanie" aria-label="Ukončiť sledovanie">✕</button>
+      </div>
     </div>
 
     <!-- Banner pre aktívny režim sledovania vozidla -->
@@ -5439,7 +5612,7 @@
     </div>
 
     <!-- Rýchle hľadanie na mape -->
-    <div>
+    <div class="panel-search-section">
       <div class="panel-section-title">
         <span>🔍</span>
         <span>Rýchle vyhľadávanie</span>
@@ -5454,11 +5627,12 @@
           id="search-input" 
           class="search-input" 
           placeholder="Model, ŠPZ, linka, zastávka..." 
-          onkeydown="if(event.key==='Enter') executeSearch(); if(event.key==='Escape') clearModelFilter();"
+          onkeydown="if(event.key==='Enter') executeSearch(); if(event.key==='Escape') cancelMobileSearch();"
           oninput="handleMapSearchInput(this.value)"
           onfocus="handleMapSearchFocus()"
         />
         <button class="search-btn" onclick="executeSearch()">Hľadať</button>
+        <button type="button" id="search-cancel-btn" class="search-cancel-btn" onclick="cancelMobileSearch()">Zrušiť</button>
       </div>
       <div id="search-feedback" class="search-feedback"></div>
       <!-- Rýchly prístup k obľúbeným položkám (Favorites Quick Access) -->
@@ -5809,6 +5983,20 @@
       };
     }
 
+    // ==========================================
+    // JEMNÁ HAPTICKÁ ODOZVA (VIBRATION API)
+    // ==========================================
+    function triggerHaptic(duration = 12) {
+      try {
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+          navigator.vibrate(duration);
+        }
+      } catch (err) {
+        // Tiché zlyhanie pri nepodporovaných zariadeniach alebo obmedzeniach zabezpečenia
+      }
+    }
+    window.triggerHaptic = triggerHaptic;
+
     // Inicializácia mapy - Košice centrum s hardvérovo akcelerovaným Canvas Rendererom
     const KOSICE_CENTER = [48.7164, 21.2611];
     // Hardvérovo akcelerovaný Canvas Renderer pre Leaflet
@@ -5963,6 +6151,9 @@
     let logoClickTimer = null;
 
     function handleLogoClick(e) {
+      if (followingVehicleId && e && e.target && e.target.closest('#map-pill-following')) {
+        return;
+      }
       logoClickCount++;
       clearTimeout(logoClickTimer);
 
@@ -6786,9 +6977,28 @@
     function closeMobileDrawer() {
       const panel = document.querySelector('.control-panel');
       const overlay = document.getElementById('mobile-drawer-overlay');
-      if (panel) panel.classList.remove('mobile-open');
+      if (panel) {
+        panel.classList.remove('mobile-open');
+        panel.classList.remove('mobile-search-mode');
+      }
+      document.body.classList.remove('mobile-search-mode');
       if (overlay) overlay.classList.remove('active');
+      const input = document.getElementById('search-input');
+      if (input) input.blur();
     }
+
+    function cancelMobileSearch() {
+      const input = document.getElementById('search-input');
+      if (input) {
+        input.value = '';
+        input.blur();
+      }
+      if (typeof handleMapSearchInput === 'function') {
+        handleMapSearchInput('');
+      }
+      closeMobileDrawer();
+    }
+    window.cancelMobileSearch = cancelMobileSearch;
 
     // ==========================================
     // GPS ZAMERIAVAČ AKTUÁLNEJ POLOHY POUŽÍVATEĽA
@@ -6906,6 +7116,7 @@
     }
 
     function locateUser() {
+      triggerHaptic(12);
       if (!navigator.geolocation) {
         showMapToast('Váš prehliadač nepodporuje geolokáciu.', 'error');
         return;
@@ -7343,6 +7554,7 @@
     let currentAppView = 'map';
 
     function switchAppView(viewName) {
+      triggerHaptic(12);
       if (!['map', 'garage', 'planner', 'dashboard'].includes(viewName)) return;
       currentAppView = viewName;
       if (typeof closeVehicleHistoryPanel === 'function') {
@@ -10978,45 +11190,85 @@
       }
     }
 
-    // Mobilné swipe-down gesto na zatvorenie bottom sheetu
+    // Mobilné swipe-down gesto na zatvorenie bottom sheetu (Swipe-to-Dismiss s plynulou fyzikou)
     (function initHistoryBottomSheetSwipe() {
-      const grabBar = document.querySelector('.sheet-grab-bar');
       const panel = document.getElementById('history-bottom-sheet') || document.getElementById('vehicle-history-panel');
-      if (!grabBar || !panel) return;
+      if (!panel) return;
       
       let startY = 0;
       let currentY = 0;
+      let startTime = 0;
       let isDragging = false;
+      let isFromGrabBar = false;
       
-      grabBar.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-          startY = e.touches[0].clientY;
-          currentY = startY;
-          isDragging = true;
-          panel.style.transition = 'none';
+      const onTouchStart = (e) => {
+        if (e.touches.length !== 1) return;
+        const target = e.target;
+        isFromGrabBar = !!target.closest('.sheet-grab-bar, .sheet-grab-handle');
+        
+        // Ak neťahá priamo za grab bar, overíme či je scroll na vrchu tela panelu
+        const bodyEl = document.getElementById('history-sheet-body') || panel;
+        if (!isFromGrabBar && bodyEl && bodyEl.scrollTop > 0) {
+          return;
         }
-      }, { passive: true });
-      
-      grabBar.addEventListener('touchmove', (e) => {
+
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        startTime = Date.now();
+        isDragging = true;
+        panel.style.transition = 'none';
+      };
+
+      const onTouchMove = (e) => {
         if (!isDragging || e.touches.length !== 1) return;
         currentY = e.touches[0].clientY;
         const diff = currentY - startY;
+
         if (diff > 0) {
+          // Ťahanie nadol: priamy 1:1 posun panela
           panel.style.transform = `translateY(${diff}px)`;
+          if (e.cancelable && isFromGrabBar) {
+            e.preventDefault();
+          }
+        } else {
+          // Ťahanie nahor: jemný elastický odpor (rubber-band)
+          const damp = diff * 0.15;
+          panel.style.transform = `translateY(${damp}px)`;
         }
-      }, { passive: true });
-      
-      grabBar.addEventListener('touchend', () => {
+      };
+
+      const onTouchEnd = () => {
         if (!isDragging) return;
         isDragging = false;
-        panel.style.transition = '';
+        
         const diff = currentY - startY;
-        if (diff > 70) {
-          closeVehicleHistoryPanel();
+        const duration = Math.max(1, Date.now() - startTime);
+        const velocity = diff / duration; // px per ms
+
+        // Dismiss podmienka: posun > 80px alebo rýchly švih nadol
+        if (diff > 80 || (diff > 35 && velocity > 0.45)) {
+          panel.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+          panel.style.transform = 'translateY(115%)';
+          setTimeout(() => {
+            closeVehicleHistoryPanel();
+            panel.style.transition = '';
+            panel.style.transform = '';
+          }, 240);
         } else {
-          panel.style.transform = '';
+          // Plynulý návrat späť (spring)
+          panel.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+          panel.style.transform = 'translateY(0)';
+          setTimeout(() => {
+            panel.style.transition = '';
+            panel.style.transform = '';
+          }, 250);
         }
-      }, { passive: true });
+      };
+
+      panel.addEventListener('touchstart', onTouchStart, { passive: true });
+      panel.addEventListener('touchmove', onTouchMove, { passive: false });
+      panel.addEventListener('touchend', onTouchEnd, { passive: true });
+      panel.addEventListener('touchcancel', onTouchEnd, { passive: true });
     })();
 
     // Bezpečné globálne vystavenie funkcií na objekte window pre Leaflet popupy a inline atribúty
@@ -11123,24 +11375,46 @@
     // Spustenie / zastavenie sledovania vozidla (Follow Mode)
     function startFollowingVehicle(v) {
       if (!v) return;
+      let evOrId = '';
+      let line = '?';
       if (typeof v === 'object') {
         followingVehicleId = v.vehicle_id;
         const fleet = v.fleet_info || {};
-        const label = `Linka ${v.line || '?'} ${fleet.spz ? '(' + fleet.spz + ')' : ''}`;
-        document.getElementById('follow-bus-label').innerText = label;
+        evOrId = fleet.evidencne_cislo || fleet.spz || v.vehicle_id;
+        line = v.line || '?';
+        const label = `Linka ${line} ${fleet.spz ? '(' + fleet.spz + ')' : ''}`;
+        const followLabelEl = document.getElementById('follow-bus-label');
+        if (followLabelEl) followLabelEl.innerText = label;
       } else {
         followingVehicleId = v;
         const found = latestVehiclesList.find(x => String(x.vehicle_id) === String(v));
         const fleet = found?.fleet_info || {};
-        const label = found ? `Linka ${found.line || '?'} ${fleet.spz ? '(' + fleet.spz + ')' : ''}` : `Vozidlo #${v}`;
-        document.getElementById('follow-bus-label').innerText = label;
+        evOrId = fleet.evidencne_cislo || fleet.spz || v;
+        line = found ? (found.line || '?') : '?';
+        const label = found ? `Linka ${line} ${fleet.spz ? '(' + fleet.spz + ')' : ''}` : `Vozidlo #${v}`;
+        const followLabelEl = document.getElementById('follow-bus-label');
+        if (followLabelEl) followLabelEl.innerText = label;
       }
-      document.getElementById('follow-banner').style.display = 'flex';
+
+      // Kompaktný štítok pre horný HUD na mobile: [ 🎯 #5720 (Linka 19) | ✕ ]
+      const compactLabel = `🎯 #${evOrId} (Linka ${line})`;
+      const pillFollowLbl = document.getElementById('map-pill-following-label');
+      if (pillFollowLbl) pillFollowLbl.innerText = compactLabel;
+
+      const logoPill = document.getElementById('app-logo-title');
+      if (logoPill) logoPill.classList.add('is-following');
+
+      const banner = document.getElementById('follow-banner');
+      if (banner) banner.style.display = 'flex';
     }
 
     function stopFollowingVehicle() {
       followingVehicleId = null;
-      document.getElementById('follow-banner').style.display = 'none';
+      const banner = document.getElementById('follow-banner');
+      if (banner) banner.style.display = 'none';
+
+      const logoPill = document.getElementById('app-logo-title');
+      if (logoPill) logoPill.classList.remove('is-following');
     }
 
 
@@ -11648,6 +11922,7 @@
       },
 
       toggleFavoriteLine(line) {
+        triggerHaptic(15);
         if (!line) return false;
         const lineStr = String(line).trim();
         const favs = this.getFavorites();
@@ -11681,6 +11956,7 @@
       },
 
       toggleFavoriteStop(stopId, stopName, latLng) {
+        triggerHaptic(15);
         if (!stopId) return false;
         const idStr = String(stopId).trim();
         const nameStr = String(stopName || '').trim();
@@ -11757,14 +12033,18 @@
     window.toggleFavoriteStop = toggleFavoriteStop;
 
     function handleFavoriteLineClick(line) {
+      triggerHaptic(12);
       focusLineOnMap(line);
-      if (typeof closeMobileDrawer === 'function') {
+      if (typeof cancelMobileSearch === 'function') {
+        cancelMobileSearch();
+      } else if (typeof closeMobileDrawer === 'function') {
         closeMobileDrawer();
       }
     }
     window.handleFavoriteLineClick = handleFavoriteLineClick;
 
     function handleFavoriteStopClick(stopId, stopName, lat, lng) {
+      triggerHaptic(12);
       let targetCoords = [lat, lng];
       if ((!lat || !lng) && Array.isArray(allStopsList)) {
         const found = allStopsList.find(s => String(s.id).trim() === String(stopId).trim());
@@ -11774,7 +12054,9 @@
       }
 
       switchAppView('map');
-      if (typeof closeMobileDrawer === 'function') {
+      if (typeof cancelMobileSearch === 'function') {
+        cancelMobileSearch();
+      } else if (typeof closeMobileDrawer === 'function') {
         closeMobileDrawer();
       }
 
@@ -12230,6 +12512,11 @@
           renderFavoritesQuickAccess();
         }
       }
+      if (window.innerWidth <= 768) {
+        const panel = document.querySelector('.control-panel');
+        if (panel) panel.classList.add('mobile-search-mode');
+        document.body.classList.add('mobile-search-mode');
+      }
     }
     window.handleMapSearchFocus = handleMapSearchFocus;
 
@@ -12378,6 +12665,9 @@
         feedback.innerText = `Nájdené: Linka ${foundVehicle.line} (${fleet.spz || 'ev. č. ' + fleet.evidencne_cislo})`;
 
         map.flyTo([foundVehicle.latitude, foundVehicle.longitude], 15, { duration: 1.2 });
+        if (window.innerWidth <= 768 && typeof closeMobileDrawer === 'function') {
+          closeMobileDrawer();
+        }
         setTimeout(() => {
           marker.openPopup();
           startFollowingVehicle(foundVehicle);
@@ -12406,6 +12696,9 @@
       feedback.innerText = `Nájdená zastávka: ${foundStop.name}`;
 
       map.flyTo([foundStop.latitude, foundStop.longitude], 16, { duration: 1.2 });
+      if (window.innerWidth <= 768 && typeof closeMobileDrawer === 'function') {
+        closeMobileDrawer();
+      }
       setTimeout(() => {
         openStopBoard(foundStop.stop_id, [foundStop.latitude, foundStop.longitude], foundStop.name);
       }, 600);
