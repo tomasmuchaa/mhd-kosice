@@ -428,11 +428,21 @@ class DpmkLiveFeed:
         """Stiahne surové plánované odchody pre jedno konkrétne stop_id z Ubianu."""
         url = f"{self.UBIAN_BASE_URL}/navigation/stops/planned_departures?stopID={stop_id}"
         if date and time:
-            url += f"&date={date}&time={time}"
+            if "T" in str(date):
+                url += f"&date={date}"
+            else:
+                t_str = str(time).strip()
+                if len(t_str) == 5:
+                    t_str += ":00"
+                url += f"&date={date}T{t_str}"
         elif date:
             url += f"&date={date}"
         elif time:
-            url += f"&time={time}"
+            today_iso = datetime.now().strftime("%Y-%m-%d")
+            t_str = str(time).strip()
+            if len(t_str) == 5:
+                t_str += ":00"
+            url += f"&date={today_iso}T{t_str}"
 
         req = urllib.request.Request(url, headers=self.headers)
         try:

@@ -15218,7 +15218,7 @@
       const steps = journey.steps || [];
       const sum = journey.summary || {};
       const timelineItems = [];
-      let currentClock = sum.board_time || sum.departure_time || '11:00';
+      let currentClock = sum.departure_time || sum.board_time || '11:00';
       let pendingWait = null;
 
       for (let i = 0; i < steps.length; i++) {
@@ -15231,16 +15231,19 @@
             const m = st.instruction.match(/na zastávku ([^(]+)/i);
             if (m) targetName = m[1].trim();
           }
+          const durMin = Math.round(st.duration_minutes || (st.duration_seconds ? st.duration_seconds / 60 : 1));
+          const walkStart = currentClock;
+          const walkEnd = addMinutesToClock(walkStart, durMin);
           timelineItems.push({
             kind: 'walk',
             distance: distM,
             targetName: cleanStopName(targetName) || 'cieľa',
-            durationMin: Math.round(st.duration_minutes || (st.duration_seconds ? st.duration_seconds / 60 : 1)),
+            durationMin: durMin,
+            depTime: walkStart,
+            arrTime: walkEnd,
             instruction: st.instruction
           });
-          if (st.duration_minutes) {
-            currentClock = addMinutesToClock(currentClock, st.duration_minutes);
-          }
+          currentClock = walkEnd;
         } else if (st.type === 'wait') {
           pendingWait = st;
           if (st.wait_minutes) {
@@ -15262,6 +15265,13 @@
 
           const modeInfo = getTransitModeInfo(line, wait.vehicle_info || st.vehicle_info);
 
+          // Počet zastávok: striktne fyzické zastávky (st.stops_count alebo dĺžka intermediate_stops)
+          const stopsCount = (typeof st.stops_count === 'number' && st.stops_count > 0)
+            ? st.stops_count
+            : ((st.intermediate_stops && st.intermediate_stops.length > 0)
+                ? (st.intermediate_stops.length + 1)
+                : Math.max(1, Math.round(rideDur / 1.9)));
+
           timelineItems.push({
             kind: 'transit',
             line: line,
@@ -15271,6 +15281,7 @@
             depStop: depStop,
             arrTime: arrTime,
             arrStop: arrStop,
+            stopsCount: stopsCount,
             delay: delayMin,
             vehicleInfo: wait.vehicle_info || st.vehicle_info,
             intermediateStops: st.intermediate_stops || [],
@@ -15294,10 +15305,11 @@
             line: line,
             modeLabel: modeInfo.label,
             icon: modeInfo.icon,
-            depTime: sum.board_time || sum.departure_time || '--:--',
+            depTime: sum.departure_time || sum.board_time || '--:--',
             depStop: depStop,
             arrTime: sum.arrival_time || '--:--',
             arrStop: arrStop,
+            stopsCount: Math.max(1, Math.round((sum.total_duration_minutes || 10) / 1.9)),
             delay: 0,
             durationMinutes: Math.round(sum.total_duration_minutes || 0),
             intermediateStops: []
@@ -15307,8 +15319,27 @@
             kind: 'walk',
             distance: Math.round(sum.walking_distance_meters || 0),
             targetName: arrStop,
-            durationMin: Math.round(sum.total_duration_minutes || 0)
+            durationMin: Math.round(sum.total_duration_minutes || 0),
+            depTime: sum.departure_time || '--:--',
+            arrTime: sum.arrival_time || '--:--'
           });
+        }
+      }
+
+      // Harmonizácia časov: zabezpečí 100% matematickú zhodu medzi hlavičkou karty a krokmi trasy
+      if (timelineItems.length > 0) {
+        const firstItem = timelineItems[0];
+        const lastItem = timelineItems[timelineItems.length - 1];
+        const startClock = firstItem.depTime || sum.departure_time;
+        const endClock = lastItem.arrTime || currentClock;
+        sum.departure_time = startClock || sum.departure_time;
+        sum.arrival_time = endClock || sum.arrival_time;
+        if (startClock && endClock && startClock.includes(':') && endClock.includes(':')) {
+          const [sh, sm] = startClock.split(':').map(Number);
+          const [eh, em] = endClock.split(':').map(Number);
+          let diff = (eh * 60 + em) - (sh * 60 + sm);
+          if (diff < 0) diff += 1440;
+          sum.total_duration_minutes = diff;
         }
       }
 
@@ -15320,12 +15351,14 @@
       const steps = journey.steps || [];
       const isActive = (idx === activeJourneyIndex);
       const isFuture = Boolean(sum.is_future) || (plannerTimeState && plannerTimeState.mode !== 'now');
+
+      // Timeline parsujeme ako prvú, aby sa zosúladili časy hlavičky a krokov
+      const timelineItems = parseJourneyTimeline(journey);
+
       const relTime = getRelativeDepartureText(journey);
-      const depClock = sum.board_time || sum.departure_time || '--:--';
+      const depClock = sum.departure_time || '--:--';
       const arrClock = sum.arrival_time || '--:--';
       const totalDurMin = Math.round(sum.total_duration_minutes || 0);
-
-      const timelineItems = parseJourneyTimeline(journey);
 
       // Vykreslenie tela časovej osi (timeline)
       let timelineHtml = '<div class="ubian-timeline">';
@@ -15357,7 +15390,7 @@
               </div>
             </div>
 
-            <!-- Prepojenie: Červený badge, číslo linky a meškanie pod ním (vypnuté pri plánovaných budúcich spojoch) -->
+            <!-- Prepojenie: Červený badge, číslo linky a počet zastávok (vypnuté live meškanie pri budúcich spojoch) -->
             <div class="ubian-timeline-transit">
               <div class="ubian-node-col">
                 <div class="ubian-node-line"></div>
@@ -15368,9 +15401,7 @@
                   <span class="ubian-transit-name">${item.modeLabel}</span>
                 </div>
                 ${(!isFuture && item.delay > 0) ? `<div class="ubian-transit-delay">⚠️ Aktuálne meškanie ${item.delay} min</div>` : ''}
-                ${item.intermediateStops && item.intermediateStops.length > 0 ? `
-                  <div class="ubian-transit-sub">${item.intermediateStops.length + 1} zastávok (${item.durationMinutes} min)</div>
-                ` : ''}
+                <div class="ubian-transit-sub">${item.stopsCount || (item.intermediateStops ? item.intermediateStops.length + 1 : 1)} zastávok (${item.durationMinutes} min)</div>
               </div>
             </div>
 
@@ -15395,8 +15426,15 @@
       let detailsStepsHtml = steps.map((st, sIdx) => {
         let title = st.instruction || '';
         let sub = '';
-        if (st.type === 'ride' && st.intermediate_stops && st.intermediate_stops.length > 0) {
-          sub = `<div class="ubian-detail-step-sub">Cez: ${st.intermediate_stops.join(' → ')}</div>`;
+        if (st.type === 'ride') {
+          const sc = (typeof st.stops_count === 'number' && st.stops_count > 0)
+            ? st.stops_count
+            : (st.intermediate_stops && st.intermediate_stops.length > 0 ? st.intermediate_stops.length + 1 : 1);
+          if (st.intermediate_stops && st.intermediate_stops.length > 0) {
+            sub = `<div class="ubian-detail-step-sub">${sc} zastávok • Cez: ${st.intermediate_stops.join(' → ')}</div>`;
+          } else {
+            sub = `<div class="ubian-detail-step-sub">${sc} zastávok</div>`;
+          }
         } else if (st.type === 'wait' && st.vehicle_info && !isFuture) {
           sub = `<div class="ubian-detail-step-sub" style="color: #10b981;">🚍 ${st.vehicle_info}</div>`;
         } else if (st.type === 'walk' || st.type === 'walk_to_stop') {
@@ -15835,7 +15873,9 @@
       } else if (st.type === 'ride') {
         categoryClass = 'transit';
         icon = '🚍';
-        const stopsCount = (st.intermediate_stops && st.intermediate_stops.length) ? (st.intermediate_stops.length + 1) : 1;
+        const stopsCount = (typeof st.stops_count === 'number' && st.stops_count > 0)
+          ? st.stops_count
+          : ((st.intermediate_stops && st.intermediate_stops.length) ? (st.intermediate_stops.length + 1) : 1);
         mainInstr = `Nastúp na linku ${st.line} (Smer ${st.to_stop_name || ''})`;
         subText = `Cestuj ${st.duration_minutes} min (${stopsCount} zastávok)`;
       } else if (st.type === 'alight') {

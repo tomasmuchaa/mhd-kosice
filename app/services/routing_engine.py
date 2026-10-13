@@ -383,7 +383,7 @@ class RoutingEngine:
         return graph_result
 
     def _inject_zero_cost_platform_edges(self):
-        """Vygeneruje bezplatné nulové prestupy (0 m, 0 s) medzi všetkými nástupišťami s rovnakým kanonickým názvom."""
+        """Vygeneruje bezplatné nulové prestupy (0 m, 0 s) medzi nástupišťami s rovnakým kanonickým názvom, ak sú fyzicky blízko (<= 250 m)."""
         for cname, platforms in self.stops_by_canonical_name.items():
             if len(platforms) > 1:
                 for p1 in platforms:
@@ -395,21 +395,33 @@ class RoutingEngine:
                         self.adjacency_list[id1_str] = self.adjacency_list[id1]
 
                     existing_targets = {edge.get("to_stop_id") for edge in self.adjacency_list[id1]}
+                    lat1 = p1.get("latitude")
+                    lon1 = p1.get("longitude")
+                    if lat1 is None or lon1 is None:
+                        continue
+
                     for p2 in platforms:
                         id2 = p2["stop_id"]
+                        lat2 = p2.get("latitude")
+                        lon2 = p2.get("longitude")
+                        if lat2 is None or lon2 is None:
+                            continue
+
                         if id1 != id2 and id2 not in existing_targets:
-                            zero_edge = {
-                                "to_stop_id": id2,
-                                "to_stop_name": p2.get("name"),
-                                "distance_meters": 0.0,
-                                "walk_time_seconds": 0,
-                                "walk_time_minutes": 0.0,
-                                "from_coords": [p1.get("latitude"), p1.get("longitude")],
-                                "to_coords": [p2.get("latitude"), p2.get("longitude")],
-                                "is_platform_transfer": True
-                            }
-                            self.adjacency_list[id1].append(zero_edge)
-                            existing_targets.add(id2)
+                            dist_m = self.haversine_distance(float(lat1), float(lon1), float(lat2), float(lon2))
+                            if dist_m <= 250.0:
+                                zero_edge = {
+                                    "to_stop_id": id2,
+                                    "to_stop_name": p2.get("name"),
+                                    "distance_meters": round(dist_m, 1),
+                                    "walk_time_seconds": 0,
+                                    "walk_time_minutes": 0.0,
+                                    "from_coords": [float(lat1), float(lon1)],
+                                    "to_coords": [float(lat2), float(lon2)],
+                                    "is_platform_transfer": True
+                                }
+                                self.adjacency_list[id1].append(zero_edge)
+                                existing_targets.add(id2)
 
     def load_walking_graph(self, file_path: Optional[str] = None) -> Dict[str, Any]:
         """Načíta už vygenerovanú sieť peších prestupov zo súboru a pridá nulové hrany medzi nástupištia."""
@@ -628,7 +640,14 @@ class RoutingEngine:
             # Ak sme našli jazdu v správnom smere
             if u_idx is not None and v_idx is not None and u_idx < v_idx:
                 sub_stops = trip_stops[u_idx : v_idx + 1]
-                intermediate_names = [s.get("stopName") for s in sub_stops[1:-1] if s.get("stopName")]
+                raw_names = [s.get("stopName") for s in sub_stops[1:-1] if s.get("stopName")]
+                seen_n = set()
+                intermediate_names = []
+                for sn in raw_names:
+                    cn = strip_accents(sn).lower().strip()
+                    if cn and cn not in seen_n:
+                        seen_n.add(cn)
+                        intermediate_names.append(sn)
 
                 u_order = sub_stops[0].get("stopOrder")
                 v_order = sub_stops[-1].get("stopOrder")
@@ -672,7 +691,15 @@ class RoutingEngine:
         except Exception:
             corridor = [u_stop, v_stop]
 
-        inter_names = [s.get("name") for s in corridor[1:-1] if s.get("name")] if corridor else []
+        raw_inter = [s.get("name") for s in corridor[1:-1] if s.get("name")] if corridor else []
+        seen_ci = set()
+        inter_names = []
+        for iname in raw_inter:
+            c_iname = self.get_canonical_name({"name": iname}) if isinstance(iname, str) else str(iname)
+            if c_iname not in seen_ci:
+                seen_ci.add(c_iname)
+                inter_names.append(iname)
+
         waypoints = corridor if (corridor and len(corridor) >= 2) else [u_stop, v_stop]
 
         osrm_road = self.get_osrm_road_geometry(waypoints, mode="driving")
@@ -693,7 +720,7 @@ class RoutingEngine:
     ) -> List[Dict[str, Any]]:
         """
         Nájde a zoradí všetky zastávky na linke 'line' ležiace pozdĺž koridoru
-        medzi počiatočnou (u_stop) a cieľovou (v_stop) zastávkou.
+        medzi počiatočnou (u_stop) a cieľovou (v_stop) zastávkou s deduplikáciou nástupíšť.
         """
         du = (v_stop["latitude"] - u_stop["latitude"], v_stop["longitude"] - u_stop["longitude"])
         mag_sq = du[0] ** 2 + du[1] ** 2
@@ -704,12 +731,16 @@ class RoutingEngine:
         stops_on_line = [self.stops_by_id[sid] for sid in line_stop_ids if sid in self.stops_by_id]
 
         corridor = []
+        seen_names = {self.get_canonical_name(u_stop), self.get_canonical_name(v_stop)}
         for s in stops_on_line:
             vec = (s["latitude"] - u_stop["latitude"], s["longitude"] - u_stop["longitude"])
             t = (vec[0] * du[0] + vec[1] * du[1]) / mag_sq
             perp = math.sqrt(max(0.0, (vec[0] ** 2 + vec[1] ** 2) - (t ** 2 * mag_sq)))
-            if -0.05 <= t <= 1.05 and perp < 0.025:
-                corridor.append((t, s))
+            if 0.01 <= t <= 0.99 and perp < 0.018:
+                cname = self.get_canonical_name(s)
+                if cname not in seen_names:
+                    seen_names.add(cname)
+                    corridor.append((t, s))
 
         corridor.sort(key=lambda x: x[0])
         res = [s for _, s in corridor]
@@ -879,13 +910,13 @@ class RoutingEngine:
             return False, max(180, int((target - dt).total_seconds())), 1200
 
         # 4. Štandardné denné linky (električky 1-9, R1-R7 a autobusy 10-54, 71, 72)
-        # Premávajú cca od 04:30 do 22:45
-        is_operating = (4 * 60 + 30) <= time_min <= (22 * 60 + 45)
+        # Premávajú cca od 04:30 do 23:15
+        is_operating = (4 * 60 + 30) <= time_min <= (23 * 60 + 15)
         if is_operating:
             return True, 480, 720
         else:
             # V noci nepremávajú; najbližší ranný spoj cca o 04:45
-            if time_min > (22 * 60 + 45):
+            if time_min > (23 * 60 + 15):
                 target = (dt + timedelta(days=1)).replace(hour=4, minute=45, second=0, microsecond=0)
             else:
                 target = dt.replace(hour=4, minute=45, second=0, microsecond=0)
@@ -912,7 +943,7 @@ class RoutingEngine:
         try:
             now_dt = datetime.now()
             diff_from_now = abs((dt - now_dt).total_seconds())
-            if diff_from_now < 2700:
+            if diff_from_now < 180:
                 data = self.live_feed.get_stop_departures(stop_id)
             else:
                 data = self.live_feed.get_stop_departures(stop_id, date=date_str, time=dt.strftime("%H:%M"))
@@ -1748,7 +1779,10 @@ class RoutingEngine:
                 total_ride_sec += ride_sec
                 current_time_dt += timedelta(seconds=ride_sec)
 
-                stops_count = max(1, len(intermediate_names) + 1)
+                if intermediate_names:
+                    stops_count = max(1, len(intermediate_names) + 1)
+                else:
+                    stops_count = max(1, round(ride_min / 1.9))
                 stops_count_str = f" ({stops_count} zastávok, cca {ride_min} min)"
                 steps.append({
                     "step_index": step_idx,
@@ -1761,6 +1795,7 @@ class RoutingEngine:
                     "duration_seconds": ride_sec,
                     "duration_minutes": ride_min,
                     "distance_meters": dist_m,
+                    "stops_count": stops_count,
                     "intermediate_stops": intermediate_names,
                     "from_coords": [u_s["latitude"], u_s["longitude"]],
                     "to_coords": [v_s["latitude"], v_s["longitude"]],
@@ -2063,10 +2098,13 @@ class RoutingEngine:
                 alt["journey_index"] = len(journeys)
                 alt["summary"]["board_time"] = alt_board
                 journeys.append(alt)
-                # Ďalšie hľadanie: odchod tohto spoja + 1 minúta
+                # Ďalšie hľadanie: odchod tohto spoja + 1 minúta (s korektným posunom cez polnoc)
                 try:
                     ab_h, ab_m = [int(p) for p in alt_board.split(":")[:2]]
-                    curr_dt = curr_dt.replace(hour=ab_h, minute=ab_m, second=0, microsecond=0) + timedelta(minutes=1)
+                    next_dt = curr_dt.replace(hour=ab_h, minute=ab_m, second=0, microsecond=0) + timedelta(minutes=1)
+                    if next_dt < curr_dt:
+                        next_dt += timedelta(days=1)
+                    curr_dt = next_dt
                 except Exception:
                     curr_dt += timedelta(minutes=3)
             else:
