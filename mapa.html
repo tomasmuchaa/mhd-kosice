@@ -7235,6 +7235,9 @@
     }
     window.triggerHaptic = triggerHaptic;
 
+    // Globálna vrstva plánovača trás (vyhľadávanie spojení a prestupy)
+    let journeyLayer = null;
+
     // Inicializácia mapy - Košice centrum s hardvérovo akcelerovaným Canvas Rendererom
     const KOSICE_CENTER = [48.7164, 21.2611];
     // Hardvérovo akcelerovaný Canvas Renderer pre Leaflet
@@ -7250,6 +7253,10 @@
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(map);
+
+    // Inicializácia vrstvy pre plánovač trás
+    journeyLayer = L.layerGroup().addTo(map);
+    window.journeyLayer = journeyLayer;
 
     const lightTileLayer = osmTileLayer;
 
@@ -18032,7 +18039,10 @@
     }
 
     function renderJourneyOnMap(journey) {
-      journeyLayer.clearLayers();
+      if (!journeyLayer && typeof map !== 'undefined' && map) {
+        journeyLayer = L.layerGroup().addTo(map);
+      }
+      if (journeyLayer) journeyLayer.clearLayers();
       activeJourneyPolylines = [];
       if (!journey) return;
 
@@ -18622,7 +18632,10 @@
     }
 
     function clearPlannedJourney() {
-      journeyLayer.clearLayers();
+      if (!journeyLayer && typeof map !== 'undefined' && map) {
+        journeyLayer = L.layerGroup().addTo(map);
+      }
+      if (journeyLayer) journeyLayer.clearLayers();
       currentPlannedJourney = null;
       allPlannedJourneys = [];
       activeJourneyIndex = 0;
