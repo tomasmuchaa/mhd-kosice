@@ -13966,9 +13966,107 @@
     // ========================================================
 
     let isLivePredictionActive = false;
+    const STOP_DWELL_SECONDS = 20.0; // Priemerný čas státia vozidla na zastávke (sekúnd)
+    const PREDICTION_HORIZON_SECONDS = 60.0; // Predikčný horizont (+1 minúta)
 
-    // História telemetrických meraní: vehicle_id -> { lat, lng, time, speedMs, lastShiftMeters, prevLat, prevLng, tripId }
+    // História telemetrických meraní: vehicle_id -> { lat, lng, time, speedMs, cruisingSpeedMs, lastShiftMeters, prevLat, prevLng, tripId, isOnStop, stopSince }
     const vehicleTelemetryHistory = new Map();
+
+    // Cache pre kumulatívne vzdialenosti trás a pozície zastávok pozdĺž trasy
+    const tripCumDistsCache = new Map();
+    const tripStopPositionsCache = new Map();
+
+    /**
+     * Vypočíta a nacachuje kumulatívne vzdialenosti (v metroch) pozdĺž bodov trasy spoju.
+     */
+    function getTripCumDists(tripId, routePoints) {
+      if (!routePoints || routePoints.length < 2) return null;
+      const numTripId = Number(tripId);
+      if (tripCumDistsCache.has(numTripId)) return tripCumDistsCache.get(numTripId);
+      if (tripCumDistsCache.has(tripId)) return tripCumDistsCache.get(tripId);
+
+      const cumDists = [0.0];
+      for (let i = 0; i < routePoints.length - 1; i++) {
+        cumDists.push(cumDists[i] + getDistanceMeters(routePoints[i], routePoints[i + 1]));
+      }
+
+      tripCumDistsCache.set(numTripId, cumDists);
+      tripCumDistsCache.set(tripId, cumDists);
+      return cumDists;
+    }
+
+    /**
+     * Zistí pozície všetkých zastávok na trase spoju v metroch od začiatku trasy.
+     */
+    function getTripStopPositions(tripId, routePoints, cumDists) {
+      if (!tripId || !routePoints || routePoints.length < 2 || !cumDists) return [];
+      const numTripId = Number(tripId);
+      if (tripStopPositionsCache.has(numTripId)) return tripStopPositionsCache.get(numTripId);
+      if (tripStopPositionsCache.has(tripId)) return tripStopPositionsCache.get(tripId);
+
+      const stops = tripItineraryCache.get(numTripId) || tripItineraryCache.get(tripId);
+      if (!stops || stops.length === 0) return [];
+
+      const stopPositions = [];
+      for (let i = 0; i < stops.length; i++) {
+        const s = stops[i];
+        const sLat = Number(s.latitude !== undefined ? s.latitude : s.lat);
+        const sLng = Number(s.longitude !== undefined ? s.longitude : (s.lng !== undefined ? s.lng : s.lon));
+        if (isNaN(sLat) || isNaN(sLng)) continue;
+
+        const sMatch = findBestRouteMatch([sLat, sLng], routePoints, 0, null);
+        if (sMatch && sMatch.distance <= 150.0) {
+          const seg = sMatch.segmentIndex;
+          const sPos = cumDists[seg] + sMatch.t * (cumDists[seg + 1] - cumDists[seg]);
+          stopPositions.push({
+            stop: s,
+            pos: sPos,
+            order: Number(s.stopOrder !== undefined ? s.stopOrder : i + 1)
+          });
+        }
+      }
+
+      stopPositions.sort((a, b) => a.pos - b.pos);
+
+      tripStopPositionsCache.set(numTripId, stopPositions);
+      tripStopPositionsCache.set(tripId, stopPositions);
+      return stopPositions;
+    }
+
+    /**
+     * Vráti súradnice [lat, lng] na polyline trasy v danej vzdialenosti v metroch od začiatku trasy.
+     */
+    function getPointAlongRouteAtDistance(routePoints, cumDists, targetDist) {
+      if (!routePoints || routePoints.length === 0) return [0, 0];
+      if (routePoints.length === 1 || targetDist <= 0) return [routePoints[0][0], routePoints[0][1]];
+
+      const totalLen = cumDists[cumDists.length - 1];
+      if (targetDist >= totalLen) {
+        const last = routePoints[routePoints.length - 1];
+        return [last[0], last[1]];
+      }
+
+      let low = 0;
+      let high = cumDists.length - 1;
+      while (low <= high) {
+        const mid = (low + high) >> 1;
+        if (cumDists[mid] <= targetDist) {
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+      const segIdx = Math.min(routePoints.length - 2, Math.max(0, high));
+      const pA = routePoints[segIdx];
+      const pB = routePoints[segIdx + 1];
+      const segDist = cumDists[segIdx + 1] - cumDists[segIdx];
+      const frac = segDist > 0.0001 ? (targetDist - cumDists[segIdx]) / segDist : 0;
+
+      return [
+        pA[0] + frac * (pB[0] - pA[0]),
+        pA[1] + frac * (pB[1] - pA[1])
+      ];
+    }
 
     /**
      * Inicializácia stavu predikcie z localStorage
@@ -14019,6 +14117,16 @@
       let lastShiftMeters = null;
       let prevLat = null;
       let prevLng = null;
+      let cruisingSpeedMs = (prev && prev.cruisingSpeedMs) ? prev.cruisingSpeedMs : null;
+
+      // Zistenie, či vozidlo stojí na zastávke
+      const isOnStop = !!(v.is_on_stop || (v.current_stop_name && v.last_stop_order && prev && prev.speedMs !== null && prev.speedMs < 0.83));
+      let stopSince = (prev && prev.stopSince) ? prev.stopSince : null;
+      if (isOnStop) {
+        if (!stopSince) stopSince = now;
+      } else {
+        stopSince = null;
+      }
 
       if (prev && prev.lat !== undefined && prev.lng !== undefined) {
         prevLat = prev.lat;
@@ -14034,6 +14142,9 @@
           } else {
             speedMs = rawSpeed;
           }
+          if (speedMs >= 2.0 && speedMs <= 20.0) {
+            cruisingSpeedMs = speedMs;
+          }
         } else {
           speedMs = prev.speedMs;
         }
@@ -14044,16 +14155,21 @@
         lng: curLng,
         time: now,
         speedMs: speedMs,
+        cruisingSpeedMs: cruisingSpeedMs,
         lastShiftMeters: lastShiftMeters,
         prevLat: prevLat,
         prevLng: prevLng,
-        tripId: v.trip_id
+        tripId: v.trip_id,
+        isOnStop: isOnStop,
+        stopSince: stopSince
       });
     }
 
     /**
      * Vypočíta predikovanú polohu vozidla o +60 sekúnd dopredu.
-     * Rešpektuje stojace vozidlá, konečné zastávky, trasy a fallbacky.
+     * Zohľadňuje priemerné státie na zastávkach (Dwell Time: STOP_DWELL_SECONDS = 20s),
+     * znižuje čas čistej jazdy pri prechode cez zastávku, uzamyká polohu pri státí
+     * na zastávke a správne spracováva aktuálne stojace vozidlá (is_on_stop).
      * @param {Object} v - Objekt vozidla z API
      * @returns {Array<number>} [lat, lng]
      */
@@ -14068,54 +14184,119 @@
       }
 
       // 1. STACIONÁRNE VOZIDLO / DEPO / KONEČNÁ / NEAKTÍVNE
-      // Ak je vozidlo v depe, nekomunikuje dlho, alebo stojí -> NIKDY neextrapolovať dopredu!
       const comm = (typeof formatLastCommunication === 'function') ? formatLastCommunication(v.last_communication) : null;
       if (v.isDepot || (comm && comm.isStale)) {
         return [curLat, curLng];
       }
 
       const hist = vehicleTelemetryHistory.get(v.vehicle_id);
+      const isOnStop = !!(v.is_on_stop || (hist && hist.isOnStop));
 
-      // Posun menší ako 3 metre alebo rýchlosť pod 3 km/h (~0.83 m/s) = stojace vozidlo
-      if (hist) {
-        if (hist.lastShiftMeters !== null && hist.lastShiftMeters < 3.0) {
-          return [curLat, curLng];
-        }
-        if (hist.speedMs !== null && hist.speedMs < 0.83) {
+      // Stojace vozidlo mimo zastávky (kolóna, križovatka, odstavené bez linky)
+      if (!isOnStop && hist) {
+        if (hist.lastShiftMeters !== null && hist.lastShiftMeters < 3.0 && hist.speedMs !== null && hist.speedMs < 0.83) {
           return [curLat, curLng];
         }
       }
 
-      // 2. VÝPOČET VZDIALENOSTI NA PREDIKCIU (+60s dopredu)
+      // 2. VÝPOČET RÝCHLOSTI VOZIDLA
       let speedMs = 7.5; // Predvolená priemerná rýchlosť MHD v meste (~27 km/h)
       if (hist && typeof hist.speedMs === 'number' && hist.speedMs >= 0.83) {
         speedMs = Math.max(2.0, Math.min(18.0, hist.speedMs));
+      } else if (isOnStop && hist && typeof hist.cruisingSpeedMs === 'number' && hist.cruisingSpeedMs >= 2.0) {
+        speedMs = Math.max(2.0, Math.min(18.0, hist.cruisingSpeedMs));
       }
 
-      const predictionTimeSec = 60.0;
-      let targetDistanceMeters = speedMs * predictionTimeSec;
-      targetDistanceMeters = Math.min(800.0, Math.max(15.0, targetDistanceMeters));
+      // 3. VÝPOČET POČIATOČNÉHO ČASU A DWELL TIME PRE AKTUÁLNE STOJIACE VOZIDLO
+      let simTime = 0.0;
+      if (isOnStop) {
+        let elapsedDwell = 0.0;
+        if (hist && hist.stopSince) {
+          elapsedDwell = (Date.now() - hist.stopSince) / 1000.0;
+        } else {
+          elapsedDwell = STOP_DWELL_SECONDS / 2.0; // Odhad polovice státia (10s)
+        }
+        const remainingDwell = Math.max(0.0, STOP_DWELL_SECONDS - elapsedDwell);
+        if (remainingDwell >= PREDICTION_HORIZON_SECONDS) {
+          return [curLat, curLng];
+        }
+        simTime = remainingDwell;
+      }
 
-      // 3. EXTRAPOLÁCIA PO TRASE (MODEL ROUTE POINTS)
+      // 4. EXTRAPOLÁCIA PO GEOMETRII TRASY SO ZASTÁVKAMI (DWELL TIME SIMULÁCIA)
       const tripId = v.trip_id;
       if (tripId) {
-        if (!tripRoutesCache.has(tripId) && !tripRoutesCache.has(Number(tripId))) {
+        const numTripId = Number(tripId);
+        if (!tripRoutesCache.has(numTripId) && !tripRoutesCache.has(tripId)) {
           getOrFetchTripRoute(tripId);
         }
 
-        const routePoints = tripRoutesCache.get(tripId) || tripRoutesCache.get(Number(tripId));
+        const routePoints = tripRoutesCache.get(numTripId) || tripRoutesCache.get(tripId);
         if (routePoints && routePoints.length >= 2) {
           const marker = markers[v.vehicle_id];
           const lastIdx = (marker && typeof marker._routeIndex === 'number') ? marker._routeIndex : 0;
           const match = findBestRouteMatch([curLat, curLng], routePoints, lastIdx, 35);
 
           if (match && match.distance <= 120.0) {
-            return projectAlongRoute(match, routePoints, targetDistanceMeters);
+            const cumDists = getTripCumDists(tripId, routePoints);
+            const stopPositions = getTripStopPositions(tripId, routePoints, cumDists);
+
+            // Pozícia vozidla v metroch od začiatku trasy
+            const vehPos = cumDists[match.segmentIndex] + match.t * (cumDists[match.segmentIndex + 1] - cumDists[match.segmentIndex]);
+
+            // Zastávky pred vozidlom v smere jazdy
+            const upcomingStops = stopPositions.filter(sp => sp.pos > vehPos + 8.0);
+
+            let currPos = vehPos;
+            let timeRemain = PREDICTION_HORIZON_SECONDS - simTime;
+            let lockedStopCoords = null;
+
+            for (let i = 0; i < upcomingStops.length; i++) {
+              const sp = upcomingStops[i];
+              const distToStop = sp.pos - currPos;
+              const driveTime = distToStop / speedMs;
+
+              if (driveTime > timeRemain) {
+                currPos += timeRemain * speedMs;
+                timeRemain = 0.0;
+                break;
+              }
+
+              const arrTime = simTime + driveTime;
+              const depTime = arrTime + STOP_DWELL_SECONDS;
+
+              if (PREDICTION_HORIZON_SECONDS <= depTime) {
+                // V čase +60s vozidlo práve stojí na zastávke -> uzamknúť na súradniciach zastávky
+                lockedStopCoords = [
+                  Number(sp.stop.latitude !== undefined ? sp.stop.latitude : sp.stop.lat),
+                  Number(sp.stop.longitude !== undefined ? sp.stop.longitude : (sp.stop.lng !== undefined ? sp.stop.lng : sp.stop.lon))
+                ];
+                break;
+              } else {
+                // Prejde cez zastávku, stojí 20s a pokračuje
+                currPos = sp.pos;
+                simTime = depTime;
+                timeRemain = PREDICTION_HORIZON_SECONDS - simTime;
+              }
+            }
+
+            if (lockedStopCoords && !isNaN(lockedStopCoords[0]) && !isNaN(lockedStopCoords[1])) {
+              return lockedStopCoords;
+            }
+
+            if (timeRemain > 0.0) {
+              currPos += timeRemain * speedMs;
+            }
+
+            return getPointAlongRouteAtDistance(routePoints, cumDists, currPos);
           }
         }
       }
 
-      // 4. FALLBACK: LINEÁRNA EXTRAPOLÁCIA PO VEKTORE POHYBU
+      // 5. FALLBACK: LINEÁRNA EXTRAPOLÁCIA PO VEKTORE POHYBU (ak trasa nie je dostupná)
+      const effectiveDriveSeconds = PREDICTION_HORIZON_SECONDS - simTime;
+      const targetDistanceMeters = Math.min(800.0, Math.max(10.0, speedMs * effectiveDriveSeconds));
+
       if (hist && hist.prevLat !== null && hist.prevLng !== null) {
         const vDist = getDistanceMeters([hist.prevLat, hist.prevLng], [curLat, curLng]);
         if (vDist >= 1.5) {
