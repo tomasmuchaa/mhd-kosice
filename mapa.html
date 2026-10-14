@@ -8254,7 +8254,7 @@
       { id: 'ikarus-280', name: 'Ikarus 280.08/A', cat: 'midibus', catLabel: 'Historický kĺbový', tagClass: 'tag-historic', dim: '48×44px', render: (l, d) => renderIkarus280Svg(l, d), desc: 'Delené dvojdielne čelné sklo so zvislým stĺpikom, strešné vetracie poklopy' },
       { id: 'sor-nb12', name: 'SOR NB 12 City', cat: 'standard', catLabel: 'Sólo 12m', tagClass: 'tag-standard', dim: '40×38px', render: (l, d) => renderSorNb12Svg(l, d, '5701'), desc: 'Kompaktná sólo karoséria (40×38px), čisté biele sklo s tmavým číslom linky, tykadlá SOR' },
       { id: 'sor-nbg12', name: 'SOR NBG 12 City', cat: 'standard', catLabel: 'Sólo CNG', tagClass: 'tag-cng', dim: '44×46px', render: (l, d) => renderSorNbg12Svg(l, d), desc: 'Plynový pohon s hrbom na streche, tyrkysový akcent, 4 svetlá' },
-      { id: 'sor-nsg12', name: 'SOR NSG 12', cat: 'standard', catLabel: 'Sólo CNG', tagClass: 'tag-cng', dim: '44×46px', render: (l, d) => renderSorNsg12Svg(l, d), desc: 'Zaoblená klenba nádrží CNG, moderná karoséria NS, tenké LED linky' },
+      { id: 'sor-nsg12', name: 'SOR NSG 12', cat: 'standard', catLabel: 'Sólo CNG', tagClass: 'tag-cng', dim: '40×38px', render: (l, d) => renderSorNsg12Svg(l, d, '5801'), desc: 'Kompaktný sólo CNG autobus (40×38px), aerodynamická klenba strechy, sýto zelená karoséria so svetlozeleným okrajom, čierny štít so žltým úsmevom, biele sklo s tmavým číslom linky' },
       { id: 'solaris-u12', name: 'Solaris Urbino 12 III', cat: 'standard', catLabel: 'Sólo 12m', tagClass: 'tag-standard', dim: '44×44px', render: (l, d) => renderSolarisU12Svg(l, d), desc: 'Červený mestský štandard, asymetrické okno klesajúce doprava, zvislé svetlá' },
       { id: 'solaris-u12-iv', name: 'Solaris Urbino 12 IV', cat: 'standard', catLabel: 'Sólo Gen IV', tagClass: 'tag-standard', dim: '44×42px', render: (l, d) => renderSolarisU12IvSvg(l, d, '5108'), desc: 'Ostré agresívne línie 4. generácie New Urbino, sýto červená karoséria, biele sklo s čiernym číslom, klinové svetlomety a jazvečík' },
       { id: 'solaris-u12-hyb', name: 'Solaris Urbino 12 Hybrid', cat: 'standard', catLabel: 'Hybrid 12m', tagClass: 'tag-electric', dim: '44×46px', render: (l, d) => renderSolarisU12HybridSvg(l, d, '5119'), desc: 'Solaris Urbino 12 III Hybrid (5119), asymetrické čelné sklo klesajúce doprava, tmavý hybridný strešný box, biele sklo s tmavým číslom linky, žltá maska a červený nárazník' },
@@ -10844,34 +10844,148 @@
       `;
     }
 
-    // 8. SOR NSG 12 - štandardný plynový CNG, strešná klenba CNG, LED svetlá
-    function renderSorNsg12Svg(line, delayColorOrMinutes = '') {
+    // 8. SOR NSG 12 - kompaktný 12m sólový plynový CNG autobus (Kotas dizajn s miernym CNG hrbom, sýto zelená #059669 so svetlozeleným okrajom #34d399, biele sklo s lištou meškania a čiernym štítom s úsmevom):
+    function renderSorNsg12Svg(line, delayColorOrMinutes = '', evNum = '5801') {
+      const safeLine = escapeXml(line || '15');
+      const displayEv = escapeXml(String(evNum || '5801').trim() || '5801');
+      const len = safeLine.length;
+      const fontSize = len <= 1 ? 13 : (len === 2 ? 12 : (len === 3 ? 9.5 : 8.0));
+
       const delayColor = getDelayBarColor(delayColorOrMinutes);
-      const fontSize = getLineFontSize(line);
-      const safeLine = escapeXml(line);
+      const isDelayed = (delayColor && delayColor !== 'transparent');
+      const delayFill = isDelayed ? delayColor : 'transparent';
+      const cleanSpz = 'KE·' + (displayEv.length > 4 ? displayEv.slice(-4) : displayEv);
       const clipId = 'ws-clip-nsg12-' + Math.random().toString(36).substr(2, 7);
+
       return `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 46" width="44" height="46" class="veh-front-svg">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 38" width="40" height="38" class="veh-front-svg veh-sor-nsg12">
           <defs>
+            <filter id="sor-nsg12-shadow" x="-12%" y="-10%" width="124%" height="120%">
+              <feDropShadow dx="0" dy="1.2" stdDeviation="1.0" flood-color="#000000" flood-opacity="0.30"/>
+            </filter>
             <clipPath id="${clipId}">
-              <rect x="8" y="9" width="28" height="22" rx="5"/>
+              <path d="M 6.2 11.4 C 6.2 10.2 10.0 9.6 20 9.6 C 30.0 9.6 33.8 10.2 33.8 11.4 L 33.8 22.6 C 33.8 23.5 30.0 24.1 20 24.1 C 10.0 24.1 6.2 23.5 6.2 22.6 Z"/>
             </clipPath>
           </defs>
-          <path d="M 11 7 Q 22 1 33 7 Z" fill="#047857" stroke="#34d399" stroke-width="1.4"/>
-          <rect x="17" y="3" width="10" height="3" rx="1" fill="#065f46"/>
-          <text x="22" y="5" text-anchor="middle" dominant-baseline="central" font-size="2.2px" font-weight="900" fill="#a7f3d0" font-family="'JetBrains Mono', sans-serif">CNG</text>
-          <rect x="7" y="39" width="6" height="4" rx="1.5" fill="#0f172a"/>
-          <rect x="31" y="39" width="6" height="4" rx="1.5" fill="#0f172a"/>
-          <rect x="5" y="6" width="34" height="34" rx="7" fill="#059669" stroke="#34d399" stroke-width="2.5"/>
-          <rect x="1.5" y="11" width="3.5" height="8" rx="1.6" fill="#0f172a" stroke="#34d399" stroke-width="1"/>
-          <rect x="39" y="11" width="3.5" height="8" rx="1.6" fill="#0f172a" stroke="#34d399" stroke-width="1"/>
-          <rect x="8" y="9" width="28" height="22" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
-          <rect class="veh-delay-bar" x="8" y="9" width="28" height="6" fill="${delayColor}" clip-path="url(#${clipId})" style="fill: ${delayColor} !important; ${(!delayColor || delayColor === 'transparent') ? 'display: none;' : ''}"/>
-          <text x="22" y="22" text-anchor="middle" dominant-baseline="central" alignment-baseline="central" font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px" fill="#0f172a" style="fill: #0f172a !important; font-size: ${fontSize}px !important; font-weight: 900 !important;" letter-spacing="-0.5px">${safeLine}</text>
-          <rect x="15" y="32.5" width="14" height="3.5" rx="1.7" fill="#0f172a"/>
-          <circle cx="22" cy="34.2" r="1.2" fill="#34d399"/>
-          <path d="M 8.5 33 Q 11 32.5 13.5 33.5" stroke="#fef08a" stroke-width="2" stroke-linecap="round" fill="none"/>
-          <path d="M 35.5 33 Q 33 32.5 30.5 33.5" stroke="#fef08a" stroke-width="2" stroke-linecap="round" fill="none"/>
+
+          <!-- PODVOZOK A KOLESÁ -->
+          <g fill="#0f172a">
+            <rect x="5.8" y="34.0" width="4.2" height="3.5" rx="1"/>
+            <rect x="30.0" y="34.0" width="4.2" height="3.5" rx="1"/>
+          </g>
+          <line x1="5.8" y1="37.2" x2="10.0" y2="37.2" stroke="#334155" stroke-width="0.8"/>
+          <line x1="30.0" y1="37.2" x2="34.2" y2="37.2" stroke="#334155" stroke-width="0.8"/>
+
+          <!-- TYPICKÉ SPÄTNÉ ZRKADLÁ SOR (TYKADLÁ) -->
+          <!-- Ľavé tykadlo -->
+          <path d="M 5.2 9.0 C 2.5 8.4, 0.6 10.8, 0.8 14.2 L 1.0 16.2" fill="none" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M 0.3 13.5 C -0.1 14.8, 0.1 17.5, 1.2 19.0 C 1.8 17.5, 1.8 14.8, 1.4 13.5 Z" fill="#18181b" stroke="#0f172a" stroke-width="0.35"/>
+          <rect x="0.5" y="14.2" width="0.7" height="4.0" rx="0.2" fill="#38bdf8" opacity="0.6"/>
+          <!-- Pravé tykadlo -->
+          <path d="M 34.8 9.0 C 37.5 8.4, 39.4 10.8, 39.2 14.2 L 39.0 16.2" fill="none" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M 39.7 13.5 C 40.1 14.8, 39.9 17.5, 38.8 19.0 C 38.2 17.5, 38.2 14.8, 38.6 13.5 Z" fill="#18181b" stroke="#0f172a" stroke-width="0.35"/>
+          <rect x="38.8" y="14.2" width="0.7" height="4.0" rx="0.2" fill="#38bdf8" opacity="0.6"/>
+
+          <!-- TMAVÁ STREŠNÁ CNG KLENBA (KRYT NÁDRŽÍ NA STRECHE - JEMNEJŠÍ SÓLO HRB) -->
+          <path d="M 11.5 6.5 C 11.5 3.8 15 2.8 20 2.8 C 25 2.8 28.5 3.8 28.5 6.5 Z" fill="#047857" stroke="#34d399" stroke-width="0.8"/>
+          <path d="M 13.8 6.0 C 15 4.6 17.5 4.0 20 4.0 C 22.5 4.0 25 4.6 26.2 6.0 Z" fill="#065f46"/>
+
+          <!-- HLAVNÁ KAROSÉRIA - KOCKATEJŠÍ KOTAS TVAR (SÝTO ZELENÉ VNÚTRO #059669 A SVETLOZELENÝ OKRAJ #34d399) -->
+          <path d="M 4.2 10.5 C 4.2 8.0 8 6.6 20 6.6 C 32 6.6 35.8 8.0 35.8 10.5 L 35.8 32.5 C 35.8 34.2 34.0 35.0 32 35.0 L 8 35.0 C 6.0 35.0 4.2 34.2 4.2 32.5 Z"
+                fill="#059669" stroke="#34d399" stroke-width="1.8" stroke-linejoin="round" filter="url(#sor-nsg12-shadow)"/>
+
+          <!-- ŽLTÉ HORNÉ OBLÚKY V ROHOCH A BOČNÉ STĹPIKY (#facc15) -->
+          <!-- Ľavý žltý oblúk / stĺpik -->
+          <path d="M 4.2 10.5 C 4.2 8.0 7.8 6.8 13.2 6.8 L 12.8 8.6 C 8.8 8.6 6.2 9.6 6.2 11.4 L 6.2 23.2 C 5.3 22.3 4.2 20.0 4.2 17.2 Z" fill="#facc15"/>
+          <!-- Pravý žltý oblúk / stĺpik -->
+          <path d="M 35.8 10.5 C 35.8 8.0 32.2 6.8 26.8 6.8 L 27.2 8.6 C 31.2 8.6 33.8 9.6 33.8 11.4 L 33.8 23.2 C 34.7 22.3 35.8 20.0 35.8 17.2 Z" fill="#facc15"/>
+
+          <!-- TMAVÝ HORNÝ DISPLEJ TRASY -->
+          <path d="M 11.5 6.6 L 28.5 6.6 L 28.5 9.6 L 11.5 9.6 Z" fill="#0f172a"/>
+          <rect x="12.0" y="7.3" width="16.0" height="2.0" rx="0.4" fill="#18181b" stroke="#27272a" stroke-width="0.3"/>
+          <text x="20" y="8.3" text-anchor="middle" dominant-baseline="central" font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.3px" fill="#f8fafc" letter-spacing="0.2px">CNG ECO</text>
+
+          <!-- ČISTÉ BIELE ČELNÉ SKLO (fill="#ffffff") -->
+          <path d="M 6.2 11.4 C 6.2 10.2 10.0 9.6 20 9.6 C 30.0 9.6 33.8 10.2 33.8 11.4 L 33.8 22.6 C 33.8 23.5 30.0 24.1 20 24.1 C 10.0 24.1 6.2 23.5 6.2 22.6 Z"
+                fill="#ffffff" stroke="#0f172a" stroke-width="1.0"/>
+
+          <!-- JEMNÝ DIAGONÁLNY ODLESK SKLA -->
+          <polygon points="23,9.6 26.5,9.6 19,24.1 15.5,24.1" fill="#e2e8f0" opacity="0.45" clip-path="url(#${clipId})"/>
+
+          <!-- INDIKAČNÁ LIŠTA MEŠKANIA (v hornej časti okna) -->
+          <rect class="veh-delay-bar" x="6.2" y="9.6" width="27.6" height="3.0" fill="${delayFill}" clip-path="url(#${clipId})" style="fill: ${delayFill} !important; ${isDelayed ? '' : 'display: none;'}"/>
+          ${isDelayed ? `<line x1="6.2" y1="12.6" x2="33.8" y2="12.6" stroke="#0f172a" stroke-width="0.8" clip-path="url(#${clipId})"/>` : ''}
+
+          <!-- OBROVSKÉ TUČNÉ ČIERNE ČÍSLO LINKY VYCENTROVANÉ V OKNE -->
+          <text x="20" y="17.2" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="${fontSize}px"
+                fill="#0f172a" style="fill: #0f172a !important;" letter-spacing="-0.5px">${safeLine}</text>
+
+          <!-- STIERAČE ČELNÉHO SKLA -->
+          <line x1="9.0" y1="23.4" x2="16.5" y2="22.8" stroke="#0f172a" stroke-width="0.6" stroke-linecap="round"/>
+          <line x1="19.5" y1="23.4" x2="28.0" y2="22.8" stroke="#0f172a" stroke-width="0.6" stroke-linecap="round"/>
+
+          <!-- SPODNÝ NÁRAZNÍK: SNEHOBIELY STRED A AZÚROVO-MODRÉ ROHY -->
+          <!-- Ľavý azúrový roh -->
+          <path d="M 4.2 26.8 L 11.5 27.6 L 10.8 35.0 L 7.8 35.0 C 5.6 35.0 4.2 34.0 4.2 32.5 Z" fill="#0284c7"/>
+          <!-- Pravý azúrový roh -->
+          <path d="M 35.8 26.8 L 28.5 27.6 L 29.2 35.0 L 32.2 35.0 C 34.4 35.0 35.8 34.0 35.8 32.5 Z" fill="#0284c7"/>
+          <!-- Biely stred nárazníka -->
+          <path d="M 11.5 27.6 C 15.0 30.0 25.0 30.0 28.5 27.6 L 29.2 35.0 L 10.8 35.0 Z" fill="#ffffff"/>
+
+          <!-- ŠPZ v bielom strede nárazníka -->
+          <rect x="16.0" y="31.6" width="8.0" height="1.8" rx="0.3" fill="#ffffff" stroke="#0f172a" stroke-width="0.3"/>
+          <rect x="16.0" y="31.6" width="1.3" height="1.8" rx="0.2" fill="#1d4ed8"/>
+          <text x="20.3" y="32.5" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', sans-serif" font-weight="900" font-size="1.0px" fill="#0f172a" letter-spacing="0.1px">${cleanSpz}</text>
+
+          <!-- Spodný splitter / vstup vzduchu -->
+          <rect x="14.2" y="33.8" width="11.6" height="1.2" rx="0.3" fill="#0f172a"/>
+
+          <!-- ŽLTÁ ZAKRIVENÁ LÍNIA (ÚSMEV) PREPÁJAJÚCA ŽLTÉ STĹPIKY KAROSÉRIE (#facc15) -->
+          <path d="M 5.2 23.2 C 6.8 26.2 12.2 28.8 20 28.8 C 27.8 28.8 33.2 26.2 34.8 23.2 L 33.8 24.5 C 32.0 27.0 27.0 29.6 20 29.6 C 13.0 29.6 8.0 27.0 6.2 24.5 Z"
+                fill="#facc15" stroke="#ca8a04" stroke-width="0.3"/>
+
+          <!-- ELEGANTNÝ ČIERNY ŠTÍT POD ČELNÝM SKLOM (plynule zaoblený nadol) -->
+          <path d="M 6.8 23.0 C 10.5 23.7 29.5 23.7 33.2 23.0 C 32.6 25.5 27.8 27.6 20 27.6 C 12.2 27.6 7.4 25.5 6.8 23.0 Z"
+                fill="#0f172a" stroke="#0f172a" stroke-width="0.6"/>
+
+          <!-- Drobné biele evidenčné číslo vo vnútri čierneho štítu -->
+          <text x="24.2" y="25.2" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.3px"
+                fill="#ffffff" letter-spacing="0.2px">${displayEv}</text>
+
+          <!-- Drobný znak SOR v čiernom štíte -->
+          <g transform="translate(16.8, 25.3)">
+            <ellipse cx="0" cy="0" rx="1.3" ry="0.7" fill="#1e293b" stroke="#cbd5e1" stroke-width="0.2"/>
+            <text x="0" y="0.1" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-weight="900" font-size="0.75px" fill="#ffffff" letter-spacing="0.1px">SOR</text>
+          </g>
+
+          <!-- ŠIKMÉ (KLINOVÉ) KRYTY PRE SVETLOMETY V MODRÝCH ROHOCH NÁRAZNÍKA -->
+          <!-- Ľavé klinové svetlo -->
+          <g>
+            <polygon points="5.4,27.4 11.2,28.2 10.7,31.8 5.1,30.8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.35"/>
+            <!-- Bodové neutrálne LED diódy (šikmá línia) -->
+            <circle cx="6.1" cy="28.2" r="0.3" fill="#ffffff"/>
+            <circle cx="7.1" cy="28.6" r="0.3" fill="#ffffff"/>
+            <circle cx="8.2" cy="29.0" r="0.3" fill="#ffffff"/>
+            <circle cx="9.3" cy="29.4" r="0.3" fill="#ffffff"/>
+            <!-- Hlavný neutrálny projektor svetlometu -->
+            <circle cx="6.6" cy="29.9" r="0.7" fill="#ffffff" stroke="#64748b" stroke-width="0.2"/>
+            <circle cx="8.7" cy="30.3" r="0.6" fill="#fef08a" stroke="#ca8a04" stroke-width="0.2"/>
+          </g>
+          <!-- Pravé klinové svetlo -->
+          <g>
+            <polygon points="34.6,27.4 28.8,28.2 29.3,31.8 34.9,30.8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.35"/>
+            <!-- Bodové neutrálne LED diódy (šikmá línia) -->
+            <circle cx="33.9" cy="28.2" r="0.3" fill="#ffffff"/>
+            <circle cx="32.9" cy="28.6" r="0.3" fill="#ffffff"/>
+            <circle cx="31.8" cy="29.0" r="0.3" fill="#ffffff"/>
+            <circle cx="30.7" cy="29.4" r="0.3" fill="#ffffff"/>
+            <!-- Hlavný neutrálny projektor svetlometu -->
+            <circle cx="33.4" cy="29.9" r="0.7" fill="#ffffff" stroke="#64748b" stroke-width="0.2"/>
+            <circle cx="31.3" cy="30.3" r="0.6" fill="#fef08a" stroke="#ca8a04" stroke-width="0.2"/>
+          </g>
         </svg>
       `;
     }
@@ -12121,10 +12235,11 @@
           popupAnchor = [0, -23];
           break;
         case 'sor-nsg12':
-          svgHtml = renderSorNsg12Svg(line, delayColor);
-          iconSize = [44, 46];
-          iconAnchor = [22, 23];
-          popupAnchor = [0, -25];
+          const nsg12Ev = (v.fleet_info || v || {}).evidencne_cislo || v.evidencne_cislo || '5801';
+          svgHtml = renderSorNsg12Svg(line, delayColor, nsg12Ev);
+          iconSize = [40, 38];
+          iconAnchor = [20, 19];
+          popupAnchor = [0, -21];
           break;
         case 'sor-nb18':
           const nb18Ev = (v.fleet_info || v || {}).evidencne_cislo || v.evidencne_cislo || '4761';
@@ -15767,7 +15882,7 @@
         return renderSorNsg18Svg(line, delayMin);
       }
       if (catId === 'sor-nsg12' && typeof renderSorNsg12Svg === 'function') {
-        return renderSorNsg12Svg(line, delayMin);
+        return renderSorNsg12Svg(line, delayMin, ev || '5801');
       }
       if (catId === 'sor-nbg12' && typeof renderSorNbg12Svg === 'function') {
         return renderSorNbg12Svg(line, delayMin);
