@@ -835,7 +835,7 @@ def get_live_vehicles(
             else:
                 final_model = ov.get("model") or (fleet_data.get("model") if fleet_data else "Autobus DPMK")
                 final_spz = ov.get("spz") if ov.get("spz") is not None else (fleet_data.get("spz") if fleet_data else None)
-            is_verified = True
+            is_verified = bool(ov.get("verified", ov.get("is_verified", False)))
         else:
             final_rok = fleet_data.get("rok_vyroby") if fleet_data else None
             final_vin = ubian_vin or (fleet_data.get("vin") if fleet_data else None)

@@ -1046,7 +1046,9 @@ class FleetService:
             return False
         if "verified" in ov:
             return bool(ov["verified"])
-        return True
+        if "is_verified" in ov:
+            return bool(ov["is_verified"])
+        return False
 
     RETIRED_MODELS = (
         "Karosa", "Ikarus", "Škoda", "Jelcz", "Chavdar", "TAM", 
@@ -1275,6 +1277,8 @@ class FleetService:
             final_rok = override.get("rok_vyroby")
             final_vin = override.get("vin")
 
+            final_verified = bool(override.get("verified", override.get("is_verified", False)))
+
             if s_vid and s_vid not in self.MANUAL_OVERRIDES:
                 self.MANUAL_OVERRIDES[s_vid] = override
             if s_vid and final_ev:
@@ -1286,8 +1290,8 @@ class FleetService:
                 "model": final_model,
                 "rok_vyroby": final_rok,
                 "vin": final_vin,
-                "is_verified": True,
-                "verified": True,
+                "is_verified": final_verified,
+                "verified": final_verified,
                 "matched": True,
             }
 
@@ -1295,8 +1299,8 @@ class FleetService:
                 raw_vehicle["model"] = final_model
                 raw_vehicle["evidencne_cislo"] = final_ev
                 raw_vehicle["license_number"] = None if is_tram_veh else final_spz
-                raw_vehicle["is_verified"] = True
-                raw_vehicle["verified"] = True
+                raw_vehicle["is_verified"] = final_verified
+                raw_vehicle["verified"] = final_verified
                 raw_vehicle["matched"] = True
                 if final_vin:
                     raw_vehicle["vehicle_vin"] = final_vin
@@ -1309,8 +1313,8 @@ class FleetService:
                     "low_floor": raw_vehicle.get("low_floor", True),
                     "air_conditioning": True,
                     "wifi": raw_vehicle.get("wifi", False),
-                    "is_verified": True,
-                    "verified": True,
+                    "is_verified": final_verified,
+                    "verified": final_verified,
                     "matched": True,
                 }
             return res
@@ -1475,7 +1479,7 @@ class FleetService:
         target_vid = str(override.get("vehicle_id") or "").strip().replace("#", "")
         target_model = override.get("model")
         target_spz = override.get("spz")
-        target_verified = bool(override.get("verified", True))
+        target_verified = bool(override.get("verified", override.get("is_verified", False)))
 
         def _matches_override(cand_vid: str, cand_ev: str) -> bool:
             if target_vid and cand_vid == target_vid:
