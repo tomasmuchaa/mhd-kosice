@@ -36,10 +36,6 @@ class DpmkLiveFeed:
             "X-Requested-With": "XMLHttpRequest",
             "Referer": f"{self.UBIAN_BASE_URL}/"
         }
-
-    def set_fleet_service(self, fleet_service: Any):
-        """Prepojí live feed so službou FleetService pre okamžité aplikovanie overených prepisov."""
-        self.fleet_service = fleet_service
         # In-memory TTL cache pre live vozidlá (ochrana pred DoS a preťažením upstreamu)
         self._live_cache: List[Dict[str, Any]] = []
         self._live_cache_ts: float = 0.0
@@ -56,6 +52,10 @@ class DpmkLiveFeed:
         # In-memory TTL vyrovnávacia pamäť pre reálne dispečerské dáta jázd (tripID -> ŠPZ / stav)
         # Umožňuje získať skutočnú ŠPZ z /navigation/vehicles/get_real bez opakovanej záťaže
         self._trip_real_cache: Dict[Any, Dict[str, Any]] = {}
+
+    def set_fleet_service(self, fleet_service: Any):
+        """Prepojí live feed so službou FleetService pre okamžité aplikovanie overených prepisov."""
+        self.fleet_service = fleet_service
 
     def _fetch_real_vehicle_state(
         self,
