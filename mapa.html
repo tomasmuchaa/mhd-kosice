@@ -9952,8 +9952,11 @@
 
     // Výpočet farby indikačnej lišty meškania (4-stupňová stupnica)
     function getDelayBarColor(delayMinutes) {
-      if (typeof delayMinutes === 'string' && ['#facc15', '#f97316', '#ef4444', 'transparent'].includes(delayMinutes)) {
-        return delayMinutes;
+      if (typeof delayMinutes === 'string') {
+        const trimmed = delayMinutes.trim();
+        if (trimmed.startsWith('#') || trimmed === 'transparent') {
+          return trimmed;
+        }
       }
       const delay = (delayMinutes !== undefined && delayMinutes !== null) ? Number(delayMinutes) : 0;
       if (isNaN(delay) || delay <= 0) return 'transparent'; // 0 minút: transparentná
@@ -11358,7 +11361,7 @@
 
           <!-- INTEGROVANÁ LIŠTA MEŠKANIA (100% šírky horného rovného okraja skla cez clipPath) -->
           <rect class="veh-delay-bar" x="4.8" y="7.2" width="34.4" height="3.8"
-                fill="${delayFill}" clip-path="url(#${clipId})" style="${isDelayed ? '' : 'display: none;'}"/>
+                fill="${delayFill}" clip-path="url(#${clipId})" style="fill: ${delayFill} !important; ${isDelayed ? '' : 'display: none;'}"/>
           ${isDelayed ? `<line x1="4.8" y1="11" x2="39.2" y2="11" stroke="#0f172a" stroke-width="0.8"/>` : ''}
 
           <!-- ČÍSLO LINKY (OBROVSKÉ, TUČNÉ, ČIERNE/TMAVÉ #0f172a ZA SKLOM) -->
@@ -11371,7 +11374,7 @@
                 fill="#ffffff" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round"/>
 
           <!-- EVIDENČNÉ ČÍSLO V STREDE BIELEHO PANELU -->
-          <text x="21" y="27.2" text-anchor="middle" dominant-baseline="central"
+          <text x="21.5" y="27.2" text-anchor="middle" dominant-baseline="central"
                 font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="2.6px"
                 fill="#0f172a" letter-spacing="0.3px">${displayEv}</text>
 
@@ -11411,10 +11414,11 @@
             <circle cx="36.6" cy="34.9" r="0.75" fill="#ffffff" stroke="#94a3b8" stroke-width="0.2"/>
           </g>
 
-          <!-- ŠPZ V STREDE NÁRAZNÍKA -->
+          <!-- ŠPZ V STREDE NÁRAZNÍKA S MODRÝM EU PÁSIKOM -->
           <rect x="16.5" y="35.2" width="11" height="2.6" rx="0.5" fill="#ffffff" stroke="#0f172a" stroke-width="0.4"/>
-          <text x="22" y="36.5" text-anchor="middle" dominant-baseline="central"
-                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.4px"
+          <rect x="16.5" y="35.2" width="1.6" height="2.6" rx="0.4" fill="#1d4ed8"/>
+          <text x="22.5" y="36.5" text-anchor="middle" dominant-baseline="central"
+                font-family="'JetBrains Mono', -apple-system, sans-serif" font-weight="900" font-size="1.35px"
                 fill="#0f172a" letter-spacing="0.2px">${cleanSpz}</text>
         </svg>
       `;
