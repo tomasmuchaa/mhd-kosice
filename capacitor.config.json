@@ -1,0 +1,9 @@
+{
+  "appId": "com.nexigo.app",
+  "appName": "Nexigo",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

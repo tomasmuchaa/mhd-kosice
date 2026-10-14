@@ -1,0 +1,34 @@
+{
+  "name": "mhd_kosice",
+  "version": "1.0.0",
+  "description": "Komplexný webový a backendový systém pre reálny čas, plánovanie ciest a crowdsourcing mestskej hromadnej dopravy (DPMK) v Košiciach.",
+  "main": "service-worker.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:www": "python scripts/prepare_capacitor.py",
+    "cap:sync": "python scripts/prepare_capacitor.py && npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomasmuchaa/mhd-kosice.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/tomasmuchaa/mhd-kosice/issues"
+  },
+  "homepage": "https://github.com/tomasmuchaa/mhd-kosice#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3"
+  }
+}

@@ -30,3 +30,17 @@ Thumbs.db
 data/feedback/images/*
 !data/feedback/images/.gitkeep
 
+# Node & Capacitor
+node_modules/
+www/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.gradle/
+build/
+android/app/build/
+android/.gradle/
+android/build/
+ios/DerivedData/
+*.apk
+*.aab

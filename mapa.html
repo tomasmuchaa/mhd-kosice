@@ -6820,6 +6820,19 @@
       <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 4px;">
         Automaticky aktualizuje polohu bez nutnosti klikať na tlačidlo (vyššia spotreba batérie)
       </div>
+    <!-- Konfigurácia API servera (užitočné pre natívnu appku na mobile) -->
+    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px;">
+      <div class="panel-section-title" style="margin-bottom: 4px;">
+        <span>🌐</span>
+        <span>Adresa backend servera</span>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <input type="text" id="api-server-input" placeholder="http://192.168.x.x:8000" style="flex: 1; font-size: 0.72rem; padding: 5px 8px; border-radius: 6px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff;" />
+        <button type="button" onclick="saveCustomApiServer()" style="font-size: 0.72rem; padding: 5px 10px; border-radius: 6px; background: #0284c7; color: #fff; border: none; cursor: pointer;">Uložiť</button>
+      </div>
+      <div style="font-size: 0.65rem; color: #94a3b8; margin-top: 4px;">
+        Predvolené: automatická detekcia. Pre mobilnú appku zadaj IP PC alebo server.
+      </div>
     </div>
 
     <!-- Nastavenia / Spätná väzba, Developer Mode & Galéria v drawer menu -->
@@ -8230,7 +8243,7 @@
         formData.append('screen_height', String(window.innerHeight || ''));
         formData.append('user_agent', navigator.userAgent || '');
 
-        const resp = await fetch('/api/v1/feedback', {
+        const resp = await fetch(`${BASE_ORIGIN}/api/v1/feedback`, {
           method: 'POST',
           body: formData
         });
@@ -8594,9 +8607,18 @@
     let activeModelFilter = null;
     let activeModelVehicleIds = null;
 
-    const BASE_ORIGIN = (window.location.protocol === 'http:' || window.location.protocol === 'https:') 
-      ? window.location.origin 
-      : 'http://127.0.0.1:8000';
+    let storedApiBase = null;
+    try {
+      storedApiBase = localStorage.getItem('nexigo_api_base');
+    } catch(e) {}
+
+    const BASE_ORIGIN = storedApiBase ? storedApiBase.replace(/\/+$/, '') : (
+      (window.location.protocol === 'http:' || window.location.protocol === 'https:') && 
+      window.location.hostname !== 'localhost' && 
+      window.location.hostname !== '127.0.0.1'
+        ? window.location.origin 
+        : 'http://127.0.0.1:8000'
+    );
 
     const API_URL = `${BASE_ORIGIN}/api/v1/vehicles/live`;
     const FLEET_API_URL = `${BASE_ORIGIN}/api/v1/fleet`;
@@ -12914,7 +12936,7 @@
           level: numLevel,
           current_stop_name: stopName || null
         };
-        const res = await fetch(`/api/v1/vehicle/${encodeURIComponent(cleanVid)}/occupancy`, {
+        const res = await fetch(`${BASE_ORIGIN}/api/v1/vehicle/${encodeURIComponent(cleanVid)}/occupancy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -14067,6 +14089,33 @@
         pA[1] + frac * (pB[1] - pA[1])
       ];
     }
+
+    /**
+     * Inicializácia a ukladanie vlastnej adresy backend servera (užitočné pre Capacitor mobilnú appku)
+     */
+    function initCustomApiServerState() {
+      const input = document.getElementById('api-server-input');
+      if (input) {
+        input.value = localStorage.getItem('nexigo_api_base') || '';
+      }
+    }
+    function saveCustomApiServer() {
+      const input = document.getElementById('api-server-input');
+      if (input) {
+        const val = input.value.trim();
+        if (val) {
+          localStorage.setItem('nexigo_api_base', val);
+          alert('Adresa backend servera bola uložená:\n' + val + '\n\nAplikácia sa reštartuje pre načítanie dát z nového servera.');
+          window.location.reload();
+        } else {
+          localStorage.removeItem('nexigo_api_base');
+          alert('Adresa servera bola vymazaná. Použije sa automatická detekcia.');
+          window.location.reload();
+        }
+      }
+    }
+    window.initCustomApiServerState = initCustomApiServerState;
+    window.saveCustomApiServer = saveCustomApiServer;
 
     /**
      * Inicializácia stavu predikcie z localStorage
@@ -18905,6 +18954,7 @@
     updateDevModeUI();
     initLivePredictionState();
     initAutoTrackLocationState();
+    initCustomApiServerState();
     fetchStops();
     fetchVehicles();
     loadFleetDatabase();

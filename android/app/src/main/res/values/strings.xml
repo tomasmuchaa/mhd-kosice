@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nexigo</string>
+    <string name="title_activity_main">Nexigo</string>
+    <string name="package_name">com.nexigo.app</string>
+    <string name="custom_url_scheme">com.nexigo.app</string>
+</resources>
