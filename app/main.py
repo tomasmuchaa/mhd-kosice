@@ -185,9 +185,13 @@ async def telemetry_collector_loop():
 
 @app.on_event("startup")
 async def on_startup():
-    """Uvoľnenie prebytočnej pamäte a spustenie background collectora."""
+    """Uvoľnenie prebytočnej pamäte, synchronizácia cache a spustenie background collectora."""
     import gc
     gc.collect()
+
+    global LAST_SEEN_CACHE
+    for item in LAST_SEEN_CACHE:
+        fleet_service.match_live_vehicle(item)
 
     global BACKGROUND_COLLECTOR_TASK
     if BACKGROUND_COLLECTOR_TASK is None or BACKGROUND_COLLECTOR_TASK.done():
@@ -598,12 +602,9 @@ def get_network_stats():
     - TOP 3 najproblémovejšie linky (zoradené zostupne podľa najvyššieho meškania)
     - Zoznam najviac meškajúcich konkrétnych vozidiel
     """
-    global LAST_SEEN_CACHE
     raw_vehicles = []
     try:
         raw_vehicles = live_feed.get_live_vehicles()
-        if raw_vehicles:
-            LAST_SEEN_CACHE = raw_vehicles
     except Exception:
         raw_vehicles = []
 
@@ -745,14 +746,47 @@ def get_live_vehicles(
 
     # Ak je práve nočná pauza (0 vozidiel online) a máme povolený fallback
     if len(raw_vehicles) == 0 and include_fallback and len(LAST_SEEN_CACHE) > 0:
+        sanitized_fallback = []
+        for x in LAST_SEEN_CACHE:
+            item_copy = dict(x)
+            s_vid = str(item_copy.get("vehicle_id") or "").strip().replace("#", "")
+            raw_ev = str(item_copy.get("evidencne_cislo") or (item_copy.get("fleet_info") or {}).get("evidencne_cislo") or "").strip().replace("#", "")
+            ov = fleet_service.get_override(vehicle_id=s_vid, ev_cislo=raw_ev)
+            is_ver = fleet_service.is_vehicle_verified(vehicle_id=s_vid, ev_cislo=raw_ev)
+            if ov or is_ver:
+                matched_ov = ov or {}
+                if matched_ov.get("model"):
+                    item_copy["model"] = matched_ov["model"]
+                    if item_copy.get("fleet_info"):
+                        item_copy["fleet_info"]["model"] = matched_ov["model"]
+                if matched_ov.get("evidencne_cislo"):
+                    item_copy["evidencne_cislo"] = matched_ov["evidencne_cislo"]
+                    if item_copy.get("fleet_info"):
+                        item_copy["fleet_info"]["evidencne_cislo"] = matched_ov["evidencne_cislo"]
+                is_tram_item = fleet_service.is_tram(vehicle_id=s_vid, line=item_copy.get("line"), line_type=item_copy.get("line_type"), raw_vehicle=item_copy)
+                if is_tram_item:
+                    item_copy["license_number"] = None
+                    if item_copy.get("fleet_info"):
+                        item_copy["fleet_info"]["spz"] = None
+                elif matched_ov.get("spz"):
+                    item_copy["license_number"] = matched_ov["spz"]
+                    if item_copy.get("fleet_info"):
+                        item_copy["fleet_info"]["spz"] = matched_ov["spz"]
+                item_copy["is_verified"] = True
+                item_copy["verified"] = True
+                if item_copy.get("fleet_info"):
+                    item_copy["fleet_info"]["is_verified"] = True
+                    item_copy["fleet_info"]["verified"] = True
+            sanitized_fallback.append(item_copy)
+
         return {
             "status": "ok",
             "timestamp": datetime.now().isoformat(),
             "is_live": False,
             "note": "Nočná pauza DPMK (zobrazená posledná známa telemetria s overenou identitou)",
-            "total_active": len(LAST_SEEN_CACHE),
-            "total_matched": sum(1 for x in LAST_SEEN_CACHE if x.get("matched")),
-            "vehicles": LAST_SEEN_CACHE
+            "total_active": len(sanitized_fallback),
+            "total_matched": sum(1 for x in sanitized_fallback if x.get("matched")),
+            "vehicles": sanitized_fallback
         }
 
     enriched_vehicles = []
@@ -785,20 +819,20 @@ def get_live_vehicles(
         # 3. NAJVYŠŠIA AUTORITA PRAVDY: Overenie a získanie overrides s absolútnou prioritou
         final_ev = (fleet_data.get("evidencne_cislo") if fleet_data else None) or ubian_ev
         override = fleet_service.get_override(vehicle_id=s_vid, ev_cislo=final_ev, license_number=ubian_spz)
-        is_verified = fleet_service.is_vehicle_verified(vehicle_id=s_vid, ev_cislo=final_ev, license_number=ubian_spz)
+        is_verified = bool(fleet_service.is_vehicle_verified(vehicle_id=s_vid, ev_cislo=final_ev, license_number=ubian_spz) or (fleet_data and fleet_data.get("is_verified")))
 
-        if override:
-            final_ev = override.get("evidencne_cislo") or final_ev
-            final_rok = override.get("rok_vyroby") or (fleet_data.get("rok_vyroby") if fleet_data else None)
-            final_vin = override.get("vin") or ubian_vin or (fleet_data.get("vin") if fleet_data else None)
+        if override or is_verified:
+            ov = override or fleet_data or {}
+            final_ev = ov.get("evidencne_cislo") or final_ev
+            final_rok = ov.get("rok_vyroby") or (fleet_data.get("rok_vyroby") if fleet_data else None)
+            final_vin = ov.get("vin") or ubian_vin or (fleet_data.get("vin") if fleet_data else None)
             if is_tram:
                 final_spz = None
-                final_model = override.get("model") or "Električka DPMK"
+                final_model = ov.get("model") or "Električka DPMK"
             else:
-                final_model = override.get("model") or (fleet_data.get("model") if fleet_data else "Autobus DPMK")
-                final_spz = override.get("spz") or (fleet_data.get("spz") if fleet_data else ubian_spz)
-            if override.get("verified") is not None:
-                is_verified = bool(override["verified"])
+                final_model = ov.get("model") or (fleet_data.get("model") if fleet_data else "Autobus DPMK")
+                final_spz = ov.get("spz") if ov.get("spz") is not None else (fleet_data.get("spz") if fleet_data else None)
+            is_verified = True
         else:
             final_rok = fleet_data.get("rok_vyroby") if fleet_data else None
             final_vin = ubian_vin or (fleet_data.get("vin") if fleet_data else None)

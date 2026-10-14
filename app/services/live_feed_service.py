@@ -307,6 +307,13 @@ class DpmkLiveFeed:
         result_list = list(unique_vehicles.values())
 
         # Trvalá aplikácia Overrides na prichádzajúce objekty pred uložením do cache alebo odoslaním na frontend
+        if not self.fleet_service:
+            try:
+                from app.main import fleet_service
+                self.fleet_service = fleet_service
+            except Exception:
+                pass
+
         if self.fleet_service:
             for veh in result_list:
                 self.fleet_service.apply_override_to_live_vehicle(veh)

@@ -105,11 +105,91 @@ def run_tests():
     assert raw_tram["evidencne_cislo"] == "824", f"Evidencne cislo elektricky nesedi: {raw_tram['evidencne_cislo']}"
     print("OK: Elektricka spracovana so spravnym modelom a izolovanou SPZ.")
 
+    print("\n--- 6. TEST ENDPOINTU get_live_vehicles A LAST_SEEN_CACHE (GARAZ / OFFLINE PAUZA) ---")
+    import app.main as main_module
+    
+    # Pridáme testovacie overené vozidlo 5799 do fleet_service
+    main_module.fleet_service.add_override(
+        evidencne_cislo="5799",
+        vehicle_id="1276399",
+        model="SOR NB 12 City Overridden",
+        spz="KE-579YY",
+        verified=True
+    )
+    
+    # Simulácia 1: Vozidlo je online
+    fake_live = [{
+        "vehicle_id": "1276399",
+        "line": "15",
+        "line_type": "BUS",
+        "license_number": "PO-CHYBA",
+        "model": "Surovy Ubian Model",
+        "latitude": 48.71,
+        "longitude": 21.25,
+        "delay_minutes": 1
+    }]
+    # Mockujeme live_feed.get_live_vehicles
+    orig_get_live = main_module.live_feed.get_live_vehicles
+    main_module.live_feed.get_live_vehicles = lambda: [dict(fake_live[0])]
+    
+    resp_online = main_module.get_live_vehicles(include_fallback=True)
+    veh_online = next(x for x in resp_online["vehicles"] if str(x["vehicle_id"]) == "1276399")
+    assert veh_online["model"] == "SOR NB 12 City Overridden"
+    assert veh_online["license_number"] == "KE-579YY"
+    assert veh_online["evidencne_cislo"] == "5799"
+    assert veh_online["is_verified"] is True
+    print("OK: Vozidlo online v get_live_vehicles ma spravne overeny model a SPZ.")
+
+    # Simulácia 2: Vozidlo odide do garaze / nocna pauza (0 vozidiel v live feede)
+    main_module.live_feed.get_live_vehicles = lambda: []
+    resp_offline = main_module.get_live_vehicles(include_fallback=True)
+    assert resp_offline["is_live"] is False
+    veh_fallback = next(x for x in resp_offline["vehicles"] if str(x["vehicle_id"]) == "1276399")
+    assert veh_fallback["model"] == "SOR NB 12 City Overridden"
+    assert veh_fallback["license_number"] == "KE-579YY"
+    assert veh_fallback["evidencne_cislo"] == "5799"
+    assert veh_fallback["is_verified"] is True
+    print("OK: Pocas offline pauzy / garaze fallback vracia 100% overene udaje.")
+
+    # Simulácia 3: Vozidlo sa vrati spat do premavky s novou chybou z Ubianu
+    fake_live_wakeup = [{
+        "vehicle_id": "1276399",
+        "line": "15",
+        "line_type": "BUS",
+        "license_number": None,
+        "model": "BUS",
+        "latitude": 48.72,
+        "longitude": 21.26,
+        "delay_minutes": 0
+    }]
+    main_module.live_feed.get_live_vehicles = lambda: [dict(fake_live_wakeup[0])]
+    resp_wakeup = main_module.get_live_vehicles(include_fallback=True)
+    veh_woke = next(x for x in resp_wakeup["vehicles"] if str(x["vehicle_id"]) == "1276399")
+    assert veh_woke["model"] == "SOR NB 12 City Overridden"
+    assert veh_woke["license_number"] == "KE-579YY"
+    assert veh_woke["evidencne_cislo"] == "5799"
+    assert veh_woke["is_verified"] is True
+    print("OK: Po prebudeni do premavky vozidlo stale nesie overene udaje v LAST_SEEN_CACHE aj odpovedi!")
+
+    # Vratime spat povodnu funkciu
+    main_module.live_feed.get_live_vehicles = orig_get_live
+
+    print("\n--- 7. TEST KONZISTENCIE KLUCOV V data/overrides.json ---")
+    import json
+    with open("data/overrides.json", "r", encoding="utf-8") as f:
+        stored_overrides = json.load(f)
+    hash_keys = [k for k in stored_overrides.keys() if "#" in k]
+    assert len(hash_keys) == 0, f"Najdene kluce s mriezou '#': {hash_keys}"
+    print(f"OK: Vsetkych {len(stored_overrides)} klucov v data/overrides.json je cistych bez '#'.")
+
     # Vyčistíme testovacie vozidlo
     for k in [test_ev, test_vid]:
         fs.MANUAL_OVERRIDES.pop(k, None)
         fs.TRANSDATA_MAPPING.pop(k, None)
+        main_module.fleet_service.MANUAL_OVERRIDES.pop(k, None)
+        main_module.fleet_service.TRANSDATA_MAPPING.pop(k, None)
     fs.save_overrides()
+    main_module.fleet_service.save_overrides()
     print("\n>>> VSETKY TESTY ZIVOTNEHO CYKLU VOZIDIEL BOLI USPESNE! <<<")
 
 if __name__ == "__main__":

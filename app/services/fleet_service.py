@@ -66,7 +66,7 @@ class FleetService:
         return self.overrides_path or os.path.abspath("data/overrides.json")
 
     def _load_overrides(self) -> Dict[str, Dict[str, Any]]:
-        """Dynamicky načíta manuálne pravidlá zo súboru data/overrides.json pri štarte servera."""
+        """Dynamicky načíta manuálne pravidlá zo súboru data/overrides.json pri štarte servera s čistými kľúčmi bez '#'."""
         path = self._find_overrides_file()
         self.overrides_path = path
         if os.path.exists(path):
@@ -74,9 +74,17 @@ class FleetService:
                 with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     if isinstance(data, dict):
-                        FleetService.MANUAL_OVERRIDES = data
-                        print(f"[FleetService] Uspesne nacitanych {len(data)} overrides zo suboru: {path}")
-                        return data
+                        clean_dict: Dict[str, Dict[str, Any]] = {}
+                        for k, v in data.items():
+                            clean_k = str(k).strip().replace("#", "")
+                            if clean_k and isinstance(v, dict):
+                                clean_item = dict(v)
+                                if "evidencne_cislo" in clean_item and clean_item["evidencne_cislo"] is not None:
+                                    clean_item["evidencne_cislo"] = str(clean_item["evidencne_cislo"]).strip().replace("#", "")
+                                clean_dict[clean_k] = clean_item
+                        FleetService.MANUAL_OVERRIDES = clean_dict
+                        print(f"[FleetService] Uspesne nacitanych {len(clean_dict)} overrides zo suboru: {path}")
+                        return clean_dict
             except Exception as e:
                 print(f"[FleetService] Chyba pri nacitani overrides zo suboru {path}: {e}")
         return {
@@ -93,11 +101,21 @@ class FleetService:
         }
 
     def save_overrides(self) -> bool:
-        """Uloží aktuálne MANUAL_OVERRIDES do súboru data/overrides.json."""
+        """Uloží aktuálne MANUAL_OVERRIDES do súboru data/overrides.json s čistými kľúčmi bez '#'."""
         try:
             os.makedirs(os.path.dirname(self.overrides_path), exist_ok=True)
+            clean_dict: Dict[str, Dict[str, Any]] = {}
+            for k, v in self.MANUAL_OVERRIDES.items():
+                clean_k = str(k).strip().replace("#", "")
+                if clean_k and isinstance(v, dict):
+                    clean_item = dict(v)
+                    if "evidencne_cislo" in clean_item and clean_item["evidencne_cislo"] is not None:
+                        clean_item["evidencne_cislo"] = str(clean_item["evidencne_cislo"]).strip().replace("#", "")
+                    clean_dict[clean_k] = clean_item
+            self.MANUAL_OVERRIDES = clean_dict
+            FleetService.MANUAL_OVERRIDES = clean_dict
             with open(self.overrides_path, "w", encoding="utf-8") as f:
-                json.dump(self.MANUAL_OVERRIDES, f, indent=2, ensure_ascii=False)
+                json.dump(clean_dict, f, indent=2, ensure_ascii=False)
             return True
         except Exception as e:
             print(f"Chyba pri ukladani overrides do {self.overrides_path}: {e}")
@@ -278,12 +296,17 @@ class FleetService:
                 continue
             ov_ev = str(ov.get("evidencne_cislo") or k).strip()
             if ov_ev == target_ev:
-                # Ak ide o samotné cieľové vozidlo, preskočíme
+                # Ak kľúč je samotné evidenčné číslo alebo pôvodné ev. číslo, nejde o kolíziu iného vozidla
+                if k == target_ev or (orig_ev and orig_ev == k):
+                    continue
+                # Ak ide o samotné cieľové vehicle_id, preskočíme
                 if target_vid and k == target_vid:
                     continue
-                if not target_vid and (k == target_ev or (orig_ev and orig_ev == k)):
+                # Ak kľúč patrí k tomu istému vozidlu cez TRANSDATA_MAPPING
+                if self.TRANSDATA_MAPPING.get(k) == target_ev:
                     continue
-                if not target_vid and self.TRANSDATA_MAPPING.get(k) == target_ev:
+                # Ak ide o TransData kandidáta tohto istého vozidla
+                if len(k) == 7 and k.isdigit() and target_ev in self._decode_transdata_candidates(k):
                     continue
                 conflicts.append((k, ov))
                 seen_keys.add(k)
@@ -291,10 +314,10 @@ class FleetService:
         # 2. Kontrola TRANSDATA_MAPPING
         for tid, mapped_ev in list(self.TRANSDATA_MAPPING.items()):
             if str(mapped_ev).strip() == target_ev:
-                # Ak nemáme target_vid (úprava v garáži), namapované terminály patria samotnému vozidlu
-                if not target_vid:
+                # Ak nemáme target_vid (úprava v garáži) alebo ide o cieľové vozidlo / jeho kandidáta
+                if not target_vid or tid == target_vid:
                     continue
-                if target_vid and tid == target_vid:
+                if len(tid) == 7 and tid.isdigit() and target_ev in self._decode_transdata_candidates(tid):
                     continue
                 if tid in seen_keys:
                     continue
@@ -500,14 +523,14 @@ class FleetService:
                 del self.MANUAL_OVERRIDES[f"#{clean_key}"]
 
             # Obojsmerné prepojenie so všetkými známymi hardware vehicle_id pre toto evidenčné číslo:
-            mapped_vids = [t_vid for t_vid, mev in self.TRANSDATA_MAPPING.items() if str(mev).strip() == clean_key]
+            mapped_vids = [t_vid for t_vid, mev in self.TRANSDATA_MAPPING.items() if str(mev).strip().replace("#", "") == clean_key]
             for t_vid in mapped_vids:
-                self.MANUAL_OVERRIDES[t_vid] = entry
-                if f"#{t_vid}" in self.MANUAL_OVERRIDES:
-                    del self.MANUAL_OVERRIDES[f"#{t_vid}"]
-
+                clean_tvid = str(t_vid).strip().replace("#", "")
+                self.MANUAL_OVERRIDES[clean_tvid] = entry
+                if f"#{clean_tvid}" in self.MANUAL_OVERRIDES:
+                    del self.MANUAL_OVERRIDES[f"#{clean_tvid}"]
             for k_ov, v_ov in list(self.MANUAL_OVERRIDES.items()):
-                if isinstance(v_ov, dict) and str(v_ov.get("evidencne_cislo", "")).strip() == clean_key:
+                if isinstance(v_ov, dict) and str(v_ov.get("evidencne_cislo", "")).strip().replace("#", "") == clean_key:
                     self.MANUAL_OVERRIDES[k_ov] = entry
 
             if clean_key in self.ev_index:
@@ -900,40 +923,37 @@ class FleetService:
         if s_vid:
             if s_vid in self.MANUAL_OVERRIDES:
                 return self.MANUAL_OVERRIDES[s_vid]
-            if f"#{s_vid}" in self.MANUAL_OVERRIDES:
-                return self.MANUAL_OVERRIDES[f"#{s_vid}"]
 
             # 1b. Kontrola cez TRANSDATA_MAPPING (známe prepojenie hardware ID -> evidenčné číslo)
             if s_vid in self.TRANSDATA_MAPPING:
-                mapped_ev = str(self.TRANSDATA_MAPPING[s_vid]).strip()
+                mapped_ev = str(self.TRANSDATA_MAPPING[s_vid]).strip().replace("#", "")
                 if mapped_ev in self.MANUAL_OVERRIDES:
                     return self.MANUAL_OVERRIDES[mapped_ev]
-                if f"#{mapped_ev}" in self.MANUAL_OVERRIDES:
-                    return self.MANUAL_OVERRIDES[f"#{mapped_ev}"]
 
             # 1c. Kontrola TransData kandidátov (prebudenie z garáže: vozidlo v Ubiane posiela 7-miestne ID)
             if len(s_vid) == 7 and s_vid.isdigit():
                 candidates = self._decode_transdata_candidates(s_vid)
                 for cand in candidates:
-                    if cand in self.MANUAL_OVERRIDES:
-                        return self.MANUAL_OVERRIDES[cand]
-                    if f"#{cand}" in self.MANUAL_OVERRIDES:
-                        return self.MANUAL_OVERRIDES[f"#{cand}"]
+                    clean_cand = str(cand).strip().replace("#", "")
+                    if clean_cand in self.MANUAL_OVERRIDES:
+                        ov = self.MANUAL_OVERRIDES[clean_cand]
+                        self.TRANSDATA_MAPPING[s_vid] = clean_cand
+                        self.MANUAL_OVERRIDES[s_vid] = ov
+                        return ov
 
             # 1d. Posledné 4 číslice s_vid ako evidenčné číslo
             if len(s_vid) >= 4:
                 suffix4 = s_vid[-4:]
                 if suffix4 in self.MANUAL_OVERRIDES:
-                    return self.MANUAL_OVERRIDES[suffix4]
+                    ov = self.MANUAL_OVERRIDES[suffix4]
+                    self.TRANSDATA_MAPPING[s_vid] = suffix4
+                    self.MANUAL_OVERRIDES[s_vid] = ov
+                    return ov
 
         # 2. Druhotná autorita: konkrétne evidenčné číslo (napr. úprava v depe/garáži)
         if s_ev:
             if s_ev in self.MANUAL_OVERRIDES:
                 ov = self.MANUAL_OVERRIDES[s_ev]
-                if not isinstance(ov, dict) or str(ov.get("evidencne_cislo", "")).strip().replace("#", "") == s_ev:
-                    return ov
-            if f"#{s_ev}" in self.MANUAL_OVERRIDES:
-                ov = self.MANUAL_OVERRIDES[f"#{s_ev}"]
                 if not isinstance(ov, dict) or str(ov.get("evidencne_cislo", "")).strip().replace("#", "") == s_ev:
                     return ov
 
@@ -1139,7 +1159,14 @@ class FleetService:
             vehicle_id = vehicle_id.get("vehicle_id")
 
         s_vid = str(vehicle_id).strip().replace("#", "") if vehicle_id is not None and str(vehicle_id).strip() else ""
-        raw_ev = raw_vehicle.get("evidencne_cislo") if isinstance(raw_vehicle, dict) else None
+        raw_ev = ""
+        if isinstance(raw_vehicle, dict):
+            raw_ev = str(
+                raw_vehicle.get("evidencne_cislo")
+                or raw_vehicle.get("vehicleNumber")
+                or (raw_vehicle.get("fleet_info", {}).get("evidencne_cislo") if isinstance(raw_vehicle.get("fleet_info"), dict) else None)
+                or ""
+            ).strip().replace("#", "")
 
         is_tram_veh = self.is_tram(
             vehicle_id=s_vid,
@@ -1151,44 +1178,67 @@ class FleetService:
 
         # =====================================================================
         # 0. NAJVYŠŠIA AUTORITA: Ak máme manuálny override pre toto vozidlo
-        #    (podľa vehicle_id, prepojenia v TRANSDATA_MAPPING, TransData kandidáta,
-        #    alebo evidencne_cislo / ŠPZ), okamžite ho aplikujeme a mutujeme in-place.
+        #    (podľa vehicle_id alebo evidencne_cislo priamo v MANUAL_OVERRIDES),
+        #    okamžite aplikujeme tieto overené hodnoty (model, ŠPZ, ev. číslo,
+        #    is_verified: true) a zablokujeme akýkoľvek ďalší fallback na Ubian alebo CSV!
         # =====================================================================
-        override = self.get_override(vehicle_id=s_vid, ev_cislo=raw_ev, license_number=license_number)
+        override = None
+        if s_vid and s_vid in self.MANUAL_OVERRIDES:
+            override = self.MANUAL_OVERRIDES[s_vid]
+        elif raw_ev and raw_ev in self.MANUAL_OVERRIDES:
+            override = self.MANUAL_OVERRIDES[raw_ev]
+        else:
+            override = self.get_override(vehicle_id=s_vid, ev_cislo=raw_ev, license_number=license_number)
+
         if override:
-            ev = override.get("evidencne_cislo") or raw_ev or s_vid
-            base = self.ev_index.get(str(ev).strip()) if ev else None
-            ov_model = override.get("model", "Električka DPMK" if is_tram_veh else "Autobus DPMK")
-            ov_spz = None if is_tram_veh else override.get("spz")
-            is_ver = self.is_vehicle_verified(vehicle_id=s_vid, ev_cislo=ev, license_number=license_number)
+            final_ev = str(override.get("evidencne_cislo") or raw_ev or s_vid).strip().replace("#", "")
+            final_model = override.get("model") or ("Električka DPMK" if is_tram_veh else "Autobus DPMK")
+            final_spz = None if is_tram_veh else override.get("spz")
+            final_rok = override.get("rok_vyroby")
+            final_vin = override.get("vin")
 
-            res = dict(base) if base else {
-                "evidencne_cislo": ev,
-                "spz": ov_spz,
-                "model": ov_model,
-                "rok_vyroby": override.get("rok_vyroby"),
-                "vin": override.get("vin"),
+            # Uistíme sa, že TRANSDATA_MAPPING a MANUAL_OVERRIDES sú obojsmerne prepojené
+            if s_vid and s_vid not in self.MANUAL_OVERRIDES:
+                self.MANUAL_OVERRIDES[s_vid] = override
+            if s_vid and final_ev:
+                self.TRANSDATA_MAPPING[s_vid] = final_ev
+
+            res = {
+                "evidencne_cislo": final_ev,
+                "spz": final_spz,
+                "model": final_model,
+                "rok_vyroby": final_rok,
+                "vin": final_vin,
+                "is_verified": True,
+                "verified": True,
             }
-            res.update(override)
-            if is_tram_veh:
-                res["spz"] = None
-            elif ov_spz:
-                res["spz"] = ov_spz
 
-            res["is_verified"] = is_ver
-            res["verified"] = is_ver
-
-            # In-place prepis surových Ubian dát priamo v telemetrickom objekte
+            # In-place bezpodmienečný prepis surových Ubian dát priamo v telemetrickom objekte
             if raw_vehicle and isinstance(raw_vehicle, dict):
-                raw_vehicle["model"] = res["model"]
-                raw_vehicle["evidencne_cislo"] = res.get("evidencne_cislo")
+                raw_vehicle["model"] = final_model
+                raw_vehicle["evidencne_cislo"] = final_ev
                 if is_tram_veh:
                     raw_vehicle["license_number"] = None
-                elif ov_spz:
-                    raw_vehicle["license_number"] = ov_spz
-                raw_vehicle["is_verified"] = is_ver
-                raw_vehicle["verified"] = is_ver
+                else:
+                    raw_vehicle["license_number"] = final_spz
+                raw_vehicle["is_verified"] = True
+                raw_vehicle["verified"] = True
+                if final_vin:
+                    raw_vehicle["vehicle_vin"] = final_vin
+                raw_vehicle["fleet_info"] = {
+                    "spz": final_spz,
+                    "evidencne_cislo": final_ev,
+                    "model": final_model,
+                    "rok_vyroby": final_rok,
+                    "vin": final_vin,
+                    "low_floor": raw_vehicle.get("low_floor", True),
+                    "air_conditioning": True,
+                    "wifi": raw_vehicle.get("wifi", False),
+                    "is_verified": True,
+                    "verified": True,
+                }
 
+            # ZABLOKOVANÝ akýkoľvek ďalší fallback na Ubian alebo CSV:
             return res
 
         # =====================================================================
@@ -1380,9 +1430,24 @@ class FleetService:
             return
 
         target_ev = str(override.get("evidencne_cislo") or "").strip().replace("#", "")
+        target_vid = str(override.get("vehicle_id") or "").strip().replace("#", "")
         target_model = override.get("model")
         target_spz = override.get("spz")
         target_verified = bool(override.get("verified", True))
+
+        def _matches_override(cand_vid: str, cand_ev: str) -> bool:
+            if target_vid and cand_vid == target_vid:
+                return True
+            if target_ev:
+                if cand_ev == target_ev or cand_vid == target_ev:
+                    return True
+                if cand_vid in self.TRANSDATA_MAPPING and self.TRANSDATA_MAPPING[cand_vid] == target_ev:
+                    return True
+                if len(cand_vid) == 7 and cand_vid.isdigit() and target_ev in self._decode_transdata_candidates(cand_vid):
+                    return True
+                if len(cand_vid) >= 4 and cand_vid[-4:] == target_ev:
+                    return True
+            return False
 
         # 1. Synchronizácia live_cache v live_feed
         if live_cache and isinstance(live_cache, list):
@@ -1391,7 +1456,7 @@ class FleetService:
                     continue
                 v_ev = str(veh.get("evidencne_cislo") or "").strip().replace("#", "")
                 v_vid = str(veh.get("vehicle_id") or "").strip().replace("#", "")
-                if (target_ev and (v_ev == target_ev or v_vid == target_ev)) or (target_ev and v_vid in self.TRANSDATA_MAPPING and self.TRANSDATA_MAPPING[v_vid] == target_ev):
+                if _matches_override(v_vid, v_ev):
                     if target_model:
                         veh["model"] = target_model
                     if target_ev:
@@ -1412,11 +1477,12 @@ class FleetService:
                 fi = item.get("fleet_info") or {}
                 i_ev = str(fi.get("evidencne_cislo") or item.get("evidencne_cislo") or "").strip().replace("#", "")
                 i_vid = str(item.get("vehicle_id") or "").strip().replace("#", "")
-                if (target_ev and (i_ev == target_ev or i_vid == target_ev)) or (target_ev and i_vid in self.TRANSDATA_MAPPING and self.TRANSDATA_MAPPING[i_vid] == target_ev):
+                if _matches_override(i_vid, i_ev):
                     if target_model:
                         item["model"] = target_model
                         fi["model"] = target_model
                     if target_ev:
+                        item["evidencne_cislo"] = target_ev
                         fi["evidencne_cislo"] = target_ev
                     is_tram_veh = self.is_tram(vehicle_id=i_vid, line=item.get("line"), line_type=item.get("line_type"), raw_vehicle=item)
                     if is_tram_veh:
