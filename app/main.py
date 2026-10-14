@@ -1297,6 +1297,14 @@ def create_or_update_override(req: OverrideRequest, request: Request):
     if not req.model or not req.model.strip():
         raise HTTPException(status_code=400, detail="Model nesmie byť prázdny.")
 
+    target_id = clean_vid or clean_spz or clean_orig_ev
+    resolved_collisions = []
+    if clean_ev:
+        resolved_collisions = fleet_service.resolve_ev_collision(
+            new_ev_cislo=clean_ev,
+            target_identifier=target_id
+        )
+
     res = fleet_service.set_override(
         model=req.model.strip(),
         evidencne_cislo=clean_ev,
@@ -1313,10 +1321,20 @@ def create_or_update_override(req: OverrideRequest, request: Request):
         last_seen_cache=LAST_SEEN_CACHE
     )
 
+    for col in resolved_collisions:
+        col_ov = fleet_service.get_override(vehicle_id=col.get("vehicle_id"), ev_cislo=col.get("new_evidencne_cislo"))
+        if col_ov:
+            fleet_service.sync_override_to_caches(
+                override=col_ov,
+                live_cache=getattr(live_feed, "_live_cache", []),
+                last_seen_cache=LAST_SEEN_CACHE
+            )
+
     return {
         "status": "ok",
         "message": "Override úspešne uložený a aplikovaný.",
-        "override": res
+        "override": res,
+        "resolved_collisions": resolved_collisions
     }
 
 
@@ -1429,6 +1447,21 @@ def approve_admin_request(request_id: str, request: Request):
     a okamžite aktualizuje pamäť servera a live dáta vozidiel.
     """
     verify_admin_token(request)
+
+    all_reqs = fleet_service.get_pending_requests(status=None)
+    target_req = next((r for r in all_reqs if str(r.get("id")) == str(request_id)), None)
+    if not target_req:
+        raise HTTPException(status_code=404, detail=f"Požiadavka s ID '{request_id}' nebola nájdená.")
+
+    req_ev = target_req.get("evidencne_cislo")
+    target_id = target_req.get("vehicle_id") or target_req.get("suggested_spz") or target_req.get("current_spz")
+    resolved_collisions = []
+    if req_ev:
+        resolved_collisions = fleet_service.resolve_ev_collision(
+            new_ev_cislo=req_ev,
+            target_identifier=target_id
+        )
+
     req = fleet_service.approve_request(request_id)
     if not req:
         raise HTTPException(status_code=404, detail=f"Požiadavka s ID '{request_id}' nebola nájdená.")
@@ -1441,10 +1474,20 @@ def approve_admin_request(request_id: str, request: Request):
             last_seen_cache=LAST_SEEN_CACHE
         )
 
+    for col in resolved_collisions:
+        col_ov = fleet_service.get_override(vehicle_id=col.get("vehicle_id"), ev_cislo=col.get("new_evidencne_cislo"))
+        if col_ov:
+            fleet_service.sync_override_to_caches(
+                override=col_ov,
+                live_cache=getattr(live_feed, "_live_cache", []),
+                last_seen_cache=LAST_SEEN_CACHE
+            )
+
     return {
         "status": "ok",
         "message": "Požiadavka bola úspešne schválená a zmeny boli zapísané do flotily.",
-        "request": req
+        "request": req,
+        "resolved_collisions": resolved_collisions
     }
 
 
