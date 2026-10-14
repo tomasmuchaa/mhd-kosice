@@ -8259,7 +8259,7 @@
       { id: 'solaris-u12-iv', name: 'Solaris Urbino 12 IV', cat: 'standard', catLabel: 'Sólo Gen IV', tagClass: 'tag-standard', dim: '44×42px', render: (l, d) => renderSolarisU12IvSvg(l, d, '5108'), desc: 'Ostré agresívne línie 4. generácie New Urbino, sýto červená karoséria, biele sklo s čiernym číslom, klinové svetlomety a jazvečík' },
       { id: 'solaris-u12-hyb', name: 'Solaris Urbino 12 Hybrid', cat: 'standard', catLabel: 'Hybrid 12m', tagClass: 'tag-electric', dim: '44×46px', render: (l, d) => renderSolarisU12HybridSvg(l, d, '5119'), desc: 'Solaris Urbino 12 III Hybrid (5119), asymetrické čelné sklo klesajúce doprava, tmavý hybridný strešný box, biele sklo s tmavým číslom linky, žltá maska a červený nárazník' },
       { id: 'solaris-u15', name: 'Solaris Urbino 15', cat: 'standard', catLabel: '15m (3 nápravy)', tagClass: 'tag-standard', dim: '46×45px', render: (l, d) => renderSolarisU15Svg(l, d, '3535'), desc: 'Trojnápravový sólo gigant (46px), košická trikolóra, asymetrické biele sklo' },
-      { id: 'sor-ebn', name: 'SOR EBN 10.5 & 11', cat: 'standard', catLabel: 'Elektrobus', tagClass: 'tag-electric', dim: '44×42px', render: (l, d) => renderSorEbnSvg(l, d, '6914'), desc: 'Elektrobus s trojitým strešným batériovým boxom v azúrovo-modrej farbe (#38bdf8), sýto zelená karoséria so svetlozeleným okrajom, biele čelné sklo s tmavým číslom linky' },
+      { id: 'sor-ebn', name: 'SOR EBN 10.5 & 11', cat: 'standard', catLabel: 'Elektrobus', tagClass: 'tag-electric', dim: '44×42px', render: (l, d) => renderSorEbnSvg(l, d, '6914'), desc: 'Elektrobus so súvislým šedým strešným podstavcom a 3 vsadenými azúrovými batériovými segmentmi (#0284c7), masívne čierne zrkadlá ukotvené na maske, sýto zelená karoséria' },
       { id: 'sor-bn95', name: 'SOR BN 9,5', cat: 'midibus', catLabel: 'Midibus 9,5m', tagClass: 'tag-midibus', dim: '36×38px', render: (l, d) => renderSorBn95Svg(l, d, '6705'), desc: 'Agilný midibus (36×38px), výrazne zúžená karoséria, ikonický strešný hrb rozbíjajúci plochú siluetu (nadstavba z fotky 6705), biele sklo s tmavým číslom a tykadlá SOR' },
       { id: 'sor-c105', name: 'SOR C 10,5', cat: 'midibus', catLabel: 'Prímestský', tagClass: 'tag-midibus', dim: '44×44px', render: (l, d) => renderSorC105Svg(l, d), desc: 'Sivomodrý linkový autobus, vyvýšený masívny nárazník' },
       { id: 'rosero', name: 'Iveco Rosero First FCLLI', cat: 'midibus', catLabel: 'Minibus', tagClass: 'tag-midibus', dim: '40×44px', render: (l, d) => renderRoseroSvg(l, d), desc: 'Minibus 40px postavený na Daily, chrómová mriežka chladiča' },
@@ -10584,12 +10584,12 @@
       `;
     }
 
-    // 6. SOR EBN 10.5 & 11 - mestský elektrobus s trojitým strešným batériovým boxom:
+    // 6. SOR EBN 10.5 & 11 - mestský elektrobus so strešnou batériovou nadstavbou:
     // Kompaktná sólo karoséria (44×42 px), sýto zelené vnútro (#16a34a) so svetlozeleným okrajom (#22c55e),
-    // kľúčový detail: rad 3 samostatných azúrovo-modrých batériových boxov na streche (#38bdf8),
+    // kľúčový detail: súvislý šedý strešný podstavec/kryt (#334155) pevne sediaci na karosérii s 3 vsadenými azúrovými segmentmi (#0284c7),
+    // masívne čierne zrkadlá (#1e293b) vyrastajúce priamo z horných rohov masky smerujúce nadol pozdĺž karosérie,
     // čisté BIELE čelné sklo (fill="#ffffff") s veľkým tučným TMAVÝM číslom linky (#0f172a),
-    // horná lišta meškania priamo na hornom okraji okna, typické SOR spätné zrkadlá (tykadlá),
-    // neutrálne teplé biele svetlá (#fffbeb / #fef08a)
+    // horná lišta meškania priamo na hornom okraji okna, neutrálne teplé biele svetlá (#fffbeb / #fef08a)
     function renderSorEbnSvg(line, delayColorOrMinutes = '', evNum = '6701', spz = '') {
       const safeLine = escapeXml(line || 'E1');
       const displayEv = escapeXml(String(evNum || '6701').trim() || '6701');
@@ -10615,29 +10615,36 @@
             <rect x="33.5" y="37" width="4.5" height="3.5" rx="1.2"/>
           </g>
 
-          <!-- TYPICKÉ SPÄTNÉ ZRKADLÁ SOR (TYKADLÁ) -->
-          <!-- Ľavé tykadlo -->
-          <path d="M 6.5 6 C 2.5 4.5, 0.6 7, 0.6 10.5 L 0.6 14" fill="none" stroke="#0f172a" stroke-width="1.4" stroke-linecap="round"/>
-          <rect x="0.2" y="10" width="1.8" height="7.2" rx="0.8" fill="#18181b" stroke="#0f172a" stroke-width="0.5"/>
-          <rect x="0.5" y="10.8" width="1.1" height="5.6" rx="0.3" fill="#38bdf8" opacity="0.8"/>
-          <!-- Pravé tykadlo -->
-          <path d="M 37.5 6 C 41.5 4.5, 43.4 7, 43.4 10.5 L 43.4 14" fill="none" stroke="#0f172a" stroke-width="1.4" stroke-linecap="round"/>
-          <rect x="42" y="10" width="1.8" height="7.2" rx="0.8" fill="#18181b" stroke="#0f172a" stroke-width="0.5"/>
-          <rect x="42.4" y="10.8" width="1.1" height="5.6" rx="0.3" fill="#38bdf8" opacity="0.8"/>
+          <!-- MASÍVNE ČIERNE SPÄTNÉ ZRKADLÁ (TYKADLÁ) VYRASTAJÚCE Z HORNÝCH ROHOV MASKY -->
+          <!-- Ľavé tykadlo: rameno a zvislé masívne zrkadlo pozdĺž karosérie -->
+          <path d="M 5.5 7.5 C 5.2 5.0, 2.8 5.2, 2.0 7.8 L 2.0 9.0" fill="none" stroke="#1e293b" stroke-width="1.8" stroke-linecap="round"/>
+          <rect x="0.8" y="8.5" width="2.4" height="8.5" rx="0.8" fill="#1e293b" stroke="#0f172a" stroke-width="0.8"/>
+          <line x1="2.0" y1="9.5" x2="2.0" y2="16.0" stroke="#0f172a" stroke-width="0.6"/>
+
+          <!-- Pravé tykadlo: rameno a zvislé masívne zrkadlo pozdĺž karosérie -->
+          <path d="M 38.5 7.5 C 38.8 5.0, 41.2 5.2, 42.0 7.8 L 42.0 9.0" fill="none" stroke="#1e293b" stroke-width="1.8" stroke-linecap="round"/>
+          <rect x="40.8" y="8.5" width="2.4" height="8.5" rx="0.8" fill="#1e293b" stroke="#0f172a" stroke-width="0.8"/>
+          <line x1="42.0" y1="9.5" x2="42.0" y2="16.0" stroke="#0f172a" stroke-width="0.6"/>
 
           <!-- HLAVNÁ KAROSÉRIA (SOR EBN - sýto zelené vnútro #16a34a, svetlozelený okraj #22c55e) -->
           <rect x="4.5" y="6.8" width="35" height="31.4" rx="3.2" fill="#16a34a" stroke="#22c55e" stroke-width="1.8" stroke-linejoin="round" filter="url(#sor-ebn-shadow)"/>
 
-          <!-- 3 PLOCHÉ AZÚROVÉ BATÉRIOVÉ BOXY NA STRECHE (PEVNE UKOTVENÉ NA STRECHU, ČISTÝ 2D FLAT DIZAJN) -->
-          <!-- 1. Ľavý box -->
-          <path d="M 8.5 6.0 L 8.5 4.6 Q 8.5 3.6 9.5 3.6 L 15.0 3.6 Q 16.0 3.6 16.0 4.6 L 16.0 6.0 Z"
-                fill="#38bdf8" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round"/>
-          <!-- 2. Stredný box (mierne vyšší, z fotky) -->
-          <path d="M 18.25 6.0 L 18.25 4.0 Q 18.25 3.0 19.25 3.0 L 24.75 3.0 Q 25.75 3.0 25.75 4.0 L 25.75 6.0 Z"
-                fill="#38bdf8" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round"/>
-          <!-- 3. Pravý box -->
-          <path d="M 28.0 6.0 L 28.0 4.6 Q 28.0 3.6 29.0 3.6 L 34.5 3.6 Q 35.5 3.6 35.5 4.6 L 35.5 6.0 Z"
-                fill="#38bdf8" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round"/>
+          <!-- STREŠNÁ BATÉRIOVÁ NADSTAVBA: SÚVISLÝ ŠEDÝ PODSTAVEC + 3 VSADENÉ AZÚROVÉ SEGMENTY -->
+          <!-- 3 azúrové batériové segmenty vsadené do podstavca a jemne vystupujúce nahor (flat 2D realistická azúrová #0284c7) -->
+          <!-- 1. Ľavý segment -->
+          <path d="M 9.5 5.5 L 9.5 4.0 Q 9.5 3.2 10.5 3.2 L 15.0 3.2 Q 16.0 3.2 16.0 4.0 L 16.0 5.5 Z"
+                fill="#0284c7" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round"/>
+          <!-- 2. Stredný segment (mierne vyšší, z fotky) -->
+          <path d="M 18.25 5.5 L 18.25 3.4 Q 18.25 2.6 19.25 2.6 L 24.75 2.6 Q 25.75 2.6 25.75 3.4 L 25.75 5.5 Z"
+                fill="#0284c7" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round"/>
+          <!-- 3. Pravý segment -->
+          <path d="M 28.0 5.5 L 28.0 4.0 Q 28.0 3.2 29.0 3.2 L 33.5 3.2 Q 34.5 3.2 34.5 4.0 L 34.5 5.5 Z"
+                fill="#0284c7" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round"/>
+
+          <!-- Súvislý, dlhý, šedý/tmavý podstavec (kryt) pevne sediaci priamo na karosérii bez akejkoľvek medzery -->
+          <path d="M 7.5 6.8 L 7.5 5.0 Q 7.5 4.4 8.5 4.4 L 35.5 4.4 Q 36.5 4.4 36.5 5.0 L 36.5 6.8 Z"
+                fill="#334155" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round"/>
+          <line x1="8.0" y1="5.6" x2="36.0" y2="5.6" stroke="#475569" stroke-width="0.6"/>
 
           <!-- 1. HORNÁ HRANA NAD ČELNÝM SKLOM A DISPLEJ TRASY -->
           <path d="M 4.8 9.8 L 4.8 8.0 C 4.8 7.2 5.6 6.8 6.8 6.8 L 37.2 6.8 C 38.4 6.8 39.2 7.2 39.2 8.0 L 39.2 9.8 Z" fill="#16a34a"/>
