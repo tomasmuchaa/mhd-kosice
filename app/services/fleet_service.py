@@ -120,18 +120,22 @@ class FleetService:
                         return clean_dict
             except Exception as e:
                 print(f"[FleetService] Chyba pri nacitani overrides zo suboru {path}: {e}")
-        return {
-            "6703": {
-                "model": "SOR NB 18 City",
-                "evidencne_cislo": "6703",
-                "spz": "KE-090IY",
-            },
-            "1276703": {
-                "model": "SOR NB 18 City",
-                "evidencne_cislo": "6703",
-                "spz": "KE-090IY",
-            }
-        }
+        return {}
+
+    def clear_overrides(self) -> bool:
+        """Kompletne vymaže všetky záznamy v MANUAL_OVERRIDES a uloží prázdny súbor overrides.json."""
+        self.MANUAL_OVERRIDES = {}
+        FleetService.MANUAL_OVERRIDES = {}
+        self.TRANSDATA_MAPPING = {}
+        FleetService.TRANSDATA_MAPPING = {}
+        success = self.save_overrides()
+        print("[FleetService] Všetky MANUAL_OVERRIDES boli kompletne vymazané a resetované.")
+        return success
+
+    def reload_overrides(self):
+        """Znovu načíta overrides zo súboru data/overrides.json a aktualizuje pamäť."""
+        self.MANUAL_OVERRIDES = self._load_overrides()
+        FleetService.MANUAL_OVERRIDES = self.MANUAL_OVERRIDES
 
     def save_overrides(self) -> bool:
         """Uloží aktuálne MANUAL_OVERRIDES do súboru data/overrides.json s čistými kľúčmi bez '#'."""

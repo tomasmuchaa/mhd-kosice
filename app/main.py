@@ -859,8 +859,6 @@ def get_live_vehicles(
         if not final_model:
             if is_tram or line_type == "TRAM" or v.get("line") in ["1", "2", "3", "4", "5", "6", "7", "9", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"]:
                 final_model = "Električka DPMK"
-                if not final_ev:
-                    final_ev = str(v["vehicle_id"]) if v.get("vehicle_id") else None
             elif line_type == "BUS":
                 final_model = "Autobus DPMK"
 
@@ -903,11 +901,20 @@ def get_live_vehicles(
         ai_delta = random.randint(-1, 2)
         ai_predicted_delay = max(0, cur_delay + ai_delta)
 
+        # Čistenie evidenčného čísla a ŠPZ od prípadných mriežok '#'
+        clean_final_ev = str(final_ev).strip().replace("#", "") if final_ev else None
+        if clean_final_ev and clean_final_ev.lower() in ("none", "null", "nan"):
+            clean_final_ev = None
+
+        clean_final_spz = str(final_spz).strip().replace("#", "") if final_spz else None
+        if clean_final_spz and clean_final_spz.lower() in ("none", "null", "nan"):
+            clean_final_spz = None
+
         item = {
             "vehicle_id": v["vehicle_id"],
-            "license_number": final_spz,
+            "license_number": clean_final_spz,
             "model": final_model,
-            "evidencne_cislo": final_ev,
+            "evidencne_cislo": clean_final_ev,
             "line": v.get("line"),
             "line_type": v.get("line_type"),
             "line_name": v.get("line_name"),
@@ -929,8 +936,8 @@ def get_live_vehicles(
             "matched": is_matched,
             "is_verified": is_verified,
             "fleet_info": {
-                "spz": final_spz,
-                "evidencne_cislo": final_ev,
+                "spz": clean_final_spz,
+                "evidencne_cislo": clean_final_ev,
                 "model": final_model,
                 "rok_vyroby": final_rok,
                 "vin": final_vin,
@@ -1383,6 +1390,21 @@ def get_all_overrides(request: Request):
     return {
         "status": "ok",
         "overrides": fleet_service.MANUAL_OVERRIDES
+    }
+
+
+@app.post("/api/v1/admin/overrides/clear")
+def clear_all_overrides(request: Request):
+    """Developer Mode endpoint: kompletne vymaže všetky manuálne prepisy a vyprázdni overrides.json (vyžaduje X-Admin-Token)."""
+    verify_admin_token(request)
+    success = fleet_service.clear_overrides()
+    if hasattr(live_feed, "_live_cache"):
+        live_feed._live_cache = []
+        live_feed._live_cache_ts = 0.0
+    return {
+        "status": "ok",
+        "message": "Všetky manuálne overrides boli úspešne vymazané a pamäť resetovaná.",
+        "success": success
     }
 
 
