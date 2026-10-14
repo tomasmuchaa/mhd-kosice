@@ -6767,6 +6767,23 @@
       </div>
     </div>
 
+    <!-- Živá predikcia polohy (+1 min) vrstva -->
+    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="panel-section-title" style="margin-bottom: 0;">
+          <span>⚡</span>
+          <span>Živá predikcia polohy (+1 min)</span>
+        </div>
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.74rem; color: #cbd5e1;">
+          <input type="checkbox" id="live-prediction-toggle" onchange="toggleLivePrediction(this.checked)" style="accent-color: #38bdf8; cursor: pointer;" />
+          <span id="live-prediction-toggle-label">Vypnutá</span>
+        </label>
+      </div>
+      <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 4px;">
+        Kompenzuje ~1 min oneskorenie GPS signálu a predpovedá pohyb vpred
+      </div>
+    </div>
+
     <!-- Nastavenia / Spätná väzba, Developer Mode & Galéria v drawer menu -->
     <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
       <button type="button" class="btn-dev-override" onclick="openFeedbackModal()" style="font-size: 0.78rem; padding: 8px 10px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;" title="Nahlásiť chybu alebo poslať spätnú väzbu pre imhd.sk">
@@ -12420,7 +12437,8 @@
       ) : '';
 
       const stopName = String(v.current_stop_name || '').replace(/['"\\]/g, ' ').trim();
-      let statusHtml = isInactive ? 'neaktívne (v garáži/pauza)' : 'V pohybe na trase';
+      const isPredicted = (typeof isLivePredictionActive !== 'undefined' && isLivePredictionActive && !isInactive);
+      let statusHtml = isInactive ? 'neaktívne (v garáži/pauza)' : (isPredicted ? 'V pohybe (⚡ predikcia +1 min)' : 'V pohybe na trase');
 
       // Obsadenosť vozidla (Crowdsourcing / Waze pre MHD)
       const occ = v.occupancy || null;
@@ -12542,7 +12560,7 @@
         </div>
         <div class="popup-detail-row">
           <span>Posledná poloha:</span>
-          <span class="val" style="${isInactive ? 'color: #fbbf24; font-weight: 600;' : 'color: #34d399; font-weight: 600;'}">${comm.text}</span>
+          <span class="val" style="${isInactive ? 'color: #fbbf24; font-weight: 600;' : 'color: #34d399; font-weight: 600;'}">${comm.text}${isPredicted ? ' <span style="color: #38bdf8; font-size: 0.72rem; font-weight: 700;">(⚡ +1 min)</span>' : ''}</span>
         </div>
         <div class="popup-detail-row">
           <span>Model:</span>
@@ -13622,8 +13640,8 @@
         return;
       }
 
-      // 3. Veľký skok / Teleport (> 500 metrov) -> okamžitý skok bez animácie
-      if (directDist > 500) {
+      // 3. Veľký skok / Teleport (> 1200 metrov) -> okamžitý skok bez animácie
+      if (directDist > 1200) {
         marker.setLatLng([targetLat, targetLng]);
         marker._targetLatLng = [targetLat, targetLng];
         if (isFollowed && typeof map !== 'undefined' && map) {
@@ -13755,15 +13773,274 @@
       };
     }
 
+    // ========================================================
+    // ŽIVÁ PREDIKCIA POLOHY VOZIDIEL (+1 MINÚTA / +60 SEKÚND)
+    // ========================================================
+
+    let isLivePredictionActive = false;
+
+    // História telemetrických meraní: vehicle_id -> { lat, lng, time, speedMs, lastShiftMeters, prevLat, prevLng, tripId }
+    const vehicleTelemetryHistory = new Map();
+
+    /**
+     * Inicializácia stavu predikcie z localStorage
+     */
+    function initLivePredictionState() {
+      try {
+        const saved = localStorage.getItem('livePredictionEnabled');
+        isLivePredictionActive = (saved === 'true');
+      } catch (e) {
+        isLivePredictionActive = false;
+      }
+      const toggle = document.getElementById('live-prediction-toggle');
+      if (toggle) toggle.checked = isLivePredictionActive;
+      const label = document.getElementById('live-prediction-toggle-label');
+      if (label) label.innerText = isLivePredictionActive ? 'Zapnutá' : 'Vypnutá';
+    }
+
+    /**
+     * Zmena stavu prepínača Živej predikcie polohy (+1 min)
+     */
+    function toggleLivePrediction(enable) {
+      isLivePredictionActive = !!enable;
+      try {
+        localStorage.setItem('livePredictionEnabled', isLivePredictionActive ? 'true' : 'false');
+      } catch (e) {}
+
+      const toggle = document.getElementById('live-prediction-toggle');
+      if (toggle) toggle.checked = isLivePredictionActive;
+      const label = document.getElementById('live-prediction-toggle-label');
+      if (label) label.innerText = isLivePredictionActive ? 'Zapnutá' : 'Vypnutá';
+
+      // Okamžitý prepočet a plynulá aktualizácia všetkých aktívnych vozidiel na mape
+      recalculateAllVehiclePositions();
+    }
+
+    /**
+     * Aktualizácia histórie telemetrie vozidla (ukladá polohu, čas a počíta rýchlosť a posun)
+     */
+    function recordVehicleTelemetry(v) {
+      if (!v || !v.vehicle_id || !v.latitude || !v.longitude) return;
+      const id = v.vehicle_id;
+      const curLat = Number(v.latitude);
+      const curLng = Number(v.longitude);
+      const now = Date.now();
+
+      const prev = vehicleTelemetryHistory.get(id);
+      let speedMs = null;
+      let lastShiftMeters = null;
+      let prevLat = null;
+      let prevLng = null;
+
+      if (prev && prev.lat !== undefined && prev.lng !== undefined) {
+        prevLat = prev.lat;
+        prevLng = prev.lng;
+        const dt = (now - prev.time) / 1000.0;
+        const dist = getDistanceMeters([prevLat, prevLng], [curLat, curLng]);
+        lastShiftMeters = dist;
+
+        if (dt >= 1.0 && dt <= 120.0) {
+          const rawSpeed = dist / dt;
+          if (typeof prev.speedMs === 'number' && prev.speedMs > 0) {
+            speedMs = 0.65 * rawSpeed + 0.35 * prev.speedMs;
+          } else {
+            speedMs = rawSpeed;
+          }
+        } else {
+          speedMs = prev.speedMs;
+        }
+      }
+
+      vehicleTelemetryHistory.set(id, {
+        lat: curLat,
+        lng: curLng,
+        time: now,
+        speedMs: speedMs,
+        lastShiftMeters: lastShiftMeters,
+        prevLat: prevLat,
+        prevLng: prevLng,
+        tripId: v.trip_id
+      });
+    }
+
+    /**
+     * Vypočíta predikovanú polohu vozidla o +60 sekúnd dopredu.
+     * Rešpektuje stojace vozidlá, konečné zastávky, trasy a fallbacky.
+     * @param {Object} v - Objekt vozidla z API
+     * @returns {Array<number>} [lat, lng]
+     */
+    function getPredictedVehicleLatLng(v) {
+      if (!v || !v.latitude || !v.longitude) return [0, 0];
+      const curLat = Number(v.latitude);
+      const curLng = Number(v.longitude);
+      if (isNaN(curLat) || isNaN(curLng)) return [0, 0];
+
+      if (!isLivePredictionActive) {
+        return [curLat, curLng];
+      }
+
+      // 1. STACIONÁRNE VOZIDLO / DEPO / KONEČNÁ / NEAKTÍVNE
+      // Ak je vozidlo v depe, nekomunikuje dlho, alebo stojí -> NIKDY neextrapolovať dopredu!
+      const comm = (typeof formatLastCommunication === 'function') ? formatLastCommunication(v.last_communication) : null;
+      if (v.isDepot || (comm && comm.isStale)) {
+        return [curLat, curLng];
+      }
+
+      const hist = vehicleTelemetryHistory.get(v.vehicle_id);
+
+      // Posun menší ako 3 metre alebo rýchlosť pod 3 km/h (~0.83 m/s) = stojace vozidlo
+      if (hist) {
+        if (hist.lastShiftMeters !== null && hist.lastShiftMeters < 3.0) {
+          return [curLat, curLng];
+        }
+        if (hist.speedMs !== null && hist.speedMs < 0.83) {
+          return [curLat, curLng];
+        }
+      }
+
+      // 2. VÝPOČET VZDIALENOSTI NA PREDIKCIU (+60s dopredu)
+      let speedMs = 7.5; // Predvolená priemerná rýchlosť MHD v meste (~27 km/h)
+      if (hist && typeof hist.speedMs === 'number' && hist.speedMs >= 0.83) {
+        speedMs = Math.max(2.0, Math.min(18.0, hist.speedMs));
+      }
+
+      const predictionTimeSec = 60.0;
+      let targetDistanceMeters = speedMs * predictionTimeSec;
+      targetDistanceMeters = Math.min(800.0, Math.max(15.0, targetDistanceMeters));
+
+      // 3. EXTRAPOLÁCIA PO TRASE (MODEL ROUTE POINTS)
+      const tripId = v.trip_id;
+      if (tripId) {
+        if (!tripRoutesCache.has(tripId) && !tripRoutesCache.has(Number(tripId))) {
+          getOrFetchTripRoute(tripId);
+        }
+
+        const routePoints = tripRoutesCache.get(tripId) || tripRoutesCache.get(Number(tripId));
+        if (routePoints && routePoints.length >= 2) {
+          const marker = markers[v.vehicle_id];
+          const lastIdx = (marker && typeof marker._routeIndex === 'number') ? marker._routeIndex : 0;
+          const match = findBestRouteMatch([curLat, curLng], routePoints, lastIdx, 35);
+
+          if (match && match.distance <= 120.0) {
+            return projectAlongRoute(match, routePoints, targetDistanceMeters);
+          }
+        }
+      }
+
+      // 4. FALLBACK: LINEÁRNA EXTRAPOLÁCIA PO VEKTORE POHYBU
+      if (hist && hist.prevLat !== null && hist.prevLng !== null) {
+        const vDist = getDistanceMeters([hist.prevLat, hist.prevLng], [curLat, curLng]);
+        if (vDist >= 1.5) {
+          const dLat = (curLat - hist.prevLat) / vDist;
+          const dLng = (curLng - hist.prevLng) / vDist;
+          return [
+            curLat + dLat * targetDistanceMeters,
+            curLng + dLng * targetDistanceMeters
+          ];
+        }
+      }
+
+      return [curLat, curLng];
+    }
+
+    /**
+     * Posunie bod po geometrii trasy (modelRoutePoints) v smere jazdy o požadovanú vzdialenosť.
+     * Ak trasa končí skôr (konečná zastávka), zastaví striktne na konečnej.
+     */
+    function projectAlongRoute(startMatch, routePoints, distanceMeters) {
+      if (!startMatch || !routePoints || routePoints.length < 2) return startMatch ? startMatch.projectedPoint : null;
+
+      let remaining = distanceMeters;
+      let currentPt = startMatch.projectedPoint;
+      let segIdx = startMatch.segmentIndex;
+
+      // Krok 1: Posun do konca aktuálneho segmentu
+      const nextWp = routePoints[segIdx + 1];
+      if (!nextWp) return currentPt;
+
+      const dToNext = getDistanceMeters(currentPt, nextWp);
+
+      if (remaining <= dToNext) {
+        const frac = dToNext > 0.0001 ? remaining / dToNext : 0;
+        return [
+          currentPt[0] + frac * (nextWp[0] - currentPt[0]),
+          currentPt[1] + frac * (nextWp[1] - currentPt[1])
+        ];
+      }
+
+      remaining -= dToNext;
+      currentPt = [nextWp[0], nextWp[1]];
+      segIdx++;
+
+      // Krok 2: Posun cez ďalšie segmenty ulíc a zákrut
+      while (segIdx < routePoints.length - 1 && remaining > 0) {
+        const pA = routePoints[segIdx];
+        const pB = routePoints[segIdx + 1];
+        const segDist = getDistanceMeters(pA, pB);
+
+        if (remaining <= segDist) {
+          const frac = segDist > 0.0001 ? remaining / segDist : 0;
+          return [
+            pA[0] + frac * (pB[0] - pA[0]),
+            pA[1] + frac * (pB[1] - pA[1])
+          ];
+        }
+
+        remaining -= segDist;
+        currentPt = [pB[0], pB[1]];
+        segIdx++;
+      }
+
+      return currentPt;
+    }
+
+    /**
+     * Okamžite prepočíta a plynulo animuje polohy všetkých aktívnych markerov na mape.
+     * Volá sa pri prepnutí prepínača (Zapnuté / Vypnuté).
+     */
+    function recalculateAllVehiclePositions() {
+      const rawList = (vehiclesCache && vehiclesCache.length > 0) ? vehiclesCache : latestVehiclesList;
+      if (!rawList || rawList.length === 0) return;
+
+      rawList.forEach(v => {
+        const id = v.vehicle_id;
+        const marker = markers[id];
+        if (!marker || !v.latitude || !v.longitude) return;
+
+        const targetPos = isLivePredictionActive ? getPredictedVehicleLatLng(v) : [Number(v.latitude), Number(v.longitude)];
+
+        if (marker._slideAnim && marker._slideAnim.frameId) {
+          cancelAnimationFrame(marker._slideAnim.frameId);
+          marker._slideAnim = null;
+        }
+
+        slideMarkerTo(marker, targetPos, 1200, {
+          isFollowed: (followingVehicleId !== null && String(followingVehicleId) === String(id)),
+          tripId: v.trip_id,
+          onStep: (curLat, curLng) => {
+            if (followingVehicleId !== null && String(followingVehicleId) === String(id)) {
+              const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(curLat, curLng) : [curLat, curLng];
+              map.panTo(targetCenter, { animate: false });
+            }
+          }
+        });
+      });
+    }
+
+    window.toggleLivePrediction = toggleLivePrediction;
+    window.initLivePredictionState = initLivePredictionState;
+    window.getPredictedVehicleLatLng = getPredictedVehicleLatLng;
+
     // Tvorba kompletného Leaflet markera pre vozidlo (ikona, popup, interakcie)
-    function createVehicleMarker(v) {
+    function createVehicleMarker(v, initialPos) {
       const comm = formatLastCommunication(v.last_communication);
       const icon = createVehicleMarkerIcon(v, comm.isStale);
       const popupContent = buildPopupHtml(v);
-      const marker = L.marker([v.latitude, v.longitude], { icon: icon });
+      const pos = initialPos || (isLivePredictionActive ? getPredictedVehicleLatLng(v) : [v.latitude, v.longitude]);
+      const marker = L.marker(pos, { icon: icon });
       marker._vehicleId = v.vehicle_id;
       marker._tripId = v.trip_id;
-      marker._targetLatLng = [v.latitude, v.longitude];
+      marker._targetLatLng = pos;
       // Inteligentný Leaflet AutoPan: posunie mapu s dostatočnou rezervou hore (220px) pre vysokú informačnú bublinu
       marker.bindPopup(popupContent, {
         autoPan: true,
@@ -13781,7 +14058,8 @@
           }, 0);
         } else {
           // Na desktope okamžite plynulo vycentrujeme mapu s vertikálnym offsetom pre popup
-          const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(v.latitude, v.longitude) : [v.latitude, v.longitude];
+          const curPos = marker.getLatLng();
+          const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(curPos.lat, curPos.lng) : [curPos.lat, curPos.lng];
           map.panTo(targetCenter, { animate: true, duration: 0.5 });
         }
       });
@@ -15530,7 +15808,8 @@
         if (disabledLines.has(v.line) && id !== followingVehicleId) return;
 
         if (mapBounds && mapBounds.isValid && mapBounds.isValid()) {
-          const vLatLng = L.latLng(v.latitude, v.longitude);
+          const pos = (typeof isLivePredictionActive !== 'undefined' && isLivePredictionActive) ? getPredictedVehicleLatLng(v) : [v.latitude, v.longitude];
+          const vLatLng = L.latLng(pos[0], pos[1]);
           if (mapBounds.contains(vLatLng)) {
             visibleIds.add(id);
           }
@@ -16413,6 +16692,11 @@
           }
         }
 
+        // Záznam telemetrických dát a výpočet rýchlosti pre všetky vozidlá
+        vehicles.forEach(v => {
+          recordVehicleTelemetry(v);
+        });
+
         // Prepočet množiny povolených vozidiel (Plné zobrazenie na PC, Responzívny Viewport Culling na mobile)
         latestVisibleVehicleIds = computeVisibleVehicleIds(vehicles);
 
@@ -16431,6 +16715,8 @@
             const mapBounds = (typeof map !== 'undefined' && map.getBounds) ? map.getBounds() : null;
             const isVisible = isVehicleVisibleOnMap(v, mapBounds);
 
+            const targetPos = (typeof isLivePredictionActive !== 'undefined' && isLivePredictionActive) ? getPredictedVehicleLatLng(v) : [v.latitude, v.longitude];
+
             // Viewport Culling: ak vozidlo nie je viditeľné a nie je sledované,
             // nezaťažujeme procesor animáciou, ale priamo nastavíme súradnice
             if (!isVisible && !isFollowed) {
@@ -16438,13 +16724,13 @@
                 cancelAnimationFrame(markers[id]._slideAnim.frameId);
                 markers[id]._slideAnim = null;
               }
-              markers[id].setLatLng([v.latitude, v.longitude]);
-              markers[id]._targetLatLng = [v.latitude, v.longitude];
+              markers[id].setLatLng(targetPos);
+              markers[id]._targetLatLng = targetPos;
               return;
             }
 
             // Plynulý posun (Route-Snapped Live GPS interpolácia pozdĺž modelRoutePoints - 35s lineárny pohyb)
-            slideMarkerTo(markers[id], [v.latitude, v.longitude], 35000, {
+            slideMarkerTo(markers[id], targetPos, 35000, {
               isFollowed: isFollowed,
               tripId: v.trip_id,
               onStep: (curLat, curLng) => {
@@ -16470,6 +16756,8 @@
               map.removeLayer(markers[id]);
             }
             delete markers[id];
+            vehicleTelemetryHistory.delete(id);
+            vehicleTelemetryHistory.delete(numId);
           }
         }
 
@@ -16520,7 +16808,7 @@
         const id = v.vehicle_id;
         if (!v.latitude || !v.longitude) return;
 
-        const latLng = [v.latitude, v.longitude];
+        const latLng = (typeof isLivePredictionActive !== 'undefined' && isLivePredictionActive) ? getPredictedVehicleLatLng(v) : [v.latitude, v.longitude];
         const isVisible = latestVisibleVehicleIds.has(id);
 
         if (!isVisible) {
@@ -16543,13 +16831,14 @@
         // Vykresli marker vozidla a pridaj ho do mapy (DOM) IBA vtedy,
         // ak je schválený vo visibleIds
         if (!markers[id]) {
-          const marker = createVehicleMarker(v);
+          const marker = createVehicleMarker(v, latLng);
           marker.addTo(map);
           markers[id] = marker;
         } else {
           // Marker už existuje v DOMe: ak neprebieha plynulá animácia, zosúladíme polohu
           if (!markers[id]._slideAnim) {
             markers[id].setLatLng(latLng);
+            markers[id]._targetLatLng = latLng;
           }
           if (!map.hasLayer(markers[id])) {
             markers[id].addTo(map);
@@ -18244,6 +18533,7 @@
 
     // Prvotné načítanie dát
     updateDevModeUI();
+    initLivePredictionState();
     fetchStops();
     fetchVehicles();
     loadFleetDatabase();
