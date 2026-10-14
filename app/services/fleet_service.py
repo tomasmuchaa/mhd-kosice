@@ -12,24 +12,9 @@ class FleetService:
     # Preložené palubné jednotky z vyradených vozidiel vysielajúce starú identitu v Ubiane
     MANUAL_OVERRIDES: Dict[str, Dict[str, Any]] = {}
 
-    # Známe mapovanie TransData interných vehicleID na evidenčné čísla DPMK
-    # (Tieto ID TransData prideľuje palubným jednotkám vozidiel)
-    TRANSDATA_MAPPING = {
-        "1276320": "5720",  # SOR NB 12 City (KE-704IY)
-        "1276507": "5707",  # SOR NB 18 City (KE-716IY)
-        "1276522": "5722",  # SOR NB 18 City (KE-071JD)
-        "1276562": "4762",  # SOR NB 18 City
-        "1276317": "5717",  # SOR NB 12 City (KE-955KK)
-        "1276436": "4736",  # SOR NB 18 City
-        "1277917": "3917",  # Solaris Urbino 18 III
-        "1276394": "4743",  # SOR NB 18 City (KE-095JE - v.č. 394)
-        "1276395": "4732",  # SOR NB 18 City (KE-008JE - v.č. 395)
-        "1276396": "4721",  # SOR NB 18 City (AA-741PJ - v.č. 396)
-        "1276500": "5701",  # SOR NB 12 City (KE-055IY)
-        "1276596": "5901",  # Iveco Rošero First FCLLI (KE-219HG)
-        "1403196": "4801",  # SOR NSG 18 (AA-403EV)
-        "1402220": "3920",  # Solaris Urbino 18,75 III (AA-267TY)
-    }
+    # Aktívne dynamické mapovanie vehicleID -> evidenčné číslo (plnené IBA z explicitných MANUAL_OVERRIDES)
+    TRANSDATA_MAPPING: Dict[str, str] = {}
+
 
     @staticmethod
     def normalize_spz(spz: Optional[str]) -> str:
@@ -66,24 +51,32 @@ class FleetService:
         match = re.search(r'\b(19\d\d|20\d\d)\b', str(raw_val))
         return match.group(1) if match else None
 
-    def __init__(self, csv_path: str, overrides_path: Optional[str] = None, pending_requests_path: Optional[str] = None):
-        # Ak existuje data/evidencia_fleet.csv (1036 vozidiel DPMK vrátane električiek), uprednostníme ho
-        if not csv_path or not os.path.exists(csv_path) or "evidencia_fleet.csv" not in csv_path:
-            alt_path = os.path.join(os.path.dirname(csv_path) if csv_path else "data", "evidencia_fleet.csv")
-            if os.path.exists(alt_path):
-                csv_path = alt_path
-        self.csv_path = csv_path
-        self.overrides_path = overrides_path or os.path.join(os.path.dirname(self.csv_path), "overrides.json")
-        self.pending_requests_path = pending_requests_path or os.path.join(os.path.dirname(self.csv_path), "pending_requests.json")
+    def __init__(self, csv_path: str = "data/kompletna_evidencia.json", overrides_path: Optional[str] = None, pending_requests_path: Optional[str] = None):
+        # 1. Prioritné určenie cesty k datasetu (JSON má prednosť pre bleskové načítanie)
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        data_dir = os.path.join(base_dir, "data")
+        json_path = os.path.join(data_dir, "kompletna_evidencia.json")
+        csv_path_new = os.path.join(data_dir, "kompletna_evidencia.csv")
+        legacy_csv = os.path.join(data_dir, "evidencia_fleet.csv")
+
+        if os.path.exists(json_path):
+            self.dataset_path = json_path
+        elif os.path.exists(csv_path_new):
+            self.dataset_path = csv_path_new
+        elif os.path.exists(legacy_csv):
+            self.dataset_path = legacy_csv
+        elif csv_path and os.path.exists(csv_path):
+            self.dataset_path = csv_path
+        else:
+            self.dataset_path = csv_path or json_path
+
+        self.csv_path = self.dataset_path
+        self.overrides_path = overrides_path or os.path.join(data_dir, "overrides.json")
+        self.pending_requests_path = pending_requests_path or os.path.join(data_dir, "pending_requests.json")
         self.MANUAL_OVERRIDES = self._load_overrides()
         self.pending_requests = self._load_pending_requests()
-        self.spz_index = {}
-        self.ev_index = {}
-        self.vin_prod_index = {
-            "394": "4743",  # SOR NB 18 City (KE-095JE)
-            "395": "4732",  # SOR NB 18 City (KE-008JE)
-            "396": "4721",  # SOR NB 18 City (AA-741PJ)
-        }
+        self.spz_index: Dict[str, Dict[str, Any]] = {}
+        self.ev_index: Dict[str, Dict[str, Any]] = {}
         self._load_data()
 
     def _find_overrides_file(self) -> str:
@@ -677,14 +670,50 @@ class FleetService:
         return True
 
     def _load_data(self):
-        if not os.path.exists(self.csv_path):
-            raise FileNotFoundError(f"Súbor datasetu {self.csv_path} nebol nájdený.")
+        """
+        Načíta kompletnú evidenciu DPMK z lokálneho JSON (data/kompletna_evidencia.json)
+        alebo CSV súboru do indexov spz_index a ev_index.
+        """
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        data_dir = os.path.join(base_dir, "data")
+        candidate_json = os.path.join(data_dir, "kompletna_evidencia.json")
 
-        with open(self.csv_path, "r", encoding="utf-8-sig") as f:
+        json_path = None
+        if hasattr(self, "dataset_path") and str(self.dataset_path).endswith(".json") and os.path.exists(self.dataset_path):
+            json_path = self.dataset_path
+        elif os.path.exists(candidate_json):
+            json_path = candidate_json
+
+        loaded_json = False
+        if json_path and os.path.exists(json_path):
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    self.spz_index = data.get("by_spz", {})
+                    self.ev_index = data.get("by_ev", {})
+                    loaded_json = True
+                    print(f"[FleetService] Uspesne nacitana lokalna databaza z JSON ({json_path}): {len(self.spz_index)} SPZ, {len(self.ev_index)} ev. cisel.")
+            except Exception as e:
+                print(f"[FleetService] Varovanie pri nacitani JSON evidencie: {e}")
+
+        if not loaded_json:
+            self._load_from_csv(self.csv_path)
+
+        # Doplnenie najnovšieho vozového parku DPMK (elektrobusy a nové série)
+        self._inject_modern_fleet()
+
+        # Synchronizácia všetkých manuálnych prepisov a overení do indexov flotily
+        self._sync_overrides_into_indices()
+
+    def _load_from_csv(self, csv_file: str):
+        """Záložné načítanie z CSV, ak nie je k dispozícii JSON."""
+        if not csv_file or not os.path.exists(csv_file):
+            return
+
+        with open(csv_file, "r", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
             fieldnames = reader.fieldnames or []
 
-            # Normalizácia názvov stĺpcov (podpora pre evidencia_fleet.csv aj dpmk_autobusy_komplet.csv)
             spz_col = next((c for c in fieldnames if any(w in c.lower() for w in ["ečv", "ecv", "špz", "spz"])), "ECV / SPZ")
             ev_col = next((c for c in fieldnames if "ev." in c.lower() or "číslo" in c.lower() or "cislo" in c.lower()), "ev. cislo")
             model_col = next((c for c in fieldnames if "typ" in c.lower() or "model" in c.lower()), "typ")
@@ -700,12 +729,10 @@ class FleetService:
                 is_active = not is_retired
 
                 model_raw = (row.get(model_col) or "").strip()
-                # Vyradené historické modely z predošlých dekád neindexujeme
                 if is_retired and not self.is_active_model(model_raw):
                     continue
 
                 norm_model = self.normalize_model_name(model_raw, trakcia=trakcia)
-
                 ev_raw = (row.get(ev_col) or "").strip().replace(".0", "").replace("#", "")
                 spz_raw = (row.get(spz_col) or "").strip()
                 clean_spz = self.normalize_spz(spz_raw)
@@ -726,21 +753,13 @@ class FleetService:
                     "url": row.get("url")
                 }
 
-                # Indexácia podľa normalizovanej ŠPZ (aktívne vozidlá majú prednosť pri prepise)
                 if clean_spz:
                     if is_active or clean_spz not in self.spz_index:
                         self.spz_index[clean_spz] = item
 
-                # Indexácia podľa evidenčného čísla (aktívne vozidlá majú prednosť)
                 if ev_raw:
                     if is_active or ev_raw not in self.ev_index:
                         self.ev_index[ev_raw] = item
-
-        # Doplnenie najnovšieho vozového parku DPMK (elektrobusy a nové série)
-        self._inject_modern_fleet()
-
-        # Synchronizácia všetkých manuálnych prepisov a overení do indexov flotily
-        self._sync_overrides_into_indices()
 
     def _inject_modern_fleet(self):
         """
@@ -1045,10 +1064,10 @@ class FleetService:
                 self.spz_index[clean] = item
                 if ev_num:
                     self.ev_index[ev_num] = item
-                print(f"[FleetService] Online lookup úspešný pre ŠPZ {clean}: ev. č. {ev_num}, model {norm_model}")
+                print(f"[FleetService] Online lookup uspesny pre SPZ {clean}: ev. c. {ev_num}, model {norm_model}")
                 return item
         except Exception as e:
-            print(f"[FleetService] Chyba pri online lookup pre ŠPZ {spz}: {e}")
+            print(f"[FleetService] Chyba pri online lookup pre SPZ {spz}: {e}")
         return None
 
     def get_by_spz(self, spz: str, only_active: bool = False) -> Optional[Dict[str, Any]]:

@@ -19,7 +19,7 @@ print("=" * 70)
 
 # 1. Inicializácia FleetService a DpmkLiveFeed
 t0 = time.time()
-fleet = FleetService(csv_path="data/evidencia_fleet.csv")
+fleet = FleetService()
 feed = DpmkLiveFeed(fleet_service=fleet)
 init_time = round(time.time() - t0, 3)
 
