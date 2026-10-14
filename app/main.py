@@ -40,7 +40,8 @@ DISCORD_WEBHOOK_URL = os.getenv(
 # Cesty k súborom
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
-CSV_PATH = os.path.join(PROJECT_DIR, "data", "dpmk_autobusy_komplet.csv")
+EVIDENCIA_CSV = os.path.join(PROJECT_DIR, "data", "evidencia_fleet.csv")
+CSV_PATH = EVIDENCIA_CSV if os.path.exists(EVIDENCIA_CSV) else os.path.join(PROJECT_DIR, "data", "dpmk_autobusy_komplet.csv")
 MAP_PATH = os.path.join(PROJECT_DIR, "mapa.html")
 HISTORICAL_TRACK_PATH = os.path.join(PROJECT_DIR, "data", "historical_track.geojson")
 MANIFEST_PATH = os.path.join(PROJECT_DIR, "manifest.json")

@@ -50,8 +50,10 @@ class DpmkLiveFeed:
         self.delay_hotspots: List[Dict[str, Any]] = []
 
         # In-memory TTL vyrovnávacia pamäť pre reálne dispečerské dáta jázd (tripID -> ŠPZ / stav)
-        # Umožňuje získať skutočnú ŠPZ z /navigation/vehicles/get_real bez opakovanej záťaže
-        self._trip_real_cache: Dict[Any, Dict[str, Any]] = {}
+        # TTL 45 minút (2700 sekúnd), aby sme dispečerský upstream nezaťažovali opakovane
+        self._trip_license_cache: Dict[Any, Dict[str, Any]] = {}
+        self._trip_license_cache_ttl: float = 45 * 60.0  # 2700 sekúnd
+        self._trip_real_cache = self._trip_license_cache  # Spätná kompatibilita
 
     def set_fleet_service(self, fleet_service: Any):
         """Prepojí live feed so službou FleetService pre okamžité aplikovanie overených prepisov."""
@@ -66,11 +68,12 @@ class DpmkLiveFeed:
     ) -> Optional[Dict[str, Any]]:
         """
         Stiahne detailné dispečerské dáta vozidla (vrátane reálnej ŠPZ / čísla električky)
-        priamo z Ubian endpointu /navigation/vehicles/get_real.
+        z dpmk-odchody.ubian.sk (alebo ubian.sk) endpointu /navigation/vehicles/get_real
+        a /navigation/stops/planned_departures.
         """
         if not trip_id:
             return None
-        url = f"{self.UBIAN_BASE_URL}/navigation/vehicles/get_real?tripID={trip_id}"
+        url = f"https://dpmk-odchody.ubian.sk/navigation/vehicles/get_real?tripID={trip_id}"
         if firma_id:
             url += f"&firmaID={firma_id}"
         if line:
@@ -80,19 +83,23 @@ class DpmkLiveFeed:
 
         req = urllib.request.Request(url, headers=self.headers)
         try:
-            with urllib.request.urlopen(req, timeout=3.5) as response:
+            with urllib.request.urlopen(req, timeout=4.0) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                veh = data.get("vehicle")
+                if veh:
+                    return veh
+        except Exception:
+            pass
+
+        try:
+            # Fallback na www.ubian.sk
+            alt_url = url.replace("dpmk-odchody.ubian.sk", "www.ubian.sk")
+            req_alt = urllib.request.Request(alt_url, headers=self.headers)
+            with urllib.request.urlopen(req_alt, timeout=4.0) as response:
                 data = json.loads(response.read().decode("utf-8"))
                 return data.get("vehicle")
         except Exception:
-            try:
-                # Fallback na dpmk-odchody.ubian.sk
-                alt_url = url.replace("www.ubian.sk", "dpmk-odchody.ubian.sk")
-                req_alt = urllib.request.Request(alt_url, headers=self.headers)
-                with urllib.request.urlopen(req_alt, timeout=3.5) as response:
-                    data = json.loads(response.read().decode("utf-8"))
-                    return data.get("vehicle")
-            except Exception:
-                return None
+            return None
 
     def _fetch_center_vehicles(self, center: tuple) -> List[Dict[str, Any]]:
         """Stiahne vozidlá pre jeden geografický bod/centrum."""
@@ -144,7 +151,7 @@ class DpmkLiveFeed:
                     last_comm = now_iso
 
                 # Extrakcia ŠPZ/EČV z Ubianu (podpora všetkých možných kľúčov v telemetrii)
-                ubian_spz = (
+                raw_spz = (
                     raw.get("licenseNumber")
                     or raw.get("plateNumber")
                     or raw.get("ecv")
@@ -154,6 +161,11 @@ class DpmkLiveFeed:
                     or trip.get("ecv")
                     or trip.get("spz")
                 )
+                ubian_spz = None
+                if raw_spz:
+                    clean_s = str(raw_spz).strip().replace("#", "")
+                    if clean_s and clean_s.upper() not in ("", "NONE", "NULL", "ASI", "NAN"):
+                        ubian_spz = clean_s
 
                 # Extrakcia modelu / typu z Ubianu
                 ubian_model = (
@@ -219,38 +231,62 @@ class DpmkLiveFeed:
         missing_real_trips = []
         for dedup_key, veh in unique_vehicles.items():
             tid = veh.get("trip_id")
-            if not veh.get("license_number") and tid:
-                cached_real = self._trip_real_cache.get(tid)
-                if cached_real and (now_time - cached_real.get("timestamp", 0) < 600):  # 10 min TTL
-                    real_veh = cached_real.get("vehicle") or {}
-                    real_lic = real_veh.get("licenseNumber")
-                    if real_lic:
-                        veh["license_number"] = str(real_lic).strip()
-                        if real_veh.get("lastStopOrder") is not None and not veh.get("last_stop_order"):
-                            veh["last_stop_order"] = real_veh["lastStopOrder"]
-                else:
-                    missing_real_trips.append((dedup_key, tid, veh.get("line"), veh.get("trip_number")))
+            cur_lic = veh.get("license_number")
+            # Ak vozidlo nemá platnú ŠPZ, pokúsime sa ju vytiahnuť z cache alebo naplánovať stiahnutie
+            if not cur_lic or str(cur_lic).strip().upper() in ("", "NONE", "NULL", "ASI", "NAN"):
+                cached_item = self._trip_license_cache.get(tid) if tid else None
+                if not cached_item and dedup_key:
+                    cached_item = self._trip_license_cache.get(dedup_key)
+
+                if cached_item and (now_time - cached_item.get("timestamp", 0) < self._trip_license_cache_ttl):
+                    cached_lic = cached_item.get("license_number")
+                    if cached_lic:
+                        veh["license_number"] = cached_lic
+                        if cached_item.get("last_stop_order") is not None and not veh.get("last_stop_order"):
+                            veh["last_stop_order"] = cached_item["last_stop_order"]
+                elif tid:
+                    missing_real_trips.append((dedup_key, tid, veh.get("line"), veh.get("trip_number"), veh.get("vehicle_id")))
 
         if missing_real_trips:
             def fetch_single(item):
-                dkey, tid, line, trip_num = item
+                dkey, tid, line, trip_num, vid = item
                 res = self._fetch_real_vehicle_state(trip_id=tid, firma_id=1000, line=line, trip_number=trip_num)
-                return dkey, tid, res
+                return dkey, tid, vid, res
 
-            with ThreadPoolExecutor(max_workers=min(10, len(missing_real_trips))) as executor:
-                for dkey, tid, real_veh in executor.map(fetch_single, missing_real_trips):
+            max_w = min(25, max(1, len(missing_real_trips)))
+            with ThreadPoolExecutor(max_workers=max_w) as executor:
+                for dkey, tid, vid, real_veh in executor.map(fetch_single, missing_real_trips):
                     if real_veh:
-                        self._trip_real_cache[tid] = {"timestamp": now_time, "vehicle": real_veh}
-                        real_lic = real_veh.get("licenseNumber")
-                        if real_lic and dkey in unique_vehicles:
-                            unique_vehicles[dkey]["license_number"] = str(real_lic).strip()
-                            if real_veh.get("lastStopOrder") is not None and not unique_vehicles[dkey].get("last_stop_order"):
-                                unique_vehicles[dkey]["last_stop_order"] = real_veh["lastStopOrder"]
+                        raw_lic = real_veh.get("licenseNumber") or real_veh.get("plannedOrRealLicenceNumber") or real_veh.get("plateNumber")
+                        clean_lic = None
+                        if raw_lic:
+                            s = str(raw_lic).strip().replace("#", "")
+                            if s and s.upper() not in ("", "NONE", "NULL", "ASI", "NAN"):
+                                clean_lic = s
 
-        # Automatické prečistenie starých záznamov v _trip_real_cache
-        if len(self._trip_real_cache) > 200:
-            cutoff = now_time - 1800
-            self._trip_real_cache = {k: v for k, v in self._trip_real_cache.items() if v.get("timestamp", 0) > cutoff}
+                        stop_order = real_veh.get("lastStopOrder")
+                        cache_entry = {
+                            "timestamp": now_time,
+                            "license_number": clean_lic,
+                            "last_stop_order": stop_order,
+                            "vehicle": real_veh
+                        }
+                        if tid:
+                            self._trip_license_cache[tid] = cache_entry
+                        if dkey:
+                            self._trip_license_cache[dkey] = cache_entry
+                        if vid:
+                            self._trip_license_cache[vid] = cache_entry
+
+                        if clean_lic and dkey in unique_vehicles:
+                            unique_vehicles[dkey]["license_number"] = clean_lic
+                            if stop_order is not None and not unique_vehicles[dkey].get("last_stop_order"):
+                                unique_vehicles[dkey]["last_stop_order"] = stop_order
+
+        # Automatické prečistenie starých záznamov v _trip_license_cache (> 45 minút)
+        if len(self._trip_license_cache) > 500:
+            cutoff = now_time - self._trip_license_cache_ttl
+            self._trip_license_cache = {k: v for k, v in self._trip_license_cache.items() if v.get("timestamp", 0) > cutoff}
 
         # Spracovanie nárastu meškania (delay_delta) a zaznamenanie ohnísk vzniku zápch
         now_ts = time.time()

@@ -1,11 +1,38 @@
 {
-  "KE811JF": {
-    "spz": "KE811JF",
-    "evidencne_cislo": "4755",
+  "KE929CM": {
+    "spz": "KE929CM",
+    "evidencne_cislo": "3519",
+    "model": "Solaris Urbino 15 II",
+    "rok_vyroby": "2002",
+    "vin": "SU93412012BPN1038",
+    "url": "https://evidencia-dopravcov.eu/voz/13625",
+    "source": "evidencia-dopravcov.eu"
+  },
+  "EL746CC": {
+    "spz": "EL746CC",
+    "evidencne_cislo": "4909",
+    "model": "SOR NS 18 Electric",
+    "rok_vyroby": "2026",
+    "vin": "TK9S8ENX1SLSL5018",
+    "url": "https://evidencia-dopravcov.eu/voz/40944",
+    "source": "evidencia-dopravcov.eu"
+  },
+  "KE832OC": {
+    "spz": "KE832OC",
+    "evidencne_cislo": "4780",
     "model": "SOR NB 18 City",
-    "rok_vyroby": "2013",
-    "vin": "TK9F8XXA8DLSL5399",
-    "url": "https://evidencia-dopravcov.eu/voz/15035",
+    "rok_vyroby": "2021",
+    "vin": "TK9F8XXNPMLSL5935",
+    "url": "https://evidencia-dopravcov.eu/voz/31058",
+    "source": "evidencia-dopravcov.eu"
+  },
+  "AA355EV": {
+    "spz": "AA355EV",
+    "evidencne_cislo": "5802",
+    "model": "SOR NSG 12",
+    "rok_vyroby": "2023",
+    "vin": "TK9S2XXWUPLSL5316",
+    "url": "https://evidencia-dopravcov.eu/voz/35886",
     "source": "evidencia-dopravcov.eu"
   },
   "EL739CC": {
