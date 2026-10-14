@@ -50,6 +50,26 @@ def normalize_model(raw_model: Optional[str], trakcia: str = "") -> str:
         return "Tatra KT8D5.RN2"
     if "T6A5" in m:
         return "Tatra T6A5"
+    if "EBN 10,5" in m or "EBN 10.5" in m:
+        return "SOR EBN 10.5"
+    if "EBN 11" in m:
+        return "SOR EBN 11"
+    if "NS 18 Electric" in m:
+        return "SOR NS 18 Electric"
+    if "NSG 18" in m:
+        return "SOR NSG 18"
+    if "NSG 12" in m:
+        return "SOR NSG 12"
+    if "NB 18" in m:
+        return "SOR NB 18 City"
+    if "NB 12" in m:
+        return "SOR NB 12 City"
+    if "18.75" in m or "18,75" in m:
+        return "Solaris Urbino 18,75 III"
+    if "Urbino 18" in m and "18," not in m and "18." not in m:
+        return "Solaris Urbino 18 III"
+    if "Urbino 15" in m:
+        return "Solaris Urbino 15"
     # Desatinná čiarka v označeniach SOR (napr. SOR BN 9,5 -> SOR BN 9.5)
     m = m.replace(",5", ".5")
     return m
@@ -80,7 +100,7 @@ def sync_fleet(
 
     raw_records: List[Dict[str, Any]] = []
 
-    for trakcia in ["autobus", "tramvaj"]:
+    for trakcia in ["autobus", "tramvaj", "elektrobus"]:
         page = 1
         print(f"\n[INFO] Sťahujem kategóriu: {trakcia.upper()}...")
         while True:
@@ -127,7 +147,7 @@ def sync_fleet(
                     is_active = not bool(vyradenie and str(vyradenie).lower() not in ("", "nan", "none"))
 
                     raw_records.append({
-                        "trakcia": "elektricka" if trakcia == "tramvaj" else "autobus",
+                        "trakcia": "elektricka" if trakcia == "tramvaj" else ("elektrobus" if trakcia == "elektrobus" else "autobus"),
                         "spz": spz if spz else None,
                         "clean_spz": clean_spz if clean_spz else None,
                         "evidencne_cislo": clean_ev if clean_ev else None,
@@ -151,7 +171,7 @@ def sync_fleet(
 
     print(f"\n[OK] Celkovo stiahnutých {len(raw_records)} vozidiel z webu.")
 
-    # 1. Zostavenie indexov (aktívne vozidlá majú absolútnu prednosť)
+    # 1. Zostavenie indexov (aktívne vozidlá a novšie ročníky majú prednosť)
     by_spz: Dict[str, Dict[str, Any]] = {}
     by_ev: Dict[str, Dict[str, Any]] = {}
 
@@ -174,30 +194,95 @@ def sync_fleet(
 
         # Indexovanie podľa ŠPZ
         if clean_spz:
-            if is_active or clean_spz not in by_spz:
+            existing = by_spz.get(clean_spz)
+            if not existing:
                 by_spz[clean_spz] = item
+            elif is_active and not existing.get("is_active"):
+                by_spz[clean_spz] = item
+            elif is_active == existing.get("is_active"):
+                ey = int(existing.get("rok_vyroby") or 0)
+                ny = int(item.get("rok_vyroby") or 0)
+                if ny >= ey:
+                    by_spz[clean_spz] = item
 
         # Indexovanie podľa evidenčného čísla
         if ev:
-            if is_active or ev not in by_ev:
+            existing = by_ev.get(ev)
+            if not existing:
                 by_ev[ev] = item
+            elif is_active and not existing.get("is_active"):
+                by_ev[ev] = item
+            elif is_active == existing.get("is_active"):
+                ey = int(existing.get("rok_vyroby") or 0)
+                ny = int(item.get("rok_vyroby") or 0)
+                if ny >= ey:
+                    by_ev[ev] = item
 
-    # 2. Doplnenie najnovších novododaných vozidiel (SOR NS 18 Electric 4901-4911 a pod.)
+    # 2. Doplnenie a garancia najnovších moderných vozidiel DPMK
     modern_additions = [
-        ("4901", "EL-748CC", "SOR NS 18 Electric", "2026", "autobus"),
-        ("4902", "EL-734CC", "SOR NS 18 Electric", "2026", "autobus"),
-        ("4903", "EL-739CC", "SOR NS 18 Electric", "2026", "autobus"),
-        ("4904", "EL-729CC", "SOR NS 18 Electric", "2026", "autobus"),
-        ("4905", "EL-737CC", "SOR NS 18 Electric", "2026", "autobus"),
-        ("4906", "EL-715CC", "SOR NS 18 Electric", "2026", "autobus"),
-        ("4907", "EL-713CC", "SOR NS 18 Electric", "2026", "autobus"),
-        ("4908", "EL-513CB", "SOR NS 18 Electric", "2026", "autobus"),
-        ("4909", "EL-746CC", "SOR NS 18 Electric", "2026", "autobus"),
-        ("4910", "EL-736CC", "SOR NS 18 Electric", "2026", "autobus"),
-        ("4911", "EL-735CC", "SOR NS 18 Electric", "2026", "autobus"),
+        # SOR NS 18 Electric (4901 - 4911)
+        ("4901", "EL-748CC", "SOR NS 18 Electric", "2026", "elektrobus"),
+        ("4902", "EL-734CC", "SOR NS 18 Electric", "2026", "elektrobus"),
+        ("4903", "EL-739CC", "SOR NS 18 Electric", "2026", "elektrobus"),
+        ("4904", "EL-729CC", "SOR NS 18 Electric", "2026", "elektrobus"),
+        ("4905", "EL-737CC", "SOR NS 18 Electric", "2026", "elektrobus"),
+        ("4906", "EL-715CC", "SOR NS 18 Electric", "2026", "elektrobus"),
+        ("4907", "EL-713CC", "SOR NS 18 Electric", "2026", "elektrobus"),
+        ("4908", "EL-513CB", "SOR NS 18 Electric", "2026", "elektrobus"),
+        ("4909", "EL-746CC", "SOR NS 18 Electric", "2026", "elektrobus"),
+        ("4910", "EL-736CC", "SOR NS 18 Electric", "2026", "elektrobus"),
+        ("4911", "EL-735CC", "SOR NS 18 Electric", "2026", "elektrobus"),
+        # SOR NSG 18 (4801) & SOR NSG 12 (5802, 5803)
         ("4801", "AA-403EV", "SOR NSG 18", "2024", "autobus"),
         ("5802", "AA-355EV", "SOR NSG 12", "2024", "autobus"),
         ("5803", "AA-362EV", "SOR NSG 12", "2024", "autobus"),
+        # SOR EBN 10.5 (6801 - 6805)
+        ("6801", "KE-260JI", "SOR EBN 10.5", "2014", "elektrobus"),
+        ("6802", "KE-485JH", "SOR EBN 10.5", "2014", "elektrobus"),
+        ("6803", "KE-991JH", "SOR EBN 10.5", "2014", "elektrobus"),
+        ("6804", "KE-268JI", "SOR EBN 10.5", "2014", "elektrobus"),
+        ("6805", "KE-270JI", "SOR EBN 10.5", "2014", "elektrobus"),
+        # SOR EBN 11 (6901 - 6918)
+        ("6901", "KE-975OT", "SOR EBN 11", "2016", "elektrobus"),
+        ("6902", "KE-732KF", "SOR EBN 11", "2016", "elektrobus"),
+        ("6903", "KE-001KG", "SOR EBN 11", "2016", "elektrobus"),
+        ("6904", "KE-721KF", "SOR EBN 11", "2016", "elektrobus"),
+        ("6905", "KE-360KH", "SOR EBN 11", "2016", "elektrobus"),
+        ("6906", "KE-395KH", "SOR EBN 11", "2016", "elektrobus"),
+        ("6907", "KE-454KI", "SOR EBN 11", "2016", "elektrobus"),
+        ("6908", "KE-180KI", "SOR EBN 11", "2016", "elektrobus"),
+        ("6909", "KE-442KI", "SOR EBN 11", "2016", "elektrobus"),
+        ("6910", "KE-310LH", "SOR EBN 11", "2016", "elektrobus"),
+        ("6911", "KE-340LH", "SOR EBN 11", "2016", "elektrobus"),
+        ("6912", "KE-256LH", "SOR EBN 11", "2016", "elektrobus"),
+        ("6913", "KE-952LG", "SOR EBN 11", "2016", "elektrobus"),
+        ("6914", "KE-909LG", "SOR EBN 11", "2016", "elektrobus"),
+        ("6915", "KE-885LG", "SOR EBN 11", "2016", "elektrobus"),
+        ("6916", "KE-122LH", "SOR EBN 11", "2016", "elektrobus"),
+        ("6917", "KE-262LH", "SOR EBN 11", "2016", "elektrobus"),
+        ("6918", "KE-030LH", "SOR EBN 11", "2016", "elektrobus"),
+        # Solaris Urbino 18,75 III (3906 - 3920)
+        ("3906", "AA-086UO", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3907", "AA-135UO", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3908", "AA-156TY", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3909", "AA-136UO", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3910", "AA-278TY", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3911", "AA-104TY", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3912", "AA-963SL", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3913", "AA-930SL", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3914", "AA-727UU", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3915", "AA-223TY", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3916", "AA-728UU", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3917", "AA-161UO", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3918", "AA-205UO", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3919", "AA-265TY", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        ("3920", "AA-267TY", "Solaris Urbino 18,75 III", "2014", "autobus"),
+        # Solaris Urbino 18 III (3901 - 3905)
+        ("3901", "KE-069EU", "Solaris Urbino 18 III", "2010", "autobus"),
+        ("3902", "KE-074EU", "Solaris Urbino 18 III", "2010", "autobus"),
+        ("3903", "KE-084EU", "Solaris Urbino 18 III", "2010", "autobus"),
+        ("3904", "KE-086EU", "Solaris Urbino 18 III", "2010", "autobus"),
+        ("3905", "KE-088EU", "Solaris Urbino 18 III", "2010", "autobus"),
     ]
     for ev, spz, model, rok, trak in modern_additions:
         clean_spz = normalize_spz(spz)

@@ -729,6 +729,74 @@ def get_delay_hotspots(
     }
 
 
+def deduplicate_vehicles(vehicles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Striktná deduplikácia vozidiel pre zamedzenie duplicít na mape a v telemetrii:
+    - V odpovedi pre mapu sa NIKDY neocitnú dve vozidlá s rovnakým evidencne_cislo.
+    - Ak Ubian alebo dispečing posiela duplicitné záznamy (napr. to isté vozidlo na viacerých spojoch/tripID),
+      ponechá len to s najčerstvejším last_communication (najaktuálnejšou telemetriou),
+      staršie duplikáty nemilosrdne zahodí.
+    - Rovnako deduplikuje podľa reálnej ŠPZ (license_number).
+    """
+    if not vehicles:
+        return []
+
+    def _sort_key(v: Dict[str, Any]) -> tuple:
+        last_comm = v.get("last_communication")
+        ts = 0.0
+        if last_comm:
+            try:
+                comm_str = str(last_comm).replace("Z", "+00:00")
+                ts = datetime.fromisoformat(comm_str).timestamp()
+            except Exception:
+                ts = 0.0
+        is_active = 0 if v.get("is_inactive") else 1
+        has_pos = 1 if (v.get("latitude") and v.get("longitude")) else 0
+        stop_order = int(v.get("last_stop_order") or 0)
+        return (ts, is_active, has_pos, stop_order)
+
+    # Zoradíme od najčerstvejšieho záznamu (najvyššie ts a aktivita)
+    sorted_vehicles = sorted(vehicles, key=_sort_key, reverse=True)
+
+    seen_evs = set()
+    seen_spzs = set()
+    seen_vids = set()
+    unique_vehicles = []
+
+    for v in sorted_vehicles:
+        vid = str(v.get("vehicle_id") or "").strip().replace("#", "")
+        ev = str(v.get("evidencne_cislo") or (v.get("fleet_info") or {}).get("evidencne_cislo") or "").strip().replace("#", "")
+        if ev.lower() in ("", "none", "null", "nan"):
+            ev = None
+
+        spz = str(v.get("license_number") or (v.get("fleet_info") or {}).get("spz") or "").strip().replace("-", "").replace(" ", "").upper()
+        if len(spz) < 4 or not any(c.isdigit() for c in spz) or not any(c.isalpha() for c in spz):
+            spz = None
+
+        # 1. Ignorujeme duplikát podľa vehicle_id
+        if vid and vid in seen_vids:
+            continue
+
+        # 2. Ignorujeme duplikát podľa evidenčného čísla (starší/menej aktuálny záznam)
+        if ev and ev in seen_evs:
+            continue
+
+        # 3. Ignorujeme duplikát podľa ŠPZ
+        if spz and spz in seen_spzs:
+            continue
+
+        if vid:
+            seen_vids.add(vid)
+        if ev:
+            seen_evs.add(ev)
+        if spz:
+            seen_spzs.add(spz)
+
+        unique_vehicles.append(v)
+
+    return unique_vehicles
+
+
 @app.get("/api/v1/vehicles/live")
 def get_live_vehicles(
     only_matched: bool = Query(False, description="Filtrovať len vozidlá so spárovanou ŠPZ a modelom"),
@@ -775,12 +843,24 @@ def get_live_vehicles(
                     item_copy["license_number"] = matched_ov["spz"]
                     if item_copy.get("fleet_info"):
                         item_copy["fleet_info"]["spz"] = matched_ov["spz"]
-                item_copy["is_verified"] = True
-                item_copy["verified"] = True
+                item_copy["is_verified"] = is_ver
+                item_copy["verified"] = is_ver
                 if item_copy.get("fleet_info"):
-                    item_copy["fleet_info"]["is_verified"] = True
-                    item_copy["fleet_info"]["verified"] = True
+                    item_copy["fleet_info"]["is_verified"] = is_ver
+                    item_copy["fleet_info"]["verified"] = is_ver
+
+            # Garancia série DPMK
+            c_ev = str(item_copy.get("evidencne_cislo") or "").strip().replace("#", "")
+            if c_ev:
+                series_m = fleet_service.get_series_model(c_ev)
+                if series_m and (not is_ver or item_copy.get("model") in ["Autobus DPMK", "Električka DPMK"] or ("Solaris" in str(item_copy.get("model")) and c_ev.startswith("47"))):
+                    item_copy["model"] = series_m
+                    if item_copy.get("fleet_info"):
+                        item_copy["fleet_info"]["model"] = series_m
+
             sanitized_fallback.append(item_copy)
+
+        sanitized_fallback = deduplicate_vehicles(sanitized_fallback)
 
         return {
             "status": "ok",
@@ -822,10 +902,10 @@ def get_live_vehicles(
         # 3. NAJVYŠŠIA AUTORITA PRAVDY: Overenie a získanie overrides s absolútnou prioritou
         final_ev = (fleet_data.get("evidencne_cislo") if fleet_data else None) or ubian_ev
         override = fleet_service.get_override(vehicle_id=s_vid, ev_cislo=final_ev, license_number=ubian_spz)
-        is_verified = bool(fleet_service.is_vehicle_verified(vehicle_id=s_vid, ev_cislo=final_ev, license_number=ubian_spz) or (fleet_data and fleet_data.get("is_verified")))
+        is_override_verified = bool(fleet_service.is_vehicle_verified(vehicle_id=s_vid, ev_cislo=final_ev, license_number=ubian_spz))
 
-        if override or is_verified:
-            ov = override or fleet_data or {}
+        if override and is_override_verified:
+            ov = override
             final_ev = ov.get("evidencne_cislo") or final_ev
             final_rok = ov.get("rok_vyroby") or (fleet_data.get("rok_vyroby") if fleet_data else None)
             final_vin = ov.get("vin") or ubian_vin or (fleet_data.get("vin") if fleet_data else None)
@@ -853,6 +933,15 @@ def get_live_vehicles(
                     final_model = "Autobus DPMK"
 
                 final_spz = (fleet_data.get("spz") if fleet_data else None) or ubian_spz
+            is_verified = bool(fleet_data and fleet_data.get("is_verified"))
+
+        # Garancia modelu podľa oficiálnej série DPMK
+        if final_ev:
+            clean_ev_check = str(final_ev).strip().replace("#", "")
+            series_model = fleet_service.get_series_model(clean_ev_check)
+            if series_model:
+                if not (override and is_override_verified) or final_model in ["Autobus DPMK", "Električka DPMK"] or ("Solaris" in str(final_model) and clean_ev_check.startswith("47")):
+                    final_model = series_model
 
         # Typ vozidla - fallback ak nie je konkrétny model
         line_type = str(v.get("line_type") or "").upper()
@@ -954,6 +1043,10 @@ def get_live_vehicles(
 
         if not only_matched or is_matched:
             enriched_vehicles.append(item)
+
+    # Striktná deduplikácia vozidiel pre zamedzenie duplicít na mape
+    enriched_vehicles = deduplicate_vehicles(enriched_vehicles)
+    matched_count = sum(1 for v in enriched_vehicles if v.get("matched"))
 
     if is_live and enriched_vehicles:
         LAST_SEEN_CACHE = enriched_vehicles

@@ -1038,7 +1038,7 @@ class FleetService:
         license_number: Optional[str] = None
     ) -> bool:
         """
-        Zistí, či je vozidlo overené (nachádza sa v MANUAL_OVERRIDES resp. má verified: true).
+        Zistí, či je vozidlo overené (nachádza sa v MANUAL_OVERRIDES a má verified: True / is_verified: True).
         Ostatné vozidlá majú is_verified = False.
         """
         ov = self.get_override(vehicle_id=vehicle_id, ev_cislo=ev_cislo, license_number=license_number)
@@ -1046,7 +1046,70 @@ class FleetService:
             return False
         if "verified" in ov:
             return bool(ov["verified"])
-        return True
+        if "is_verified" in ov:
+            return bool(ov["is_verified"])
+        return False
+
+    @staticmethod
+    def get_series_model(ev_num: Optional[str]) -> Optional[str]:
+        """
+        Vráti autoritatívny model podľa oficiálneho číslovania sérií DPMK:
+          • Séria 47xx (4701 – 4786) = SOR NB 18 City
+          • Séria 57xx (5701 – 5761) = SOR NB 12 City
+          • Séria 39xx (3901 – 3905: Solaris Urbino 18 III, 3906 – 3920: Solaris Urbino 18,75 III)
+          • Séria 35xx (3501 – 3535) = Solaris Urbino 15
+          • Séria 48xx (4801) = SOR NSG 18
+          • Séria 49xx (4901 – 4911) = SOR NS 18 Electric
+          • Séria 58xx (5802 – 5803) = SOR NSG 12
+          • Séria 68xx (6801 – 6805) = SOR EBN 10.5
+          • Séria 69xx (6901 – 6918) = SOR EBN 11
+          • Séria 8xx (801 – 846) = Vario LF2+
+          • Séria 6xx (600 – 629) = Tatra T6A5
+          • Séria 5xx = Tatra KT8D5.RN2
+        """
+        if not ev_num:
+            return None
+        s = str(ev_num).strip().replace("#", "")
+        if not s.isdigit():
+            return None
+        n = int(s)
+        # Séria 47xx (4701 - 4786)
+        if 4701 <= n <= 4786 or (s.startswith("47") and len(s) == 4):
+            return "SOR NB 18 City"
+        # Séria 57xx (5701 - 5761)
+        if 5701 <= n <= 5761 or (s.startswith("57") and len(s) == 4):
+            return "SOR NB 12 City"
+        # Séria 39xx
+        if 3901 <= n <= 3905:
+            return "Solaris Urbino 18 III"
+        if 3906 <= n <= 3920 or (s.startswith("39") and len(s) == 4):
+            return "Solaris Urbino 18,75 III"
+        # Séria 35xx
+        if 3501 <= n <= 3535 or (s.startswith("35") and len(s) == 4):
+            return "Solaris Urbino 15"
+        # Séria 48xx
+        if n == 4801 or (s.startswith("48") and len(s) == 4):
+            return "SOR NSG 18"
+        # Séria 49xx
+        if 4901 <= n <= 4911 or (s.startswith("49") and len(s) == 4):
+            return "SOR NS 18 Electric"
+        # Séria 58xx
+        if 5801 <= n <= 5810 or (s.startswith("58") and len(s) == 4):
+            return "SOR NSG 12"
+        # Séria 68xx
+        if 6801 <= n <= 6805 or (s.startswith("68") and len(s) == 4):
+            return "SOR EBN 10.5"
+        # Séria 69xx
+        if 6901 <= n <= 6918 or (s.startswith("69") and len(s) == 4):
+            return "SOR EBN 11"
+        # Električky DPMK
+        if 801 <= n <= 846:
+            return "Vario LF2+"
+        if 600 <= n <= 629:
+            return "Tatra T6A5"
+        if n in (500, 508, 509, 512, 513, 517, 521, 522, 523, 525, 528, 529, 531, 534, 536, 537, 538):
+            return "Tatra KT8D5.RN2"
+        return None
 
     RETIRED_MODELS = (
         "Karosa", "Ikarus", "Škoda", "Jelcz", "Chavdar", "TAM", 
@@ -1258,7 +1321,7 @@ class FleetService:
         )
 
         # =====================================================================
-        # 1. STUPEŇ: MANUAL_OVERRIDES (Najvyššia autorita pravdy)
+        # 1. STUPEŇ: MANUAL_OVERRIDES (Najvyššia autorita pravdy - IBA OVERENÉ)
         # =====================================================================
         override = None
         if s_vid and s_vid in self.MANUAL_OVERRIDES:
@@ -1268,9 +1331,15 @@ class FleetService:
         else:
             override = self.get_override(vehicle_id=s_vid, ev_cislo=raw_ev, license_number=raw_lic)
 
-        if override:
+        # Override má najvyššiu prioritu iba vtedy, ak je overený administrátorom/dispečerom
+        is_override_verified = bool(override and (override.get("verified") or override.get("is_verified")))
+
+        if override and is_override_verified:
             final_ev = str(override.get("evidencne_cislo") or raw_ev or s_vid).strip().replace("#", "")
-            final_model = override.get("model") or ("Električka DPMK" if is_tram_veh else "Autobus DPMK")
+            series_m = self.get_series_model(final_ev)
+            final_model = override.get("model") or series_m or ("Električka DPMK" if is_tram_veh else "Autobus DPMK")
+            if series_m and final_model in ["Autobus DPMK", "Električka DPMK"]:
+                final_model = series_m
             final_spz = None if is_tram_veh else override.get("spz")
             final_rok = override.get("rok_vyroby")
             final_vin = override.get("vin")
@@ -1328,7 +1397,8 @@ class FleetService:
 
             if tram_ev:
                 fleet_item = self.ev_index.get(tram_ev)
-                tram_model = fleet_item.get("model") if fleet_item else None
+                series_m = self.get_series_model(tram_ev)
+                tram_model = series_m or (fleet_item.get("model") if fleet_item else None)
                 if not tram_model:
                     try:
                         num = int(tram_ev)
@@ -1385,7 +1455,8 @@ class FleetService:
                     bus_match = self.get_by_spz(norm_spz, only_active=True)
                     if bus_match:
                         ev_num = bus_match.get("evidencne_cislo")
-                        bus_model = bus_match.get("model") or "Autobus DPMK"
+                        series_m = self.get_series_model(ev_num)
+                        bus_model = series_m or bus_match.get("model") or "Autobus DPMK"
                         formatted_spz = bus_match.get("spz") or raw_lic
                         bus_res = {
                             "evidencne_cislo": ev_num,
