@@ -49,7 +49,7 @@ assert res_test2_updated["model"] == "Model Two"
 assert res_test2_updated["spz"] == "KE-888AA", f"Plate should be preserved! Got {res_test2_updated['spz']}"
 
 # Clean up test overrides
-for tv in [test_vid, test_vid2]:
+for tv in [test_vid, test_vid2, "7777", "8888", "90001"]:
     if tv in fs.MANUAL_OVERRIDES:
         del fs.MANUAL_OVERRIDES[tv]
     if tv in fs.TRANSDATA_MAPPING:

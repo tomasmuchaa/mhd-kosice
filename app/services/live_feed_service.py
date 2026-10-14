@@ -27,14 +27,19 @@ class DpmkLiveFeed:
         (48.670, 21.250)   # Barca
     ]
 
-    def __init__(self, radius_km: int = 15):
+    def __init__(self, radius_km: int = 15, fleet_service: Optional[Any] = None):
         self.radius_km = radius_km
+        self.fleet_service = fleet_service
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "Accept": "application/json, text/javascript, */*; q=0.01",
             "X-Requested-With": "XMLHttpRequest",
             "Referer": f"{self.UBIAN_BASE_URL}/"
         }
+
+    def set_fleet_service(self, fleet_service: Any):
+        """Prepojí live feed so službou FleetService pre okamžité aplikovanie overených prepisov."""
+        self.fleet_service = fleet_service
         # In-memory TTL cache pre live vozidlá (ochrana pred DoS a preťažením upstreamu)
         self._live_cache: List[Dict[str, Any]] = []
         self._live_cache_ts: float = 0.0
@@ -300,6 +305,12 @@ class DpmkLiveFeed:
         self.delay_hotspots = [h for h in self.delay_hotspots if h.get("timestamp", 0) >= cutoff]
 
         result_list = list(unique_vehicles.values())
+
+        # Trvalá aplikácia Overrides na prichádzajúce objekty pred uložením do cache alebo odoslaním na frontend
+        if self.fleet_service:
+            for veh in result_list:
+                self.fleet_service.apply_override_to_live_vehicle(veh)
+
         self._live_cache = result_list
         self._live_cache_ts = now_ts
 

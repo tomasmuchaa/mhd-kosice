@@ -145,7 +145,7 @@ app.add_middleware(
 
 # Inicializácia služieb
 fleet_service = FleetService(csv_path=CSV_PATH)
-live_feed = DpmkLiveFeed()
+live_feed = DpmkLiveFeed(fleet_service=fleet_service)
 routing_engine = RoutingEngine(live_feed=live_feed, fleet_service=fleet_service)
 
 # Vynútené uvoľnenie pamäte po načítaní datasetov (optimalizácia RAM pre Northflank)
@@ -739,85 +739,83 @@ def get_live_vehicles(
 
     try:
         raw_vehicles = live_feed.get_live_vehicles()
-        if raw_vehicles:
-            LAST_SEEN_CACHE = raw_vehicles
     except Exception as e:
         # Ak by Ubian zlyhal, použijeme cache
         raw_vehicles = []
 
     # Ak je práve nočná pauza (0 vozidiel online) a máme povolený fallback
     if len(raw_vehicles) == 0 and include_fallback and len(LAST_SEEN_CACHE) > 0:
-        raw_vehicles = LAST_SEEN_CACHE
-        is_live = False
+        return {
+            "status": "ok",
+            "timestamp": datetime.now().isoformat(),
+            "is_live": False,
+            "note": "Nočná pauza DPMK (zobrazená posledná známa telemetria s overenou identitou)",
+            "total_active": len(LAST_SEEN_CACHE),
+            "total_matched": sum(1 for x in LAST_SEEN_CACHE if x.get("matched")),
+            "vehicles": LAST_SEEN_CACHE
+        }
 
     enriched_vehicles = []
     matched_count = 0
 
     for v in raw_vehicles:
-        # 1. Priame dáta z Ubianu majú najvyššiu prioritu (ŠPZ, model, VIN)
+        s_vid = str(v.get("vehicle_id") or "").strip().replace("#", "")
         ubian_spz = v.get("license_number")
         ubian_model = v.get("model")
         ubian_vin = v.get("vehicle_vin")
+        ubian_ev = v.get("evidencne_cislo")
 
-        # 2. Kontrola trakcie a lokálne CSV fleet_info ako autorita pre autobusy
+        # 1. Kontrola trakcie
         is_tram = fleet_service.is_tram(
-            vehicle_id=v.get("vehicle_id"),
+            vehicle_id=s_vid,
             line=v.get("line"),
             line_type=v.get("line_type"),
             raw_vehicle=v
         )
 
-        fleet_data = None
-        if not is_tram and ubian_spz:
-            fleet_data = fleet_service.get_by_spz(ubian_spz, only_active=True)
+        # 2. VŽDY prioritne voláme match_live_vehicle, kde MANUAL_OVERRIDES bezpodmienečne prepisuje raw dáta
+        fleet_data = fleet_service.match_live_vehicle(
+            vehicle_id=s_vid,
+            license_number=ubian_spz,
+            line=v.get("line"),
+            line_type=v.get("line_type"),
+            raw_vehicle=v
+        )
 
-        if not fleet_data:
-            fleet_data = fleet_service.match_live_vehicle(
-                vehicle_id=v["vehicle_id"],
-                license_number=ubian_spz,
-                line=v.get("line"),
-                line_type=v.get("line_type"),
-                raw_vehicle=v
-            )
+        # 3. NAJVYŠŠIA AUTORITA PRAVDY: Overenie a získanie overrides s absolútnou prioritou
+        final_ev = (fleet_data.get("evidencne_cislo") if fleet_data else None) or ubian_ev
+        override = fleet_service.get_override(vehicle_id=s_vid, ev_cislo=final_ev, license_number=ubian_spz)
+        is_verified = fleet_service.is_vehicle_verified(vehicle_id=s_vid, ev_cislo=final_ev, license_number=ubian_spz)
 
-        # Autorita lokálnej databázy (CSV):
-        # Ak sa nám podarí spárovať vozidlo s naším CSV (či už cez ŠPZ, alebo dekódované ev. číslo),
-        # model z nášho CSV musí vždy prepísať model získaný z Ubianu.
-        final_spz = None if is_tram else (ubian_spz or (fleet_data.get("spz") if fleet_data else None))
-        final_ev = fleet_data.get("evidencne_cislo") if fleet_data else None
-        final_rok = fleet_data.get("rok_vyroby") if fleet_data else None
-        final_vin = ubian_vin or (fleet_data.get("vin") if fleet_data else None)
-
-        if is_tram:
-            final_spz = None
-            final_model = (fleet_data.get("model") if fleet_data else None) or ubian_model or "Električka DPMK"
-            if str(final_model).strip().upper() == "TRAM":
-                final_model = "Električka DPMK"
-        else:
-            # Pre autobusy: autorita lokálnej offline databázy (CSV)
-            if fleet_data and fleet_data.get("model"):
-                final_model = fleet_data["model"]
-            elif ubian_model and str(ubian_model).strip().upper() not in ["BUS", "AUTOBUS"]:
-                final_model = ubian_model
-            else:
-                final_model = "Autobus DPMK"
-
-        # 3. NAJVYŠŠIA AUTORITA PRAVDY: MANUAL_OVERRIDES bezpodmienečne prepisuje Ubian aj CSV!
-        is_verified = fleet_service.is_vehicle_verified(vehicle_id=v["vehicle_id"], ev_cislo=final_ev)
-        override = fleet_service.get_override(vehicle_id=v["vehicle_id"], ev_cislo=final_ev)
         if override:
-            if override.get("model"):
-                final_model = override["model"]
-            if override.get("spz") and not is_tram:
-                final_spz = override["spz"]
-            if override.get("evidencne_cislo"):
-                final_ev = override["evidencne_cislo"]
-            if override.get("rok_vyroby"):
-                final_rok = override["rok_vyroby"]
-            if override.get("vin"):
-                final_vin = override["vin"]
+            final_ev = override.get("evidencne_cislo") or final_ev
+            final_rok = override.get("rok_vyroby") or (fleet_data.get("rok_vyroby") if fleet_data else None)
+            final_vin = override.get("vin") or ubian_vin or (fleet_data.get("vin") if fleet_data else None)
+            if is_tram:
+                final_spz = None
+                final_model = override.get("model") or "Električka DPMK"
+            else:
+                final_model = override.get("model") or (fleet_data.get("model") if fleet_data else "Autobus DPMK")
+                final_spz = override.get("spz") or (fleet_data.get("spz") if fleet_data else ubian_spz)
             if override.get("verified") is not None:
                 is_verified = bool(override["verified"])
+        else:
+            final_rok = fleet_data.get("rok_vyroby") if fleet_data else None
+            final_vin = ubian_vin or (fleet_data.get("vin") if fleet_data else None)
+            if is_tram:
+                final_spz = None
+                final_model = (fleet_data.get("model") if fleet_data else None) or ubian_model or "Električka DPMK"
+                if str(final_model).strip().upper() == "TRAM":
+                    final_model = "Električka DPMK"
+            else:
+                if fleet_data and fleet_data.get("model"):
+                    final_model = fleet_data["model"]
+                elif ubian_model and str(ubian_model).strip().upper() not in ["BUS", "AUTOBUS"]:
+                    final_model = ubian_model
+                else:
+                    final_model = "Autobus DPMK"
+
+                final_spz = (fleet_data.get("spz") if fleet_data else None) or ubian_spz
 
         # Typ vozidla - fallback ak nie je konkrétny model
         line_type = str(v.get("line_type") or "").upper()
@@ -870,6 +868,9 @@ def get_live_vehicles(
 
         item = {
             "vehicle_id": v["vehicle_id"],
+            "license_number": final_spz,
+            "model": final_model,
+            "evidencne_cislo": final_ev,
             "line": v.get("line"),
             "line_type": v.get("line_type"),
             "line_name": v.get("line_name"),
@@ -909,6 +910,9 @@ def get_live_vehicles(
 
         if not only_matched or is_matched:
             enriched_vehicles.append(item)
+
+    if is_live and enriched_vehicles:
+        LAST_SEEN_CACHE = enriched_vehicles
 
     return {
         "status": "ok",
@@ -1265,6 +1269,13 @@ def create_or_update_override(req: OverrideRequest, request: Request):
         verified=True if req.verified is None else bool(req.verified),
         note=req.note.strip() if req.note else None
     )
+
+    fleet_service.sync_override_to_caches(
+        override=res,
+        live_cache=getattr(live_feed, "_live_cache", []),
+        last_seen_cache=LAST_SEEN_CACHE
+    )
+
     return {
         "status": "ok",
         "message": "Override úspešne uložený a aplikovaný.",
@@ -1294,6 +1305,15 @@ def verify_vehicle_endpoint(req: VerifyRequest, request: Request):
         ev_cislo=clean_ev,
         verified=req.verified
     )
+
+    ov = fleet_service.get_override(vehicle_id=clean_vid, ev_cislo=clean_ev)
+    if ov:
+        fleet_service.sync_override_to_caches(
+            override=ov,
+            live_cache=getattr(live_feed, "_live_cache", []),
+            last_seen_cache=LAST_SEEN_CACHE
+        )
+
     return {
         "status": "ok",
         "success": success,
@@ -1375,6 +1395,14 @@ def approve_admin_request(request_id: str, request: Request):
     req = fleet_service.approve_request(request_id)
     if not req:
         raise HTTPException(status_code=404, detail=f"Požiadavka s ID '{request_id}' nebola nájdená.")
+
+    ov = fleet_service.get_override(vehicle_id=req.get("vehicle_id"), ev_cislo=req.get("evidencne_cislo"))
+    if ov:
+        fleet_service.sync_override_to_caches(
+            override=ov,
+            live_cache=getattr(live_feed, "_live_cache", []),
+            last_seen_cache=LAST_SEEN_CACHE
+        )
 
     return {
         "status": "ok",
