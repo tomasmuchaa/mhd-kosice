@@ -2818,19 +2818,19 @@
       border: none !important;
     }
 
-    /* Mode 1: Dot (Zoom 13) */
+    /* Mode 1: Dot (Zoom <= 13) - 6px decentné bodky */
     .stop-pin-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      border: 1.5px solid #ffffff;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+      border: 1px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
       cursor: pointer;
       pointer-events: auto;
       transition: transform 0.15s ease;
     }
     .stop-pin-dot:hover {
-      transform: scale(1.6);
+      transform: scale(1.8);
     }
     .stop-pin-dot.tram {
       background-color: #0284c7;
@@ -2842,24 +2842,24 @@
       background: linear-gradient(135deg, #0284c7 48%, #2563eb 52%);
     }
 
-    /* Mode 2: Compact SVG Transit Badge (Zoom 14 - 16) - BEZ AKÝCHKOĽVEK TEXTOVÝCH BUBLÍN */
+    /* Mode 2: Compact SVG Transit Badge (Zoom 14 - 15) - 18x18px SVG ikonky */
     .stop-pin-compact {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
       border: 1.5px solid #ffffff;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
       cursor: pointer;
       pointer-events: auto;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
     .stop-pin-compact:hover {
-      transform: scale(1.3);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+      transform: scale(1.35);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
       z-index: 9999 !important;
     }
     .stop-pin-compact.tram {
@@ -2872,40 +2872,93 @@
       background: linear-gradient(135deg, #0284c7 48%, #2563eb 52%);
     }
 
-    /* Mode 3: Maximálne priblíženie (Zoom >= 17) - Iba pri max zoome diskrétny malý text */
-    .stop-pin-max {
+    /* Mode 3: Detailed (Zoom >= 16) - 24x24px badge + elegantný tmavý štítok s linkami */
+    .stop-pin-detailed {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      background: rgba(15, 23, 42, 0.90);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 14px;
+      padding: 0 7px 0 0;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
       cursor: pointer;
       pointer-events: auto;
       white-space: nowrap;
-      transition: transform 0.15s ease;
+      gap: 5px;
+      height: 26px;
+      transition: transform 0.15s ease, border-color 0.15s ease;
     }
-    .stop-pin-max:hover {
-      transform: scale(1.15);
+    .stop-pin-detailed:hover {
+      transform: scale(1.08);
+      border-color: #38bdf8;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45);
       z-index: 9999 !important;
     }
-    .stop-pin-max .stop-pin-label {
-      background: rgba(15, 23, 42, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #f8fafc;
-      font-size: 0.68rem;
-      font-weight: 600;
-      padding: 1px 6px;
-      border-radius: 4px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-      pointer-events: none;
-      line-height: 1.2;
+    .stop-detailed-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      border: 1.5px solid #ffffff;
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
-    .stop-pin-max .stop-pin-plat {
-      background: rgba(2, 132, 199, 0.35);
-      border: 1px solid #38bdf8;
+    .stop-detailed-badge.tram {
+      background-color: #0284c7;
+    }
+    .stop-detailed-badge.bus {
+      background-color: #2563eb;
+    }
+    .stop-detailed-badge.mixed {
+      background: linear-gradient(135deg, #0284c7 48%, #2563eb 52%);
+    }
+    .stop-detailed-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #f8fafc;
+      line-height: 1;
+    }
+    .stop-detailed-plat {
+      background: rgba(56, 189, 248, 0.22);
+      border: 1px solid rgba(56, 189, 248, 0.45);
       color: #38bdf8;
       font-size: 0.62rem;
       font-weight: 700;
       padding: 0 3px;
       border-radius: 3px;
+      line-height: 1.1;
+    }
+    .stop-detailed-lines {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .stop-detailed-line-tag {
+      font-size: 0.60rem;
+      font-weight: 700;
+      padding: 0 3px;
+      border-radius: 2px;
+      line-height: 1.1;
+    }
+    .stop-detailed-line-tag.tram {
+      background: rgba(2, 132, 199, 0.35);
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+    .stop-detailed-line-tag.bus {
+      background: rgba(37, 99, 235, 0.35);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+    .stop-detailed-line-tag.night {
+      background: rgba(147, 51, 234, 0.35);
+      color: #d8b4fe;
+      border: 1px solid rgba(168, 85, 247, 0.4);
     }
 
     /* Virtuálna Odchodová Tabuľa (Digital LED Departure Board) */
@@ -15312,9 +15365,9 @@
 
     let currentStopsZoomMode = null; // 'hidden', 'dot', 'compact', 'detailed'
 
-    function getStopTypeSvg(type) {
+    function getStopTypeSvg(type, size = 13) {
       if (type === 'tram') {
-        return `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="4" y="3" width="16" height="15" rx="2"/>
           <line x1="4" y1="10" x2="20" y2="10"/>
           <line x1="8" y1="18" x2="6" y2="21"/>
@@ -15325,7 +15378,7 @@
           <line x1="9" y1="1" x2="15" y2="1"/>
         </svg>`;
       } else if (type === 'mixed') {
-        return `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="4" y="3" width="16" height="15" rx="2"/>
           <line x1="4" y1="10" x2="20" y2="10"/>
           <circle cx="8" cy="14" r="1.5" fill="currentColor"/>
@@ -15333,7 +15386,7 @@
           <line x1="12" y1="3" x2="12" y2="1"/>
         </svg>`;
       } else {
-        return `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="4" y="3" width="16" height="15" rx="2"/>
           <line x1="4" y1="9" x2="20" y2="9"/>
           <line x1="7" y1="18" x2="7" y2="21"/>
@@ -15352,47 +15405,61 @@
         return L.divIcon({
           className: 'custom-stop-div-icon',
           html: `<div class="stop-pin-dot ${typeClass}"></div>`,
-          iconSize: [8, 8],
-          iconAnchor: [4, 4]
+          iconSize: [6, 6],
+          iconAnchor: [3, 3]
         });
       }
-
-      const svgIcon = getStopTypeSvg(typeClass);
 
       if (mode === 'compact') {
+        const svgIcon = getStopTypeSvg(typeClass, 10);
         return L.divIcon({
           className: 'custom-stop-div-icon',
-          html: `<div class="stop-pin-compact ${typeClass}" title="${stop.name}">${svgIcon}</div>`,
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
+          html: `<div class="stop-pin-compact ${typeClass}" title="${escapeHtml(stop.name)}">${svgIcon}</div>`,
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
         });
       }
 
-      // Mode: 'detailed' (Zoom >= 17: výlučne pri maximálnom priblížení malý diskrétny label)
+      // Mode: 'detailed' (Zoom >= 16: 24x24px badge + elegantný tmavý štítok s linkami)
+      const svgIcon = getStopTypeSvg(typeClass, 13);
       const platSpan = (stop.platform !== null && stop.platform !== undefined && String(stop.platform).trim() !== '' && !stop.name.includes(`Nást. ${stop.platform}`))
-        ? ` <span class="stop-pin-plat">Nást. ${stop.platform}</span>`
+        ? `<span class="stop-detailed-plat">Nást. ${escapeHtml(String(stop.platform))}</span>`
         : '';
 
-      const maxHtml = `
-        <div class="stop-pin-max">
-          <div class="stop-pin-compact ${typeClass}">${svgIcon}</div>
-          <span class="stop-pin-label">${stop.name}${platSpan}</span>
+      let linesHtml = '';
+      if (Array.isArray(stop.lines) && stop.lines.length > 0) {
+        const displayedLines = stop.lines.slice(0, 3);
+        const tags = displayedLines.map(line => {
+          const lStr = String(line);
+          const lClass = lStr.startsWith('N') ? 'night' : (stopType === 'tram' ? 'tram' : 'bus');
+          return `<span class="stop-detailed-line-tag ${lClass}">${escapeHtml(lStr)}</span>`;
+        }).join('');
+        const moreTag = stop.lines.length > 3 ? `<span class="stop-detailed-line-tag" style="background:rgba(255,255,255,0.15);color:#cbd5e1">+${stop.lines.length - 3}</span>` : '';
+        linesHtml = `<div class="stop-detailed-lines">${tags}${moreTag}</div>`;
+      }
+
+      const detailedHtml = `
+        <div class="stop-pin-detailed" title="${escapeHtml(stop.name)}">
+          <div class="stop-detailed-badge ${typeClass}">${svgIcon}</div>
+          <span class="stop-detailed-name">${escapeHtml(stop.name)}</span>
+          ${platSpan}
+          ${linesHtml}
         </div>
       `;
 
       return L.divIcon({
         className: 'custom-stop-div-icon',
-        html: maxHtml,
-        iconSize: [null, 20],
-        iconAnchor: [10, 10]
+        html: detailedHtml,
+        iconSize: [null, 26],
+        iconAnchor: [12, 13]
       });
     }
 
     function getStopsZoomMode(zoom) {
       if (zoom <= 12) return 'hidden';
       if (zoom === 13) return 'dot';
-      if (zoom >= 14 && zoom <= 16) return 'compact';
-      return 'detailed'; // zoom >= 17
+      if (zoom >= 14 && zoom <= 15) return 'compact';
+      return 'detailed'; // zoom >= 16
     }
 
     function renderAllStopsMarkers(mode) {
@@ -16130,30 +16197,31 @@
               (!platformFilter && (sib.is_current || sib.stop_id === stopId))
             );
             const lineSummary = Array.isArray(sib.lines) && sib.lines.length > 0
-              ? ` (${sib.lines.slice(0, 4).join(', ')}${sib.lines.length > 4 ? '...' : ''})`
+              ? ` (linky ${sib.lines.slice(0, 4).join(', ')}${sib.lines.length > 4 ? '...' : ''})`
               : '';
-            const platLabel = (sib.platform !== null && sib.platform !== undefined && String(sib.platform).trim() !== '')
-              ? `Nást. ${sib.platform}`
-              : 'Nástupište';
-            const icon = sib.stop_type === 'tram' ? '🚋' : '🚌';
+            const platLabel = isCurrent
+              ? `📍 Toto nástupište`
+              : ((sib.platform !== null && sib.platform !== undefined && String(sib.platform).trim() !== '')
+                  ? `Nástupište ${sib.platform}`
+                  : 'Nástupište');
             const sibSafeName = (sib.name || finalStopName).replace(/'/g, "\\'");
             const sibCoords = (sib.latitude && sib.longitude) ? `[${sib.latitude}, ${sib.longitude}]` : `[${latLng[0]}, ${latLng[1]}]`;
 
             return `
               <button class="board-platform-tab ${isCurrent ? 'active' : ''}" 
                       onclick="openStopBoard('${sib.stop_id}', ${sibCoords}, '${sibSafeName}', '${sib.platform}')"
-                      title="${sib.name} - ${platLabel}${lineSummary}">
-                <span>${icon} ${platLabel}</span><span style="opacity:0.75; font-size:0.62rem;">${lineSummary}</span>
+                      title="${escapeHtml(sib.name)} - ${platLabel}${lineSummary}">
+                <span>${platLabel}</span><span style="opacity:0.8; font-size:0.62rem; font-weight:normal;">${escapeHtml(lineSummary)}</span>
               </button>
             `;
           });
 
-          // Pridanie tabu "Všetky smery"
+          // Pridanie tabu "Všetky smery spolu"
           tabs.push(`
             <button class="board-platform-tab ${isAllPlatforms ? 'active' : ''}"
                     onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${finalSafeName}', 'all')"
                     title="Zobraziť odchody zo všetkých nástupíšť uzla">
-              <span>🌐 Všetky smery</span>
+              <span>🌐 Všetky smery spolu</span>
             </button>
           `);
 
