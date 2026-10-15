@@ -102,7 +102,7 @@
       z-index: auto !important;
     }
     .leaflet-pane.leaflet-popup-pane {
-      z-index: 10020 !important;
+      z-index: 10050 !important;
     }
 
     /* Všeobecný štýl pre panely (Apple Liquid Glass) */
@@ -297,9 +297,11 @@
       transform: translateX(110%);
       transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+      pointer-events: none;
     }
     .control-panel.mobile-open {
       transform: translateX(0);
+      pointer-events: auto;
     }
     .control-panel::-webkit-scrollbar { width: 4px; }
     .control-panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
@@ -2816,6 +2818,22 @@
     .custom-stop-div-icon {
       background: transparent !important;
       border: none !important;
+      pointer-events: auto !important;
+    }
+    .custom-stop-div-icon .stop-pin-compact,
+    .custom-stop-div-icon .stop-pin-dot {
+      pointer-events: auto !important;
+    }
+    .custom-stop-div-icon::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      pointer-events: auto;
     }
 
     /* Mode 1: Dot (Zoom 13) - 6px decentné bodky */
@@ -4696,9 +4714,11 @@
         box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        pointer-events: none;
       }
       .control-panel.mobile-open {
         transform: translateX(0);
+        pointer-events: auto;
       }
 
       /* Hlavička vysúvacieho bočného menu */
@@ -4748,7 +4768,7 @@
         max-width: 100vw !important;
         margin: 0 !important;
         transform: none !important;
-        z-index: 10030 !important;
+        z-index: 10040 !important;
         pointer-events: auto !important;
       }
       .leaflet-popup-tip-container {
@@ -8672,8 +8692,10 @@
     let followingVehicleId = null;       // ID vozidla, ktoré mapa aktívne sleduje (Follow Mode)
     const disabledLines = new Set();     // Množina odškrtnutých liniek, ktoré nechceme vidieť
 
-    // Zastávky MHD vrstva a zoznam (skrytá pri oddialení na zoom < 15)
-    const stopsLayer = L.layerGroup();
+    // Zastávky MHD vrstva a zoznam
+    const stopsLayer = L.layerGroup().addTo(map);
+    const walkingTransfersLayer = L.layerGroup().addTo(map);
+    let activeStopTransfersId = null;
     let allStopsList = [];
     const stopMarkers = {};
     let isStopsLayerVisible = true;
@@ -15145,7 +15167,13 @@
     const latestLoadedTransfers = {};
 
     function clearWalkingTransfers() {
-      walkingTransfersLayer.clearLayers();
+      try {
+        if (typeof walkingTransfersLayer !== 'undefined' && walkingTransfersLayer && typeof walkingTransfersLayer.clearLayers === 'function') {
+          walkingTransfersLayer.clearLayers();
+        }
+      } catch (err) {
+        console.warn('Chyba pri mazaní peších prestupov:', err);
+      }
       activeStopTransfersId = null;
     }
 
@@ -15206,7 +15234,8 @@
             dashArray: '3, 6',        // Bodkovaná čiara
             opacity: 0.85,
             lineCap: 'round',
-            lineJoin: 'round'
+            lineJoin: 'round',
+            interactive: true
           });
 
           // Formátovanie času pre štítok: napr. 🚶 3 min (alebo < 1 min)
@@ -15254,6 +15283,7 @@
             weight: 2,
             opacity: 0.95,
             fillOpacity: 0.8,
+            interactive: true,
             className: 'walk-target-circle'
           }).bindTooltip(`<b>${t.to_stop_name}</b><br><span style="color:#34d399;">${timeText} (${t.distance_meters} m)</span>`, {
             direction: 'top',
@@ -15403,9 +15433,6 @@
 
           // 2. Po kliknutí na ikonku asynchrónne zavoláme odchody a otvoríme tabuľu
           marker.on('click', function (e) {
-            if (e && e.originalEvent) {
-              L.DomEvent.stopPropagation(e.originalEvent);
-            }
             let sid = this.stop_id;
             if (!sid && e && e.target && e.target.stop_id) sid = e.target.stop_id;
             if (!sid && e && e.originalEvent && e.originalEvent.target) {
@@ -15417,6 +15444,7 @@
             const sname = this.stop_name || (e && e.target && e.target.stop_name) || stop.name;
             const coords = this.stop_latlng || (e && e.target && e.target.stop_latlng) || [stop.latitude, stop.longitude];
             const plat = this.platform !== undefined ? this.platform : stop.platform;
+            console.log(`[Stops] Klik na zastávku: ${sname} (${sid})`);
             openStopBoard(sid, coords, sname, plat);
           });
 
@@ -16048,26 +16076,32 @@
       const safeStopName = String(resolvedName).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
       const currentPlatArg = (effPlatform !== null && effPlatform !== undefined) ? `'${String(effPlatform).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'` : 'null';
 
-      // Asynchrónne načítanie a vykreslenie peších prestupov do 500 m
-      clearWalkingTransfers();
-      loadAndDrawWalkingTransfers(cleanStopId, resolvedLatLng);
+      // Bezpečné asynchrónne načítanie peších prestupov do 500 m
+      try {
+        clearWalkingTransfers();
+        loadAndDrawWalkingTransfers(cleanStopId, resolvedLatLng);
+      } catch (err) {
+        console.warn('Chyba pri spúšťaní peších prestupov:', err);
+      }
 
       const loadingHtml = getStopBoardLoadingHtml(resolvedName, cleanStopId);
 
       // Správa vyskakovacieho okna (popup)
-      if (currentBoardPopup && map.hasLayer(currentBoardPopup)) {
-        currentBoardPopup.setLatLng(resolvedLatLng).setContent(loadingHtml);
-      } else {
-        currentBoardPopup = L.popup({
-          maxWidth: 420,
-          className: 'custom-board-popup',
-          autoPan: true,
-          offset: [0, -8]
-        })
-        .setLatLng(resolvedLatLng)
-        .setContent(loadingHtml)
-        .openOn(map);
+      if (currentBoardPopup) {
+        try { map.closePopup(currentBoardPopup); } catch (e) {}
+        currentBoardPopup = null;
       }
+
+      currentBoardPopup = L.popup({
+        maxWidth: 420,
+        className: 'custom-board-popup',
+        autoPan: true,
+        autoPanPadding: [20, 75],
+        offset: [0, -8]
+      })
+      .setLatLng(resolvedLatLng)
+      .setContent(loadingHtml)
+      .openOn(map);
 
       currentBoardPopup.once('remove', () => {
         clearWalkingTransfers();
