@@ -15168,8 +15168,12 @@
       activeStopTransfersId = stopId;
 
       try {
-        const resp = await fetch(`${TRANSFERS_API_URL}/${stopId}?t=${Date.now()}`, { cache: 'no-store' });
-        if (!resp.ok) return;
+        const resp = await fetch(`${TRANSFERS_API_URL}/${encodeURIComponent(stopId)}?t=${Date.now()}`, { cache: 'no-store' });
+        if (!resp.ok) {
+          latestLoadedTransfers[stopId] = [];
+          updateTransfersBadge(stopId);
+          return;
+        }
         const data = await resp.json();
         const transfers = data.transfers || [];
 
@@ -15267,6 +15271,8 @@
 
       } catch (err) {
         console.warn('Chyba pri sťahovaní peších prestupov:', err);
+        latestLoadedTransfers[stopId] = [];
+        updateTransfersBadge(stopId);
       }
     }
 
@@ -15315,7 +15321,7 @@
       if (mode === 'dot') {
         return L.divIcon({
           className: 'custom-stop-div-icon',
-          html: `<div class="stop-pin-dot ${typeClass}"></div>`,
+          html: `<div class="stop-pin-dot ${typeClass}" data-stop-id="${escapeHtml(String(stop.stop_id))}"></div>`,
           iconSize: [6, 6],
           iconAnchor: [3, 3],
           popupAnchor: [0, -4]
@@ -15326,7 +15332,7 @@
       const svgIcon = getStopTypeSvg(typeClass, 12);
       return L.divIcon({
         className: 'custom-stop-div-icon',
-        html: `<div class="stop-pin-compact ${typeClass}">${svgIcon}</div>`,
+        html: `<div class="stop-pin-compact ${typeClass}" data-stop-id="${escapeHtml(String(stop.stop_id))}">${svgIcon}</div>`,
         iconSize: [20, 20],
         iconAnchor: [10, 10],
         popupAnchor: [0, -12]
@@ -15352,9 +15358,9 @@
               </div>
             </div>
           </div>
-          <div class="board-loading">
+          <div class="board-loading" id="board-loading-container-${stopId}">
             <span class="pulse-dot" style="width: 8px; height: 8px;"></span>
-            <span>Načítavam živé odchody...</span>
+            <span id="board-loading-text-${stopId}">Načítavam živé odchody...</span>
           </div>
         </div>
       `;
@@ -15375,6 +15381,11 @@
             interactive: true
           });
 
+          marker.stop_id = String(stop.stop_id);
+          marker.stop_name = stop.name;
+          marker.platform = stop.platform;
+          marker.stop_latlng = [stop.latitude, stop.longitude];
+
           // 1. Tooltip výhradne na hover (pri prejdení myšou)
           const platInfo = (stop.platform !== null && stop.platform !== undefined && String(stop.platform).trim() !== '' && !stop.name.includes(`Nást. ${stop.platform}`))
             ? ` <span style="background:rgba(2,132,199,0.3); border:1px solid #38bdf8; border-radius:3px; padding:1px 4px; font-size:0.68rem; color:#38bdf8;">Nást. ${escapeHtml(String(stop.platform))}</span>`
@@ -15390,22 +15401,32 @@
             className: 'stop-tooltip'
           });
 
-          // 2. Vyskakovacie okno (bindPopup) priamo nad zastávkou
-          marker.bindPopup(getStopBoardLoadingHtml(stop.name, stop.stop_id), {
-            maxWidth: 420,
-            className: 'custom-board-popup',
-            autoPan: true,
-            offset: [0, -8]
-          });
+          // 2. Po kliknutí na ikonku asynchrónne zavoláme odchody a otvoríme tabuľu
+          marker.on('click', function (e) {
+            if (e && e.originalEvent) {
+              L.DomEvent.stopPropagation(e.originalEvent);
+            }
+            let sid = this.stop_id;
+            if (!sid && e && e.target && e.target.stop_id) sid = e.target.stop_id;
+            if (!sid && e && e.originalEvent && e.originalEvent.target) {
+              const el = e.originalEvent.target.closest('[data-stop-id]');
+              if (el) sid = el.getAttribute('data-stop-id');
+            }
+            if (!sid) sid = stop.stop_id;
 
-          // 3. Po kliknutí na ikonku asynchrónne zavoláme odchody a vykreslíme tabuľu
-          marker.on('click', () => {
-            openStopBoard(stop.stop_id, [stop.latitude, stop.longitude], stop.name, stop.platform, marker);
+            const sname = this.stop_name || (e && e.target && e.target.stop_name) || stop.name;
+            const coords = this.stop_latlng || (e && e.target && e.target.stop_latlng) || [stop.latitude, stop.longitude];
+            const plat = this.platform !== undefined ? this.platform : stop.platform;
+            openStopBoard(sid, coords, sname, plat);
           });
 
           stopMarkers[stop.stop_id] = marker;
           stopsLayer.addLayer(marker);
         } else {
+          marker.stop_id = String(stop.stop_id);
+          marker.stop_name = stop.name;
+          marker.platform = stop.platform;
+          marker.stop_latlng = [stop.latitude, stop.longitude];
           marker.setIcon(icon);
         }
       });
@@ -15983,99 +16004,105 @@
     }
     window.renderFavoritesQuickAccess = renderFavoritesQuickAccess;
 
+    let currentBoardPopup = null;
+    let activeStopBoardId = null;
+
     async function openStopBoard(stopId, latLng, stopName, platformFilter = null, boundMarker = null) {
+      const cleanStopId = String(stopId || '').trim();
+      if (!cleanStopId) {
+        console.warn('openStopBoard called with empty stopId');
+        return;
+      }
+
+      activeStopBoardId = cleanStopId;
+
+      // Nájdenie fallback údajov o zastávke z allStopsList ak chýbajú
+      let resolvedStop = null;
+      if (Array.isArray(allStopsList)) {
+        resolvedStop = allStopsList.find(s => String(s.stop_id || s.id).trim() === cleanStopId) || null;
+      }
+
+      let resolvedName = stopName;
+      if (!resolvedName && resolvedStop) {
+        resolvedName = resolvedStop.name;
+      }
+      if (!resolvedName) {
+        resolvedName = 'Zastávka';
+      }
+
+      let resolvedLatLng = latLng;
+      if ((!resolvedLatLng || !Array.isArray(resolvedLatLng) || resolvedLatLng.length < 2) && resolvedStop) {
+        if (resolvedStop.latitude && resolvedStop.longitude) {
+          resolvedLatLng = [resolvedStop.latitude, resolvedStop.longitude];
+        }
+      }
+      if (!resolvedLatLng || !Array.isArray(resolvedLatLng) || resolvedLatLng.length < 2) {
+        resolvedLatLng = [48.7164, 21.2611];
+      }
+
+      let effPlatform = platformFilter;
+      if (effPlatform === null && resolvedStop && resolvedStop.platform !== undefined) {
+        effPlatform = resolvedStop.platform;
+      }
+
+      const safeStopName = String(resolvedName).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const currentPlatArg = (effPlatform !== null && effPlatform !== undefined) ? `'${String(effPlatform).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'` : 'null';
+
       // Asynchrónne načítanie a vykreslenie peších prestupov do 500 m
       clearWalkingTransfers();
-      loadAndDrawWalkingTransfers(stopId, latLng);
+      loadAndDrawWalkingTransfers(cleanStopId, resolvedLatLng);
 
-      const targetMarker = boundMarker || stopMarkers[stopId] || null;
-      const loadingHtml = getStopBoardLoadingHtml(stopName, stopId);
+      const loadingHtml = getStopBoardLoadingHtml(resolvedName, cleanStopId);
 
-      let popup;
-      if (targetMarker && targetMarker.getPopup()) {
-        popup = targetMarker.getPopup();
-        popup.setContent(loadingHtml);
-        if (!targetMarker.isPopupOpen()) {
-          targetMarker.openPopup();
-        }
+      // Správa vyskakovacieho okna (popup)
+      if (currentBoardPopup && map.hasLayer(currentBoardPopup)) {
+        currentBoardPopup.setLatLng(resolvedLatLng).setContent(loadingHtml);
       } else {
-        popup = L.popup({
+        currentBoardPopup = L.popup({
           maxWidth: 420,
           className: 'custom-board-popup',
-          autoPan: true
+          autoPan: true,
+          offset: [0, -8]
         })
-        .setLatLng(latLng)
+        .setLatLng(resolvedLatLng)
         .setContent(loadingHtml)
         .openOn(map);
       }
 
-      popup.once('remove', () => {
+      currentBoardPopup.once('remove', () => {
         clearWalkingTransfers();
       });
 
       try {
-        let apiUrl = `${BASE_ORIGIN}/api/v1/stops/${stopId}/departures?t=${Date.now()}`;
-        if (platformFilter === 'all') {
+        let apiUrl = `${BASE_ORIGIN}/api/v1/stops/${encodeURIComponent(cleanStopId)}/departures?t=${Date.now()}`;
+        if (effPlatform === 'all') {
           apiUrl += '&all_platforms=true';
-        } else if (platformFilter !== null && platformFilter !== undefined && String(platformFilter).trim() !== '') {
-          apiUrl += `&platform=${encodeURIComponent(String(platformFilter).trim())}`;
+        } else if (effPlatform !== null && effPlatform !== undefined && String(effPlatform).trim() !== '') {
+          apiUrl += `&platform=${encodeURIComponent(String(effPlatform).trim())}`;
         }
 
         const resp = await fetch(apiUrl, { cache: 'no-store' });
-        const currentPlatArg = platformFilter ? `'${platformFilter}'` : 'null';
 
         if (!resp.ok) {
-          const safeName = stopName.replace(/'/g, "\\'");
-          popup.setContent(`
-            <div class="departure-board-popup">
-              <div class="board-header">
-                <div class="board-title">🚏 ${stopName}</div>
-                <button class="board-refresh-btn" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${safeName}', ${currentPlatArg})">
-                  ↻ Skúsiť znova
-                </button>
-              </div>
-              <div class="board-empty-state" style="padding: 16px 8px; text-align: center;">
-                <div style="font-size: 1.5rem; margin-bottom: 6px;">⚠️</div>
-                <div style="font-weight: 600; color: #f87171; margin-bottom: 4px;">Nepodarilo sa načítať odchody</div>
-                <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">Server odchodov neodpovedá (Chyba ${resp.status}).</div>
-                <button class="board-refresh-btn" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.78rem;" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${safeName}', ${currentPlatArg})">
-                  ↻ Skúsiť znova
-                </button>
-              </div>
-            </div>
-          `);
-          return;
+          throw new Error(`Server neodpovedá (Chyba ${resp.status})`);
         }
 
         const data = await resp.json();
-        const finalStopName = data.stop_name || stopName;
-        const finalSafeName = finalStopName.replace(/'/g, "\\'");
 
         if (data && data.status === 'error') {
-          popup.setContent(`
-            <div class="departure-board-popup">
-              <div class="board-header">
-                <div class="board-title">🚏 ${finalStopName}</div>
-                <button class="board-refresh-btn" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${finalSafeName}', ${currentPlatArg})">
-                  ↻ Skúsiť znova
-                </button>
-              </div>
-              <div class="board-empty-state" style="padding: 16px 8px; text-align: center;">
-                <div style="font-size: 1.5rem; margin-bottom: 6px;">⚠️</div>
-                <div style="font-weight: 600; color: #f87171; margin-bottom: 4px;">Nepodarilo sa načítať odchody</div>
-                <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">${data.message || 'Nepodarilo sa stiahnuť živé odchody pre túto zastávku.'}</div>
-                <button class="board-refresh-btn" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.78rem;" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${finalSafeName}', ${currentPlatArg})">
-                  ↻ Skúsiť znova
-                </button>
-              </div>
-            </div>
-          `);
+          throw new Error(data.message || 'Nepodarilo sa stiahnuť živé odchody pre túto zastávku.');
+        }
+
+        // Ak používateľ medzičasom klikol na inú zastávku
+        if (activeStopBoardId !== cleanStopId) {
           return;
         }
 
-        const departures = data.departures || [];
-        const siblingPlatforms = data.sibling_platforms || [];
-        const isAllPlatforms = Boolean(data.is_all_platforms || platformFilter === 'all');
+        const finalStopName = data.stop_name || resolvedName;
+        const finalSafeName = String(finalStopName).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const departures = Array.isArray(data.departures) ? data.departures : [];
+        const siblingPlatforms = Array.isArray(data.sibling_platforms) ? data.sibling_platforms : [];
+        const isAllPlatforms = Boolean(data.is_all_platforms || effPlatform === 'all');
 
         let platformSubtitle = '';
         if (isAllPlatforms) {
@@ -16086,11 +16113,11 @@
 
         // Generovanie tabového prepínača nástupíšť v hlavičke tabule
         let platformTabsHtml = '';
-        if (Array.isArray(siblingPlatforms) && siblingPlatforms.length > 1) {
+        if (siblingPlatforms.length > 1) {
           const tabs = siblingPlatforms.map(sib => {
             const isCurrent = !isAllPlatforms && (
-              (platformFilter && String(sib.platform) === String(platformFilter)) ||
-              (!platformFilter && (sib.is_current || sib.stop_id === stopId))
+              (effPlatform && String(sib.platform) === String(effPlatform)) ||
+              (!effPlatform && (sib.is_current || String(sib.stop_id) === cleanStopId))
             );
             const lineSummary = Array.isArray(sib.lines) && sib.lines.length > 0
               ? ` (linky ${sib.lines.slice(0, 4).join(', ')}${sib.lines.length > 4 ? '...' : ''})`
@@ -16100,12 +16127,13 @@
               : ((sib.platform !== null && sib.platform !== undefined && String(sib.platform).trim() !== '')
                   ? `Nástupište ${sib.platform}`
                   : 'Nástupište');
-            const sibSafeName = (sib.name || finalStopName).replace(/'/g, "\\'");
-            const sibCoords = (sib.latitude && sib.longitude) ? `[${sib.latitude}, ${sib.longitude}]` : `[${latLng[0]}, ${latLng[1]}]`;
+            const sibSafeName = String(sib.name || finalStopName).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const sibCoords = (sib.latitude && sib.longitude) ? `[${sib.latitude}, ${sib.longitude}]` : `[${resolvedLatLng[0]}, ${resolvedLatLng[1]}]`;
+            const sibPlat = (sib.platform !== null && sib.platform !== undefined) ? `'${String(sib.platform).replace(/'/g, "\\'")}'` : 'null';
 
             return `
               <button class="board-platform-tab ${isCurrent ? 'active' : ''}" 
-                      onclick="openStopBoard('${sib.stop_id}', ${sibCoords}, '${sibSafeName}', '${sib.platform}')"
+                      onclick="openStopBoard('${sib.stop_id}', ${sibCoords}, '${sibSafeName}', ${sibPlat})"
                       title="${escapeHtml(sib.name)} - ${platLabel}${lineSummary}">
                 <span>${platLabel}</span><span style="opacity:0.8; font-size:0.62rem; font-weight:normal;">${escapeHtml(lineSummary)}</span>
               </button>
@@ -16115,7 +16143,7 @@
           // Pridanie tabu "Všetky smery spolu"
           tabs.push(`
             <button class="board-platform-tab ${isAllPlatforms ? 'active' : ''}"
-                    onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${finalSafeName}', 'all')"
+                    onclick="openStopBoard('${cleanStopId}', [${resolvedLatLng[0]}, ${resolvedLatLng[1]}], '${finalSafeName}', 'all')"
                     title="Zobraziť odchody zo všetkých nástupíšť uzla">
               <span>🌐 Všetky smery spolu</span>
             </button>
@@ -16135,7 +16163,7 @@
               <div style="font-size: 1.5rem; margin-bottom: 6px;">🌙</div>
               <div style="font-weight: 600; color: #f1f5f9; margin-bottom: 4px;">Žiadne odchody v najbližšom čase</div>
               <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;">Momentálne nie sú evidované žiadne odchody MHD na tomto stanovišti.</div>
-              <button class="board-refresh-btn" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.78rem;" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${finalSafeName}', ${currentPlatArg})">
+              <button class="board-refresh-btn" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.78rem;" onclick="openStopBoard('${cleanStopId}', [${resolvedLatLng[0]}, ${resolvedLatLng[1]}], '${finalSafeName}', ${currentPlatArg})">
                 ↻ Obnoviť tabuľu
               </button>
             </div>
@@ -16204,20 +16232,20 @@
 
             const alertId = d.trip_id
               ? `trip_${d.trip_id}`
-              : `dep_${stopId}_${d.line || ''}_${(d.destination || '').replace(/\s+/g, '_')}_${targetDepartureTimestamp}`.replace(/[^a-zA-Z0-9_]/g, '_');
+              : `dep_${cleanStopId}_${d.line || ''}_${(d.destination || '').replace(/\s+/g, '_')}_${targetDepartureTimestamp}`.replace(/[^a-zA-Z0-9_]/g, '_');
 
             const isAlreadyActive = Array.isArray(window.nexigoActiveAlerts) && window.nexigoActiveAlerts.some(a => a.id === alertId && !a.notified);
 
-            const safeLine = (d.line || '').replace(/'/g, "\\'");
-            const safeDest = (d.destination || 'Neznámy smer').replace(/'/g, "\\'");
+            const safeLine = String(d.line || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const safeDest = String(d.destination || 'Neznámy smer').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
             let notifyBtnHtml = '';
             if (isTooSoon) {
               notifyBtnHtml = `<button class="btn-notify-departure" disabled title="Spoj už prichádza">🔔</button>`;
             } else if (isAlreadyActive) {
-              notifyBtnHtml = `<button id="btn-alert-${alertId}" class="btn-notify-departure active-alert" title="Upozornenie aktívne (Kliknutím zrušíte)" onclick="toggleDepartureAlert('${alertId}', '${safeLine}', '${safeDest}', '${finalSafeName}', ${targetDepartureTimestamp}, '${stopId}')">🔔</button>`;
+              notifyBtnHtml = `<button id="btn-alert-${alertId}" class="btn-notify-departure active-alert" title="Upozornenie aktívne (Kliknutím zrušíte)" onclick="toggleDepartureAlert('${alertId}', '${safeLine}', '${safeDest}', '${finalSafeName}', ${targetDepartureTimestamp}, '${cleanStopId}')">🔔</button>`;
             } else {
-              notifyBtnHtml = `<button id="btn-alert-${alertId}" class="btn-notify-departure" title="Upozorniť 3 minúty pred príchodom" onclick="toggleDepartureAlert('${alertId}', '${safeLine}', '${safeDest}', '${finalSafeName}', ${targetDepartureTimestamp}, '${stopId}')">🔔</button>`;
+              notifyBtnHtml = `<button id="btn-alert-${alertId}" class="btn-notify-departure" title="Upozorniť 3 minúty pred príchodom" onclick="toggleDepartureAlert('${alertId}', '${safeLine}', '${safeDest}', '${finalSafeName}', ${targetDepartureTimestamp}, '${cleanStopId}')">🔔</button>`;
             }
 
             return `
@@ -16248,29 +16276,29 @@
           }).join('');
         }
 
-        const isFavStop = FavoritesManager.isFavoriteStop(stopId);
+        const isFavStop = FavoritesManager.isFavoriteStop(cleanStopId);
         const nowTime = new Date().toLocaleTimeString('sk-SK');
         const boardHtml = `
           <div class="departure-board-popup">
             <div class="board-header">
               <div>
                 <div class="board-title" style="display: flex; align-items: center; gap: 8px;">
-                  <span>🚏 ${finalStopName}</span>
-                  <button id="btn-fav-stop-${stopId}" 
-                          data-stop-id="${stopId}"
+                  <span>🚏 ${escapeHtml(finalStopName)}</span>
+                  <button id="btn-fav-stop-${cleanStopId}" 
+                          data-stop-id="${cleanStopId}"
                           class="btn-fav-stop ${isFavStop ? 'is-fav' : ''}" 
-                          onclick="event.stopPropagation(); toggleFavoriteStop('${stopId}', '${finalSafeName}', [${latLng[0]}, ${latLng[1]}]);" 
+                          onclick="event.stopPropagation(); toggleFavoriteStop('${cleanStopId}', '${finalSafeName}', [${resolvedLatLng[0]}, ${resolvedLatLng[1]}]);" 
                           title="${isFavStop ? 'Odstrániť z obľúbených' : 'Pridať medzi obľúbené'}">
                     ${isFavStop ? '⭐' : '☆'}
                   </button>
                 </div>
                 <div class="board-subtitle">Virtuálna odchodová tabuľa${platformSubtitle} • ${nowTime}</div>
-                <div id="board-transfers-badge-${stopId}" style="font-size: 0.68rem; color: #34d399; font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                <div id="board-transfers-badge-${cleanStopId}" style="font-size: 0.68rem; color: #34d399; font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
                   <span>🚶</span>
                   <span>Načítavam pešie prestupy...</span>
                 </div>
               </div>
-              <button class="board-refresh-btn" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${finalSafeName}', ${currentPlatArg})">
+              <button class="board-refresh-btn" onclick="openStopBoard('${cleanStopId}', [${resolvedLatLng[0]}, ${resolvedLatLng[1]}], '${finalSafeName}', ${currentPlatArg})">
                 ↻ Obnoviť
               </button>
             </div>
@@ -16286,50 +16314,69 @@
               ${rowsHtml}
             </div>
             <div style="display: flex; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-              <button onclick="setStopAsNav('from', '${stopId}', '${finalSafeName}', ${latLng[0]}, ${latLng[1]})" style="flex: 1; background: rgba(16, 185, 129, 0.18); border: 1px solid #10b981; color: #34d399; font-size: 0.72rem; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-weight: 600; transition: background 0.2s;">
+              <button onclick="setStopAsNav('from', '${cleanStopId}', '${finalSafeName}', ${resolvedLatLng[0]}, ${resolvedLatLng[1]})" style="flex: 1; background: rgba(16, 185, 129, 0.18); border: 1px solid #10b981; color: #34d399; font-size: 0.72rem; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-weight: 600; transition: background 0.2s;">
                 🟢 Nastaviť ako štart
               </button>
-              <button onclick="setStopAsNav('to', '${stopId}', '${finalSafeName}', ${latLng[0]}, ${latLng[1]})" style="flex: 1; background: rgba(168, 85, 247, 0.18); border: 1px solid #a855f7; color: #d8b4fe; font-size: 0.72rem; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-weight: 600; transition: background 0.2s;">
+              <button onclick="setStopAsNav('to', '${cleanStopId}', '${finalSafeName}', ${resolvedLatLng[0]}, ${resolvedLatLng[1]})" style="flex: 1; background: rgba(168, 85, 247, 0.18); border: 1px solid #a855f7; color: #d8b4fe; font-size: 0.72rem; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-weight: 600; transition: background 0.2s;">
                 🏁 Nastaviť ako cieľ
               </button>
             </div>
           </div>
         `;
 
-        popup.setContent(boardHtml);
-        updateTransfersBadge(stopId);
+        if (currentBoardPopup && map.hasLayer(currentBoardPopup)) {
+          currentBoardPopup.setContent(boardHtml);
+        }
+        updateTransfersBadge(cleanStopId);
 
       } catch (err) {
         console.error('Chyba pri načítaní odchodov:', err);
-        const safeName = stopName.replace(/'/g, "\\'");
-        const currentPlatArg = platformFilter ? `'${platformFilter}'` : 'null';
-        popup.setContent(`
+
+        // 1. Priamo nahradíme text v načítavacom kontajneri, ak existuje
+        const loadingTextEl = document.getElementById(`board-loading-text-${cleanStopId}`);
+        if (loadingTextEl) {
+          loadingTextEl.innerText = 'Nepodarilo sa načítať dáta';
+          loadingTextEl.style.color = '#f87171';
+        }
+
+        // 2. Ošetríme aj indikátor prestupov
+        const badgeEl = document.getElementById(`board-transfers-badge-${cleanStopId}`);
+        if (badgeEl && badgeEl.innerHTML.includes('Načítavam')) {
+          badgeEl.innerHTML = `<span>🚶</span><span style="color:#94a3b8;">Žiadne ďalšie zastávky do 500 m</span>`;
+        }
+
+        // 3. Zobrazíme elegantný error state s tlačidlom 'Skúsiť znova'
+        const errorHtml = `
           <div class="departure-board-popup">
             <div class="board-header">
               <div class="board-title" style="display: flex; align-items: center; gap: 8px;">
-                <span>🚏 ${stopName}</span>
-                <button id="btn-fav-stop-${stopId}" 
-                        data-stop-id="${stopId}"
-                        class="btn-fav-stop ${FavoritesManager.isFavoriteStop(stopId) ? 'is-fav' : ''}" 
-                        onclick="event.stopPropagation(); toggleFavoriteStop('${stopId}', '${safeName}', [${latLng[0]}, ${latLng[1]}]);" 
-                        title="${FavoritesManager.isFavoriteStop(stopId) ? 'Odstrániť z obľúbených' : 'Pridať medzi obľúbené'}">
-                  ${FavoritesManager.isFavoriteStop(stopId) ? '⭐' : '☆'}
+                <span>🚏 ${escapeHtml(resolvedName)}</span>
+                <button id="btn-fav-stop-${cleanStopId}" 
+                        data-stop-id="${cleanStopId}"
+                        class="btn-fav-stop ${FavoritesManager.isFavoriteStop(cleanStopId) ? 'is-fav' : ''}" 
+                        onclick="event.stopPropagation(); toggleFavoriteStop('${cleanStopId}', '${safeStopName}', [${resolvedLatLng[0]}, ${resolvedLatLng[1]}]);" 
+                        title="${FavoritesManager.isFavoriteStop(cleanStopId) ? 'Odstrániť z obľúbených' : 'Pridať medzi obľúbené'}">
+                  ${FavoritesManager.isFavoriteStop(cleanStopId) ? '⭐' : '☆'}
                 </button>
               </div>
-              <button class="board-refresh-btn" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${safeName}', ${currentPlatArg})">
+              <button class="board-refresh-btn" onclick="openStopBoard('${cleanStopId}', [${resolvedLatLng[0]}, ${resolvedLatLng[1]}], '${safeStopName}', ${currentPlatArg})">
                 ↻ Skúsiť znova
               </button>
             </div>
             <div class="board-empty-state" style="padding: 16px 8px; text-align: center;">
               <div style="font-size: 1.5rem; margin-bottom: 6px;">⚠️</div>
-              <div style="font-weight: 600; color: #f87171; margin-bottom: 4px;">Nepodarilo sa načítať odchody</div>
-              <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">Chyba pripojenia k serveru odchodov.</div>
-              <button class="board-refresh-btn" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.78rem;" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${safeName}', ${currentPlatArg})">
+              <div style="font-weight: 600; color: #f87171; margin-bottom: 4px;">Nepodarilo sa načítať dáta</div>
+              <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">${escapeHtml(err.message || 'Chyba pripojenia k serveru odchodov.')}</div>
+              <button class="board-refresh-btn" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.78rem;" onclick="openStopBoard('${cleanStopId}', [${resolvedLatLng[0]}, ${resolvedLatLng[1]}], '${safeStopName}', ${currentPlatArg})">
                 ↻ Skúsiť znova
               </button>
             </div>
           </div>
-        `);
+        `;
+
+        if (currentBoardPopup && map.hasLayer(currentBoardPopup)) {
+          currentBoardPopup.setContent(errorHtml);
+        }
       }
     }
     window.openStopBoard = openStopBoard;
