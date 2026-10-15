@@ -58,36 +58,42 @@
       width: 100%;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       overflow: hidden;
-      background: #0f172a;
+      background: #f1f5f9;
+      color: #1e293b;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     /* ========================================================
        APPLE LIQUID GLASS (APPLE VISIONOS / IOS NATÍVNY VIZUÁL)
        ======================================================== */
     :root {
-      --glass-bg: rgba(15, 23, 42, 0.72);
-      --glass-bg-subtle: rgba(15, 23, 42, 0.45);
-      --glass-bg-card: rgba(30, 41, 59, 0.45);
-      --glass-bg-card-hover: rgba(51, 65, 85, 0.6);
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --glass-border-specular: rgba(255, 255, 255, 0.12);
-      --glass-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      --glass-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-bg-subtle: rgba(255, 255, 255, 0.55);
+      --glass-bg-card: rgba(255, 255, 255, 0.65);
+      --glass-bg-card-hover: rgba(255, 255, 255, 0.9);
+      --glass-border: rgba(255, 255, 255, 0.6);
+      --glass-border-specular: rgba(255, 255, 255, 0.85);
+      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      --glass-shadow-lg: 0 12px 36px 0 rgba(31, 38, 135, 0.15);
       --glass-radius: 20px;
       --glass-blur: 24px;
+      --glass-text: #1e293b;
+      --glass-text-sub: #64748b;
     }
 
-    /* Univerzálna trieda: Apple Liquid Glass efekt */
+    /* Univerzálna trieda: Apple Liquid Glass efekt (Predvolený biely Liquid Glass) */
     .apple-glass {
-      background: rgba(15, 23, 42, 0.72) !important;
+      background: rgba(255, 255, 255, 0.75) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.08) !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.6) !important;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1) !important;
       border-radius: 20px !important;
+      color: #1e293b !important;
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
     }
 
     #map {
@@ -105,15 +111,16 @@
       z-index: 10050 !important;
     }
 
-    /* Všeobecný štýl pre panely (Apple Liquid Glass) */
+    /* Všeobecný štýl pre panely (Biely Liquid Glass) */
     .glass-panel {
-      background: rgba(15, 23, 42, 0.72);
+      background: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.6);
       border-radius: 20px;
-      color: #f8fafc;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      color: #1e293b;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
     }
 
     /* Ľavý prehľadový panel (Stats & Status) */
@@ -125,14 +132,16 @@
       padding: 14px 18px;
       max-width: 340px;
       width: calc(100% - 28px);
-      background: rgba(15, 23, 42, 0.72);
+      background: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.6);
       border-radius: 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      color: #1e293b;
       flex-wrap: wrap !important;
       box-sizing: border-box !important;
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
     }
 
     .dashboard-title {
@@ -141,8 +150,9 @@
       gap: 10px;
       font-size: 1.02rem;
       font-weight: 700;
-      color: #38bdf8;
+      color: #0284c7;
       margin-bottom: 6px;
+      transition: color 0.3s ease;
     }
 
     .dashboard-title span.pulse-dot {
@@ -170,12 +180,12 @@
     }
     .badge-live {
       background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
+      color: #059669;
       border: 1px solid rgba(16, 185, 129, 0.25);
     }
     .badge-night {
       background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
+      color: #d97706;
       border: 1px solid rgba(245, 158, 11, 0.25);
     }
 
@@ -187,31 +197,34 @@
 
     .stat-card {
       flex: 1;
-      background: rgba(30, 41, 59, 0.4);
+      background: rgba(255, 255, 255, 0.65);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.8);
       border-radius: 12px;
       padding: 8px 10px;
       text-align: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 2px 8px rgba(31, 38, 135, 0.08);
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
 
     .stat-val {
       font-size: 1.35rem;
       font-weight: 800;
-      color: #ffffff;
+      color: #1e293b;
       font-family: 'JetBrains Mono', monospace;
       letter-spacing: -0.3px;
+      transition: color 0.3s ease;
     }
 
     .stat-label {
       font-size: 0.66rem;
-      color: rgba(255, 255, 255, 0.6);
+      color: #64748b;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-top: 2px;
       font-weight: 600;
+      transition: color 0.3s ease;
     }
 
     .status-bar {
@@ -219,9 +232,10 @@
       align-items: center;
       justify-content: space-between;
       font-size: 0.76rem;
-      color: rgba(255, 255, 255, 0.6);
+      color: #64748b;
       padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      transition: color 0.3s ease, border-color 0.3s ease;
     }
 
     .refresh-btn {
@@ -286,36 +300,38 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
-      background: rgba(15, 23, 42, 0.8);
+      background: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      border-left: 1px solid rgba(255, 255, 255, 0.6);
       border-right: none;
       border-top: none;
       border-bottom: none;
       border-radius: 20px 0 0 20px;
       transform: translateX(110%);
-      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+      box-shadow: -8px 0 32px 0 rgba(31, 38, 135, 0.1);
       pointer-events: none;
+      color: #1e293b;
     }
     .control-panel.mobile-open {
       transform: translateX(0);
       pointer-events: auto;
     }
     .control-panel::-webkit-scrollbar { width: 4px; }
-    .control-panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+    .control-panel::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 4px; }
 
     .panel-section-title {
       font-size: 0.78rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: rgba(255, 255, 255, 0.6);
+      color: #475569;
       display: flex;
       align-items: center;
       gap: 6px;
       margin-bottom: 8px;
+      transition: color 0.3s ease;
     }
 
     /* Search Box */
@@ -327,25 +343,26 @@
 
     .search-input {
       flex: 1;
-      background: rgba(30, 41, 59, 0.4);
+      background: rgba(255, 255, 255, 0.65);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.8);
       border-radius: 12px;
       padding: 10px 14px 10px 36px;
-      color: #ffffff;
+      color: #1e293b;
       font-size: 0.86rem;
       font-family: inherit;
       outline: none;
-      box-shadow: none;
-      transition: border-color 0.2s, background 0.2s;
+      box-shadow: 0 2px 8px rgba(31, 38, 135, 0.06);
+      transition: border-color 0.2s, background 0.2s, color 0.3s ease;
     }
     .search-input:focus {
-      background: rgba(30, 41, 59, 0.65);
-      border-color: rgba(56, 189, 248, 0.5);
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(2, 132, 199, 0.6);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
     }
     .search-input::placeholder {
-      color: #64748b;
+      color: #94a3b8;
       font-size: 0.8rem;
     }
 
@@ -447,23 +464,25 @@
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      background: rgba(30, 41, 59, 0.45);
+      background: rgba(255, 255, 255, 0.65);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.8);
       border-radius: 10px;
       padding: 5px 10px;
       font-size: 0.8rem;
       font-weight: 600;
       font-family: 'JetBrains Mono', monospace;
-      color: #cbd5e1;
+      color: #1e293b;
       cursor: pointer;
       user-select: none;
+      box-shadow: 0 2px 6px rgba(31, 38, 135, 0.06);
       transition: all 0.2s ease;
     }
     .line-chip:hover {
-      background: rgba(51, 65, 85, 0.65);
-      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(2, 132, 199, 0.4);
+      color: #0284c7;
       transform: translateY(-1px);
     }
     .line-chip.active {
@@ -616,25 +635,26 @@
       margin: 0 auto;
       height: auto;
       max-height: 70dvh;
-      background: rgba(15, 23, 42, 0.94);
-      border-top: 1.5px solid rgba(255, 255, 255, 0.15);
-      border-left: 1px solid rgba(255, 255, 255, 0.08);
-      border-right: 1px solid rgba(255, 255, 255, 0.08);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.75);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.8);
+      border-left: 1px solid rgba(255, 255, 255, 0.6);
+      border-right: 1px solid rgba(255, 255, 255, 0.6);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.6);
       border-radius: 24px;
-      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      box-shadow: 0 -8px 32px 0 rgba(31, 38, 135, 0.1);
       z-index: 12000;
       display: flex;
       flex-direction: column;
       transform: translateY(115%);
-      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
-      backdrop-filter: blur(32px);
-      -webkit-backdrop-filter: blur(32px);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       pointer-events: none;
       visibility: hidden;
       padding-bottom: 8px;
+      color: #1e293b;
     }
     .history-bottom-sheet.open,
     .history-bottom-sheet.active,
@@ -1852,27 +1872,30 @@
       gap: 8px;
     }
     .spec-card {
-      background: rgba(30, 41, 59, 0.45);
+      background: rgba(255, 255, 255, 0.65);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.8);
       border-radius: 12px;
       padding: 8px 10px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(31, 38, 135, 0.08);
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
     .spec-card-label {
       font-size: 0.7rem;
-      color: #94a3b8;
+      color: #64748b;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       font-weight: 600;
+      transition: color 0.3s ease;
     }
     .spec-card-val {
       font-size: 0.88rem;
       font-weight: 700;
-      color: #f1f5f9;
+      color: #1e293b;
       margin-top: 2px;
       font-family: 'JetBrains Mono', monospace;
+      transition: color 0.3s ease;
     }
 
     /* Časová os (Timeline) */
@@ -4601,21 +4624,21 @@
         width: 42px;
         height: 42px;
         border-radius: 14px;
-        background: rgba(15, 23, 42, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #38bdf8;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        color: #1e293b;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
         cursor: pointer;
         z-index: 10040;
-        transition: transform 0.15s, background-color 0.2s;
+        transition: transform 0.15s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
       }
       .mobile-menu-btn:active {
         transform: scale(0.92);
-        background: rgba(30, 41, 59, 0.85);
+        background: rgba(255, 255, 255, 0.95);
       }
 
       /* Tmavé pozadie (overlay) pre vysunutý panel */
@@ -4647,17 +4670,19 @@
         max-width: calc(100vw - 74px) !important;
         padding: 10px 14px;
         border-radius: 16px;
-        background: rgba(15, 23, 42, 0.75);
+        background: rgba(255, 255, 255, 0.75);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        color: #1e293b;
         z-index: 1000;
         display: flex;
         flex-direction: column;
         flex-wrap: wrap !important;
         box-sizing: border-box !important;
         gap: 4px;
+        transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
       }
       .dashboard-title {
         font-size: 0.90rem;
@@ -4702,18 +4727,19 @@
         border-right: none;
         border-top: none;
         border-bottom: none;
-        border-left: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(15, 23, 42, 0.85) !important;
+        border-left: 1px solid rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.75) !important;
         backdrop-filter: blur(24px) !important;
         -webkit-backdrop-filter: blur(24px) !important;
         padding: 18px 18px 40px 18px;
         z-index: 10050;
         transform: translateX(105%);
-        transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
+        transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+        box-shadow: -8px 0 32px 0 rgba(31, 38, 135, 0.1);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         pointer-events: none;
+        color: #1e293b;
       }
       .control-panel.mobile-open {
         transform: translateX(0);
@@ -4727,7 +4753,7 @@
         justify-content: space-between;
         padding-bottom: 12px;
         margin-bottom: 8px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
       }
       .mobile-drawer-title {
         display: flex;
@@ -4735,15 +4761,15 @@
         gap: 8px;
         font-size: 1.02rem;
         font-weight: 700;
-        color: #38bdf8;
+        color: #0284c7;
       }
       .mobile-drawer-close {
         width: 32px;
         height: 32px;
         border-radius: 10px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #f1f5f9;
+        background: rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        color: #1e293b;
         font-size: 1.1rem;
         cursor: pointer;
         display: flex;
@@ -4848,15 +4874,15 @@
         border-radius: 24px 24px 0 0 !important;
         border-left: none !important;
         border-right: none !important;
-        border-bottom: none !important;
-        border-top: 1.5px solid rgba(255, 255, 255, 0.18) !important;
-        background: rgba(15, 23, 42, 0.96) !important;
-        backdrop-filter: blur(32px) !important;
-        -webkit-backdrop-filter: blur(32px) !important;
+        border-top: 1.5px solid rgba(255, 255, 255, 0.8) !important;
+        background: rgba(255, 255, 255, 0.75) !important;
+        backdrop-filter: blur(24px) !important;
+        -webkit-backdrop-filter: blur(24px) !important;
         transform: translateY(115%) !important;
-        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s !important;
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease !important;
         z-index: 12000 !important;
-        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6) !important;
+        box-shadow: 0 -8px 32px 0 rgba(31, 38, 135, 0.1) !important;
+        color: #1e293b !important;
         padding-bottom: calc(20px + max(10px, env(safe-area-inset-bottom, 0px))) !important;
         pointer-events: none !important;
         visibility: hidden !important;
@@ -4924,10 +4950,10 @@
       top: 12px !important;
       left: 12px !important;
       z-index: 10040 !important;
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.6);
       border-radius: 14px;
       padding: 7px 14px;
       display: flex;
@@ -4935,16 +4961,16 @@
       gap: 9px;
       font-size: 0.84rem;
       font-weight: 700;
-      color: #f8fafc;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      color: #1e293b;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
       user-select: none;
-      transition: transform 0.15s, background-color 0.2s;
+      transition: transform 0.15s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
       max-width: calc(100vw - 70px) !important;
       flex-wrap: wrap !important;
       box-sizing: border-box !important;
     }
     .map-live-pill:hover {
-      background: rgba(30, 41, 59, 0.85);
+      background: rgba(255, 255, 255, 0.95);
       transform: translateY(-1px);
     }
     .map-live-pill .map-count-badge {
@@ -5027,10 +5053,10 @@
       width: 100% !important;
       max-width: 100vw !important;
       height: calc(60px + max(10px, env(safe-area-inset-bottom, 0px))) !important;
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.6);
       border-bottom: none;
       border-left: none;
       border-right: none;
@@ -5038,11 +5064,12 @@
       display: flex;
       align-items: flex-start;
       padding: 6px 12px max(10px, env(safe-area-inset-bottom, 0px)) 12px !important;
-      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 -8px 32px 0 rgba(31, 38, 135, 0.1);
       z-index: 10035 !important;
       margin: 0 !important;
       transform: none !important;
       box-sizing: border-box !important;
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
 
     /* Posuvný indikátor záložky (Apple VisionOS Translucent Segment - 4 Záložky) */
@@ -5052,13 +5079,13 @@
       left: 12px;
       width: calc((100% - 24px) / 4);
       height: 48px;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.9);
       border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 14px rgba(31, 38, 135, 0.12);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
       pointer-events: none;
       z-index: 1;
     }
@@ -5072,11 +5099,11 @@
       justify-content: center;
       background: none;
       border: none;
-      color: rgba(255, 255, 255, 0.55);
+      color: #64748b;
       cursor: pointer;
       position: relative;
       z-index: 2;
-      transition: color 0.2s, transform 0.15s;
+      transition: color 0.3s ease, transform 0.15s;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
       padding: 0;
@@ -5085,8 +5112,11 @@
     .nav-tab:active {
       transform: scale(0.95);
     }
+    .nav-tab:hover {
+      color: #1e293b;
+    }
     .nav-tab.active {
-      color: #ffffff;
+      color: #0284c7;
     }
     .nav-tab-icon {
       font-size: 1.25rem;
@@ -5101,9 +5131,11 @@
       font-weight: 500;
       letter-spacing: 0.1px;
       white-space: nowrap;
+      color: inherit;
+      transition: color 0.3s ease;
     }
     .nav-tab.active .nav-tab-label {
-      color: #ffffff;
+      color: #1e293b;
       font-weight: 700;
     }
 
@@ -5116,15 +5148,17 @@
       bottom: calc(60px + env(safe-area-inset-bottom, 0px));
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      background: #090e1a;
+      background: #f8fafc;
+      color: #1e293b;
       z-index: 500;
       padding: 18px 16px 24px 16px;
+      transition: background 0.3s ease, color 0.3s ease;
     }
     #view-garage::-webkit-scrollbar, #view-planner::-webkit-scrollbar, #view-dashboard::-webkit-scrollbar {
       width: 5px;
     }
     #view-garage::-webkit-scrollbar-thumb, #view-planner::-webkit-scrollbar-thumb, #view-dashboard::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.15);
       border-radius: 3px;
     }
 
@@ -5134,12 +5168,13 @@
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
       padding-bottom: 12px;
       max-width: 100%;
       flex-wrap: wrap;
       gap: 10px;
       box-sizing: border-box;
+      transition: border-color 0.3s ease;
     }
     .view-header-title {
       display: flex;
@@ -5153,13 +5188,15 @@
     .view-header-title h2 {
       font-size: 1.25rem;
       font-weight: 800;
-      color: #ffffff;
+      color: #1e293b;
       margin: 0;
+      transition: color 0.3s ease;
     }
     .view-header-sub {
       font-size: 0.78rem;
-      color: rgba(255, 255, 255, 0.6);
+      color: #64748b;
       margin-top: 3px;
+      transition: color 0.3s ease;
     }
 
     /* Štatistiky v Garáži */
@@ -5175,7 +5212,7 @@
     }
     .garage-last-update {
       font-size: 0.72rem;
-      color: rgba(255, 255, 255, 0.5);
+      color: #64748b;
       margin-top: 6px;
       text-align: right;
       font-family: 'JetBrains Mono', monospace;
@@ -5211,43 +5248,44 @@
       flex-shrink: 0;
       cursor: pointer;
       user-select: none;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 4px 14px rgba(31, 38, 135, 0.08);
+      color: #1e293b;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .garage-chip:hover {
-      background: rgba(99, 102, 241, 0.16);
-      border-color: rgba(99, 102, 241, 0.5);
-      color: #ffffff;
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(2, 132, 199, 0.5);
+      color: #0284c7;
       transform: translateY(-1px);
     }
     .garage-chip:active {
       transform: scale(0.96);
     }
     .garage-chip.active {
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.38), rgba(56, 189, 248, 0.26));
-      border-color: rgba(99, 102, 241, 0.55);
-      color: #ffffff;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(56, 189, 248, 0.35));
+      border-color: #0284c7;
+      color: #0284c7;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.6);
     }
     .garage-chip.dev-only-chip {
       background: rgba(245, 158, 11, 0.12);
       border-color: rgba(245, 158, 11, 0.35);
-      color: #fcd34d;
+      color: #b45309;
     }
     .garage-chip.dev-only-chip:hover {
       background: rgba(245, 158, 11, 0.22);
       border-color: rgba(245, 158, 11, 0.6);
-      color: #ffffff;
+      color: #92400e;
     }
     .garage-chip.dev-only-chip.active {
-      background: linear-gradient(135deg, rgba(217, 119, 6, 0.5), rgba(245, 158, 11, 0.35));
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(245, 158, 11, 0.35));
       border-color: #f59e0b;
-      color: #ffffff;
-      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+      color: #b45309;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.6);
     }
     .garage-dev-verified-stat {
       display: inline-flex;
@@ -5256,7 +5294,7 @@
       padding: 6px 11px;
       font-size: 0.78rem;
       font-weight: 700;
-      color: #34d399;
+      color: #059669;
       background: rgba(16, 185, 129, 0.12);
       border: 1px solid rgba(16, 185, 129, 0.3);
       border-radius: 8px;
@@ -5282,7 +5320,8 @@
       gap: 8px;
       font-size: 0.96rem;
       font-weight: 700;
-      color: #f1f5f9;
+      color: #1e293b;
+      transition: color 0.3s ease;
     }
     .garage-group-count {
       font-size: 0.72rem;
@@ -5302,35 +5341,39 @@
       padding: 13px 18px;
       border-radius: 16px;
       margin-bottom: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
     .garage-state-banner.banner-active {
       border-left: 5px solid #22c55e;
-      background: linear-gradient(90deg, rgba(34, 197, 94, 0.16), rgba(30, 41, 59, 0.55));
+      background: linear-gradient(90deg, rgba(34, 197, 94, 0.16), rgba(255, 255, 255, 0.85));
     }
     .garage-state-banner.banner-depot {
       border-left: 5px solid #64748b;
-      background: linear-gradient(90deg, rgba(100, 116, 139, 0.18), rgba(15, 23, 42, 0.55));
+      background: linear-gradient(90deg, rgba(100, 116, 139, 0.16), rgba(255, 255, 255, 0.85));
     }
     .garage-state-title {
       font-size: 1.15rem;
       font-weight: 800;
-      color: #f8fafc;
+      color: #1e293b;
       display: flex;
       align-items: center;
       gap: 10px;
       letter-spacing: -0.3px;
+      transition: color 0.3s ease;
     }
     .garage-state-count {
       font-size: 0.82rem;
       font-weight: 700;
       padding: 4px 12px;
       border-radius: 20px;
-      background: rgba(255, 255, 255, 0.08);
-      color: #cbd5e1;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.06);
+      color: #475569;
+      border: 1px solid rgba(0, 0, 0, 0.08);
     }
 
     .garage-cards-grid {
@@ -5341,21 +5384,22 @@
 
     /* Karta vozidla v Garáži (Apple VisionOS / iOS natívny štýl, 16px radius) */
     .garage-vehicle-card {
-      background: rgba(30, 41, 59, 0.45);
+      background: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.6);
       border-radius: 16px;
       padding: 13px 15px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      transition: transform 0.15s, background-color 0.2s, border-color 0.2s;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+      color: #1e293b;
+      transition: transform 0.15s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
       content-visibility: auto;
       contain-intrinsic-size: 0 88px;
     }
     .garage-vehicle-card:hover {
-      background: rgba(30, 41, 59, 0.68);
-      border-color: rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(2, 132, 199, 0.4);
       transform: translateY(-2px);
     }
     .garage-vehicle-card:active {
@@ -5364,13 +5408,14 @@
 
     /* Karta neaktívneho / odstaveného vozidla v depe */
     .garage-vehicle-card.inactive {
-      background: rgba(15, 23, 42, 0.45);
-      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(0, 0, 0, 0.08);
       opacity: 0.88;
+      color: #475569;
     }
     .garage-vehicle-card.inactive:hover {
-      background: rgba(30, 41, 59, 0.65);
-      border-color: rgba(56, 189, 248, 0.35);
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(2, 132, 199, 0.35);
       opacity: 1;
       transform: translateY(-2px);
     }
@@ -5488,43 +5533,48 @@
 
     /* Plánovač trás vo vlastnom view - Apple VisionOS Card (20px radius) */
     .planner-card {
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.6);
       border-radius: 20px;
       padding: 20px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
       max-width: 650px;
       margin: 0 auto;
+      color: #1e293b;
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
     }
     .nav-field-label {
       display: block;
       font-size: 0.75rem;
       font-weight: 600;
-      color: rgba(255, 255, 255, 0.6);
+      color: #64748b;
       margin-bottom: 6px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      transition: color 0.3s ease;
     }
 
     /* ========================================================
        PREPÍNAČ MOTÍVU (SEGMENTED CONTROL V MENU)
        ======================================================== */
     .theme-selector-section {
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
       padding-top: 10px;
       margin-top: 10px;
       margin-bottom: 8px;
+      transition: border-color 0.3s ease;
     }
     .theme-switch-group {
       display: flex;
-      background: rgba(15, 23, 42, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.08);
       border-radius: 12px;
       padding: 3px;
       gap: 3px;
       margin-top: 6px;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
     .theme-switch-btn {
       flex: 1;
@@ -5535,7 +5585,7 @@
       background: transparent;
       border: none;
       border-radius: 9px;
-      color: #94a3b8;
+      color: #64748b;
       font-size: 0.74rem;
       font-weight: 600;
       padding: 7px 4px;
@@ -5545,8 +5595,8 @@
       user-select: none;
     }
     .theme-switch-btn:hover {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.06);
+      color: #1e293b;
+      background: rgba(0, 0, 0, 0.05);
     }
     .theme-switch-btn.active {
       background: #0284c7;
@@ -5849,25 +5899,25 @@
       width: 44px;
       height: 44px;
       border-radius: 14px;
-      background: rgba(15, 23, 42, 0.78);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: #38bdf8;
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      color: #1e293b;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       cursor: pointer;
       z-index: 10010;
-      transition: transform 0.15s, background-color 0.2s, color 0.2s, border-color 0.2s;
+      transition: transform 0.15s, background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
       padding: 0;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
     .locate-me-btn:hover {
-      background: rgba(30, 41, 59, 0.9);
-      color: #0ea5e9;
-      border-color: rgba(56, 189, 248, 0.4);
+      background: rgba(255, 255, 255, 0.95);
+      color: #0284c7;
+      border-color: rgba(2, 132, 199, 0.4);
       transform: translateY(-1px);
     }
     .locate-me-btn:active {
@@ -6004,104 +6054,155 @@
     }
 
     /* ========================================================
-       DARK MODE / TMAVÝ REŽIM (HLBOKÉ NOČNÉ ODTIENE & VYSOKÝ KONTRAST)
+       DARK MODE / TMAVÝ REŽIM (TMAVOFIIALOVÝ LIQUID GLASS & VYSOKÝ KONTRAST)
        ======================================================== */
     body.dark-mode {
-      background: #030712 !important;
-      color: #f8fafc !important;
+      background: #090314 !important;
+      color: #ffffff !important;
+      --glass-bg: rgba(35, 15, 55, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+      --glass-shadow-lg: 0 12px 36px 0 rgba(0, 0, 0, 0.5);
     }
 
     body.dark-mode #view-map {
-      background: #030712;
+      background: #090314;
     }
 
     /* Obrazovky Garáž, Plánovač a Dashboard */
     body.dark-mode #view-garage,
     body.dark-mode #view-planner,
     body.dark-mode #view-dashboard {
-      background: #050811 !important;
-      color: #f8fafc !important;
+      background: #0c041a !important;
+      color: #ffffff !important;
     }
 
     body.dark-mode .dash-kpi-card,
     body.dark-mode .dash-distribution-box,
     body.dark-mode .dash-fleet-composition-box,
     body.dark-mode .dash-vehicles-list-box {
-      background: rgba(8, 13, 27, 0.90) !important;
-      border-color: rgba(255, 255, 255, 0.1) !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      color: #ffffff !important;
     }
 
     body.dark-mode .view-header {
-      border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+      border-bottom-color: rgba(255, 255, 255, 0.12) !important;
     }
     body.dark-mode .view-header-title h2 {
       color: #ffffff !important;
     }
     body.dark-mode .view-header-sub {
-      color: #94a3b8 !important;
+      color: #cbd5e1 !important;
     }
 
-    /* Glass panely a vysúvacie menu */
+    /* Glass panely a vysúvacie menu (Tmavofialový Liquid Glass) */
     body.dark-mode .apple-glass,
     body.dark-mode .glass-panel {
-      background: rgba(7, 11, 22, 0.88) !important;
-      border-color: rgba(255, 255, 255, 0.1) !important;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      color: #ffffff !important;
     }
 
     body.dark-mode .dashboard-panel {
-      background: rgba(7, 11, 22, 0.88) !important;
-      border-color: rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .dashboard-title {
+      color: #38bdf8 !important;
     }
 
     body.dark-mode .control-panel {
-      background: rgba(6, 10, 20, 0.95) !important;
-      border-left-color: rgba(255, 255, 255, 0.1) !important;
-      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.7) !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4) !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .panel-section-title {
+      color: #cbd5e1 !important;
+    }
+    body.dark-mode .mobile-drawer-header {
+      border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+    }
+    body.dark-mode .mobile-drawer-title {
+      color: #ffffff !important;
+    }
+    body.dark-mode .mobile-drawer-close {
+      background: rgba(255, 255, 255, 0.1) !important;
+      border-color: rgba(255, 255, 255, 0.15) !important;
+      color: #ffffff !important;
     }
 
     body.dark-mode .map-live-pill {
-      background: rgba(7, 11, 22, 0.9) !important;
-      border-color: rgba(255, 255, 255, 0.12) !important;
-      color: #f8fafc !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      color: #ffffff !important;
     }
 
-    /* Spodná navigačná lišta */
+    /* Spodná navigačná lišta (Tmavofialový Liquid Glass) */
     body.dark-mode .bottom-nav-bar {
-      background: rgba(4, 7, 16, 0.95) !important;
-      border-top-color: rgba(255, 255, 255, 0.1) !important;
-      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.6) !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 -8px 32px 0 rgba(0, 0, 0, 0.4) !important;
     }
     body.dark-mode .nav-tab {
-      color: #94a3b8 !important;
+      color: rgba(255, 255, 255, 0.65) !important;
     }
     body.dark-mode .nav-tab:hover {
-      color: #f1f5f9 !important;
+      color: #ffffff !important;
     }
     body.dark-mode .nav-tab.active {
-      color: #38bdf8 !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .nav-tab.active .nav-tab-label {
+      color: #ffffff !important;
     }
     body.dark-mode .nav-slider-bubble {
-      background: rgba(255, 255, 255, 0.1) !important;
-      border-color: rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
+      background: rgba(255, 255, 255, 0.12) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
     }
 
     /* Mobilné tlačidlo hamburger a zameriavač polohy */
     body.dark-mode .mobile-menu-btn,
     body.dark-mode .locate-me-btn {
-      background: rgba(7, 11, 22, 0.9) !important;
-      border-color: rgba(255, 255, 255, 0.12) !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #ffffff !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+    }
+    body.dark-mode .mobile-menu-btn:hover,
+    body.dark-mode .locate-me-btn:hover {
+      background: rgba(55, 25, 85, 0.9) !important;
       color: #38bdf8 !important;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
     }
 
     /* Štatistické karty */
     body.dark-mode .stat-card,
     body.dark-mode .garage-stat-card {
-      background: rgba(13, 20, 36, 0.8) !important;
-      border-color: rgba(255, 255, 255, 0.09) !important;
+      background: rgba(50, 22, 75, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+      color: #ffffff !important;
     }
     body.dark-mode .stat-val,
     body.dark-mode .garage-stat-val {
@@ -6109,43 +6210,93 @@
     }
     body.dark-mode .stat-label,
     body.dark-mode .garage-stat-label {
-      color: #94a3b8 !important;
+      color: #cbd5e1 !important;
     }
 
-    /* Garáž karty a sekcie */
+    /* Garáž karty a sekcie (Tmavofialový Liquid Glass) */
     body.dark-mode .garage-group-box {
-      background: rgba(10, 16, 30, 0.85) !important;
-      border-color: rgba(255, 255, 255, 0.08) !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
     }
     body.dark-mode .garage-group-title {
-      color: #f8fafc !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .garage-state-banner {
+      background: rgba(35, 15, 55, 0.75) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+    }
+    body.dark-mode .garage-state-title {
+      color: #ffffff !important;
+    }
+    body.dark-mode .garage-vehicle-card {
+      background: rgba(35, 15, 55, 0.75) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .garage-vehicle-card:hover {
+      background: rgba(55, 25, 85, 0.85) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
+    }
+    body.dark-mode .garage-vehicle-card.inactive {
+      background: rgba(25, 10, 40, 0.65) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+      color: #cbd5e1 !important;
     }
     body.dark-mode .garage-vehicle-pill {
-      background: rgba(15, 23, 42, 0.9) !important;
-      border-color: rgba(255, 255, 255, 0.08) !important;
-      color: #f8fafc !important;
+      background: rgba(50, 22, 75, 0.8) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #ffffff !important;
     }
     body.dark-mode .garage-vehicle-pill:hover {
-      background: rgba(30, 41, 59, 0.9) !important;
-      border-color: rgba(56, 189, 248, 0.4) !important;
+      background: rgba(65, 30, 95, 0.9) !important;
+      border-color: rgba(56, 189, 248, 0.5) !important;
+    }
+    body.dark-mode .garage-chip {
+      background: rgba(35, 15, 55, 0.75) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .garage-chip:hover {
+      background: rgba(55, 25, 85, 0.85) !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .garage-chip.active {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(56, 189, 248, 0.35)) !important;
+      border-color: #a855f7 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
     }
 
     /* Plánovač trasy */
     body.dark-mode .planner-card,
     body.dark-mode .journey-card {
-      background: rgba(10, 16, 30, 0.9) !important;
-      border-color: rgba(255, 255, 255, 0.1) !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .nav-field-label {
+      color: #cbd5e1 !important;
     }
     body.dark-mode .journey-header {
-      border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+      border-bottom-color: rgba(255, 255, 255, 0.12) !important;
     }
     body.dark-mode .journey-leg-ride {
-      background: rgba(15, 23, 42, 0.8) !important;
-      border-color: rgba(255, 255, 255, 0.07) !important;
+      background: rgba(50, 22, 75, 0.65) !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+      color: #ffffff !important;
     }
     body.dark-mode .planner-input-group {
-      background: rgba(10, 16, 30, 0.85) !important;
-      border-color: rgba(255, 255, 255, 0.1) !important;
+      background: rgba(50, 22, 75, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
     }
 
     /* Formulárové vstupy */
@@ -6153,42 +6304,54 @@
     body.dark-mode .planner-input,
     body.dark-mode .override-input,
     body.dark-mode .override-select {
-      background: rgba(12, 18, 33, 0.9) !important;
-      border-color: rgba(255, 255, 255, 0.14) !important;
+      background: rgba(50, 22, 75, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
       color: #ffffff !important;
     }
     body.dark-mode .search-input::placeholder,
     body.dark-mode .planner-input::placeholder {
-      color: #64748b !important;
+      color: #94a3b8 !important;
     }
     body.dark-mode .search-input:focus,
     body.dark-mode .planner-input:focus,
     body.dark-mode .override-input:focus,
     body.dark-mode .override-select:focus {
-      border-color: #38bdf8 !important;
-      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+      border-color: #a855f7 !important;
+      box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
     }
 
-    /* Bottom Sheet História vozidla */
+    /* Bottom Sheet História vozidla (Tmavofialový Liquid Glass) */
     body.dark-mode .history-bottom-sheet,
     body.dark-mode .vehicle-history-panel {
-      background: rgba(7, 11, 20, 0.96) !important;
-      border-color: rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 -8px 36px rgba(0, 0, 0, 0.75) !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 -8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      color: #ffffff !important;
     }
     body.dark-mode .history-sheet-body,
     body.dark-mode .veh-hist-body {
-      background: #050811 !important;
+      background: transparent !important;
     }
-    body.dark-mode .veh-info-card {
-      background: rgba(13, 20, 36, 0.85) !important;
-      border-color: rgba(255, 255, 255, 0.08) !important;
+    body.dark-mode .veh-info-card,
+    body.dark-mode .spec-card {
+      background: rgba(50, 22, 75, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .spec-card-label {
+      color: #cbd5e1 !important;
+    }
+    body.dark-mode .spec-card-val {
+      color: #ffffff !important;
     }
     body.dark-mode .veh-hist-title {
       color: #ffffff !important;
     }
     body.dark-mode .veh-hist-subtitle {
-      color: #94a3b8 !important;
+      color: #cbd5e1 !important;
     }
     body.dark-mode .sheet-grab-handle {
       background: rgba(255, 255, 255, 0.25) !important;
@@ -6196,57 +6359,71 @@
 
     /* Modálne okno Developer Mode */
     body.dark-mode .override-modal {
-      background: rgba(8, 12, 24, 0.98) !important;
-      border-color: rgba(255, 255, 255, 0.14) !important;
+      background: rgba(35, 15, 55, 0.95) !important;
+      border-color: rgba(255, 255, 255, 0.15) !important;
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8) !important;
+      color: #ffffff !important;
     }
     body.dark-mode .override-veh-summary {
-      background: rgba(14, 21, 38, 0.85) !important;
-      border-color: rgba(255, 255, 255, 0.08) !important;
+      background: rgba(50, 22, 75, 0.75) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
     }
 
     /* Leaflet prvky a popupy */
     body.dark-mode .leaflet-control-zoom a {
-      background: #0f172a !important;
-      color: #f8fafc !important;
+      background: rgba(35, 15, 55, 0.85) !important;
+      color: #ffffff !important;
       border-color: rgba(255, 255, 255, 0.15) !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
     }
     body.dark-mode .leaflet-control-zoom a:hover {
-      background: #1e293b !important;
+      background: rgba(55, 25, 85, 0.95) !important;
       color: #38bdf8 !important;
     }
     body.dark-mode .leaflet-control-attribution {
-      background: rgba(5, 8, 16, 0.85) !important;
-      color: #64748b !important;
+      background: rgba(35, 15, 55, 0.75) !important;
+      color: #cbd5e1 !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
     body.dark-mode .leaflet-control-attribution a {
       color: #38bdf8 !important;
     }
     body.dark-mode .custom-board-popup .leaflet-popup-content-wrapper {
-      background: rgba(7, 11, 22, 0.96) !important;
-      border-color: rgba(56, 189, 248, 0.35) !important;
+      background: rgba(35, 15, 55, 0.92) !important;
+      border-color: rgba(255, 255, 255, 0.15) !important;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7) !important;
+      color: #ffffff !important;
     }
     body.dark-mode .custom-board-popup .leaflet-popup-tip {
-      background: rgba(7, 11, 22, 0.96) !important;
+      background: rgba(35, 15, 55, 0.92) !important;
     }
     body.dark-mode .board-row {
-      background: rgba(15, 23, 42, 0.7) !important;
-      border-color: rgba(255, 255, 255, 0.06) !important;
+      background: rgba(50, 22, 75, 0.65) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
     }
     body.dark-mode .board-row:hover {
-      background: rgba(20, 30, 52, 0.9) !important;
+      background: rgba(65, 30, 95, 0.85) !important;
       border-color: rgba(56, 189, 248, 0.35) !important;
     }
     body.dark-mode .board-title {
       color: #ffffff !important;
     }
+    body.dark-mode .theme-selector-section {
+      border-top-color: rgba(255, 255, 255, 0.12) !important;
+    }
     body.dark-mode .theme-switch-group {
-      background: rgba(6, 10, 20, 0.85);
-      border-color: rgba(255, 255, 255, 0.12);
+      background: rgba(50, 22, 75, 0.65) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+    }
+    body.dark-mode .theme-switch-btn {
+      color: #cbd5e1 !important;
+    }
+    body.dark-mode .theme-switch-btn:hover {
+      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.1) !important;
     }
     body.dark-mode .theme-status-text {
-      color: #94a3b8;
+      color: #cbd5e1 !important;
     }
 
     /* Agresívne CSS limity s najvyššou prioritou: bublina sa prispôsobí a nepretečie */
@@ -7397,7 +7574,7 @@
       // Aktualizácia meta tagu theme-color pre mobilné prehliadače
       const metaTheme = document.querySelector('meta[name="theme-color"]');
       if (metaTheme) {
-        metaTheme.setAttribute('content', isDark ? '#030712' : '#0ea5e9');
+        metaTheme.setAttribute('content', isDark ? '#090314' : '#ffffff');
       }
 
       setMapThemeLayer(isDark);
