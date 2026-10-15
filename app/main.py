@@ -494,14 +494,28 @@ def get_stops_list(
 @app.get("/api/v1/stops/{stop_id}/departures")
 def get_stop_departures_board(
     stop_id: str,
-    platform: Optional[str] = Query(None, description="Číslo konkrétneho nástupišťa")
+    platform: Optional[str] = Query(None, description="Číslo konkrétneho nástupišťa alebo 'all' pre celý uzol"),
+    all_platforms: Optional[bool] = Query(False, description="Zobraziť zlúčené odchody pre celý prestupný uzol")
 ):
     """
     Vráti virtuálnu digitálnu odchodovú tabuľu pre konkrétne fyzické nástupište/stĺpik zastávky
-    s meškaniami a obohatenú o dáta z databázy DPMK (ŠPZ, model, nízkopodlažnosť, klimatizácia).
+    alebo pre celý uzol, s meškaniami, súrodeneckými nástupišťami a živým fallbackom blížiacich sa vozidiel.
     """
+    eff_all = False
+    if isinstance(all_platforms, bool):
+        eff_all = all_platforms
+    elif hasattr(all_platforms, "default") and isinstance(all_platforms.default, bool):
+        eff_all = all_platforms.default
+
+    eff_platform = None
+    if isinstance(platform, str):
+        eff_platform = platform.strip()
+    elif hasattr(platform, "default") and platform.default is not None:
+        eff_platform = str(platform.default).strip()
+
+    aggregate_flag = bool(eff_all or (eff_platform in ("all", "*", "vsetky")))
     try:
-        data = live_feed.get_stop_departures(stop_id, platform=platform)
+        data = live_feed.get_stop_departures(stop_id, platform=eff_platform, aggregate=aggregate_flag)
     except Exception as e:
         stop_name = live_feed.get_stop_name(stop_id)
         return {
@@ -509,11 +523,33 @@ def get_stop_departures_board(
             "message": f"Chyba pri sťahovaní odchodov: {str(e)}",
             "stop_id": stop_id,
             "stop_name": stop_name,
-            "platform": platform,
+            "platform": eff_platform,
             "timestamp": datetime.now().isoformat(),
             "total_departures": 0,
+            "sibling_platforms": [],
             "departures": []
         }
+
+    stop_obj = live_feed.get_stop_by_id(stop_id)
+    raw_siblings = live_feed.get_stop_siblings(stop_id)
+
+    is_all = aggregate_flag or bool(data.get("is_aggregated"))
+    curr_plat = "all" if is_all else (eff_platform or (stop_obj.get("platform") if stop_obj else None))
+
+    sibling_platforms = []
+    for s in raw_siblings:
+        plat_val = str(s.get("platform") or "")
+        sibling_platforms.append({
+            "stop_id": s.get("stop_id"),
+            "platform": plat_val,
+            "name": s.get("name"),
+            "base_name": s.get("base_name"),
+            "stop_type": s.get("stop_type", "bus"),
+            "lines": s.get("lines", []),
+            "latitude": s.get("latitude"),
+            "longitude": s.get("longitude"),
+            "is_current": (not is_all and (s.get("stop_id") == stop_id or (curr_plat and plat_val == str(curr_plat))))
+        })
 
     # Aktívne vozidlá pre prípadné spárovanie cez trip_id
     active_vehicles = []
@@ -594,12 +630,67 @@ def get_stop_departures_board(
         }
         enriched_departures.append(dep_item)
 
+    # Live fallback: Ak Ubian vráti 0 odchodov (nočná pauza / výpadok API), doplníme blížiace sa vozidlá z live feedu
+    if len(enriched_departures) == 0 and stop_obj:
+        stop_lat = float(stop_obj.get("latitude") or 0)
+        stop_lng = float(stop_obj.get("longitude") or 0)
+        target_lines = set(stop_obj.get("lines") or [])
+        if is_all:
+            for s in raw_siblings:
+                target_lines.update(s.get("lines") or [])
+
+        if stop_lat and stop_lng and target_lines:
+            now_dt = datetime.now()
+            for v in active_vehicles:
+                if v.get("is_inactive"):
+                    continue
+                v_line = str(v.get("line") or "").strip()
+                if v_line in target_lines:
+                    v_lat = float(v.get("latitude") or 0)
+                    v_lng = float(v.get("longitude") or 0)
+                    if not v_lat or not v_lng:
+                        continue
+                    dlat = (v_lat - stop_lat) * 111.0
+                    dlng = (v_lng - stop_lng) * 73.0
+                    dist_km = (dlat * dlat + dlng * dlng) ** 0.5
+                    if dist_km <= 6.0:
+                        mins = max(1, int(round((dist_km / 22.0) * 60)))
+                        if mins <= 25:
+                            exp_dt = now_dt + timedelta(minutes=mins)
+                            dep_time_str = exp_dt.strftime("%H:%M")
+                            dep_delay = int(v.get("delay_minutes", 0) or 0)
+                            enriched_departures.append({
+                                "line": v_line,
+                                "destination": v.get("destination") or v.get("destination_full") or "V premávke na trase",
+                                "platform": stop_obj.get("platform") or "1",
+                                "planned_time": dep_time_str,
+                                "expected_time": dep_time_str,
+                                "planned_timestamp": int(exp_dt.timestamp()),
+                                "expected_timestamp": int(exp_dt.timestamp()),
+                                "delay_minutes": dep_delay,
+                                "minutes_left": mins,
+                                "low_floor": v.get("low_floor", True),
+                                "air_conditioning": True,
+                                "wifi": v.get("wifi", False),
+                                "trip_id": v.get("trip_id"),
+                                "vehicle_id": v.get("vehicle_id"),
+                                "license_number": v.get("license_number"),
+                                "is_live_approaching": True,
+                                "matched": bool(v.get("matched")),
+                                "fleet_info": v.get("fleet_info")
+                            })
+
+            enriched_departures.sort(key=lambda x: (x.get("minutes_left", 999), str(x.get("line") or "")))
+
     return {
         "status": "ok",
         "stop_id": data.get("stop_id"),
         "stop_name": data.get("stop_name"),
         "platform": data.get("platform"),
+        "stop_type": stop_obj.get("stop_type", "bus") if stop_obj else "bus",
         "timestamp": datetime.now().isoformat(),
+        "is_all_platforms": is_all,
+        "sibling_platforms": sibling_platforms,
         "total_departures": len(enriched_departures),
         "departures": enriched_departures
     }

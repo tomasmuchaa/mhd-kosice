@@ -1,10 +1,16 @@
-import json, sys, math, os, re
+import json
+import os
+import re
+import sys
 
 sys.stdout.reconfigure(encoding='utf-8')
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STOPS_PATH = os.path.join(PROJECT_DIR, 'data', 'kosice_stops.json')
 BACKUP_PATH = os.path.join(PROJECT_DIR, 'data', 'kosice_stops.json.bak')
+SCRATCH_DIR = os.path.join(PROJECT_DIR, 'scratch')
+
+TRAM_LINES = {'1', '2', '3', '4', '5', '6', '7', '9', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8'}
 
 def is_dpmk_line(line) -> bool:
     if line is None:
@@ -29,14 +35,6 @@ def is_dpmk_line(line) -> bool:
         return True
     return False
 
-def haversine(p1, p2):
-    R = 6371000
-    lat1, lon1 = math.radians(p1[0]), math.radians(p1[1])
-    lat2, lon2 = math.radians(p2[0]), math.radians(p2[1])
-    dlat, dlon = lat2 - lat1, lon2 - lon1
-    a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
-    return 2 * R * math.asin(math.sqrt(a))
-
 def sort_line_key(l):
     if l.isdigit():
         return (0, int(l), '')
@@ -45,111 +43,145 @@ def sort_line_key(l):
         return (0, int(m.group(1)), m.group(2))
     return (1, 0, l)
 
-# Load stops
-with open(STOPS_PATH, 'r', encoding='utf-8') as f:
-    raw_stops = json.load(f)
+def main():
+    print("Načítavam dáta zastávok DPMK...")
+    
+    with open(BACKUP_PATH, 'r', encoding='utf-8') as f:
+        raw_backup = json.load(f)
 
-print(f"Pôvodný počet zastávok: {len(raw_stops)}")
+    trip_platforms = {}
+    trip_platforms_file = os.path.join(SCRATCH_DIR, 'dpmk_trip_platforms.json')
+    if os.path.exists(trip_platforms_file):
+        with open(trip_platforms_file, 'r', encoding='utf-8') as f:
+            trip_platforms = json.load(f)
 
-# 1. Filtrovanie DPMK a GPS ohraničenia Košíc
-dpmk_stops = []
-for s in raw_stops:
-    lat = float(s.get('latitude') or 0)
-    lng = float(s.get('longitude') or 0)
-    # Bounding box širších Košíc
-    if not (48.55 <= lat <= 48.85 and 21.10 <= lng <= 21.40):
-        continue
+    scraped_plats = {}
+    scraped_plats_file = os.path.join(SCRATCH_DIR, 'ubian_scraped_platforms.json')
+    if os.path.exists(scraped_plats_file):
+        with open(scraped_plats_file, 'r', encoding='utf-8') as f:
+            scraped_plats = json.load(f)
 
-    raw_lines = s.get('lines', [])
-    mhd_lines = [l for l in raw_lines if is_dpmk_line(l)]
-    if not mhd_lines:
-        continue # Ignorujeme manipulačné body a Eurobusy
+    final_stops = {}
 
-    s_clean = dict(s)
-    s_clean['latitude'] = lat
-    s_clean['longitude'] = lng
-    s_clean['lines'] = sorted(list(set(mhd_lines)), key=sort_line_key)
-    dpmk_stops.append(s_clean)
+    for s in raw_backup:
+        pid = s.get('parent_stop_id')
+        if not pid or not str(pid).startswith('100000'):
+            continue  # Vylúčenie Eurobus, SAD a ŽSR
+        
+        sid = str(s.get('stop_id'))
+        plat = s.get('platform')
+        plat_str = str(plat).strip() if plat is not None and str(plat).strip() != '' else '1'
+        base_name = s.get('base_name') or s.get('name')
+        if ' (Nást' in base_name:
+            base_name = base_name.split(' (Nást')[0].strip()
+        
+        lat = float(s.get('latitude') or 0)
+        lng = float(s.get('longitude') or 0)
+        if not (48.55 <= lat <= 48.85 and 21.10 <= lng <= 21.40):
+            continue
 
-print(f"Po očistení od Eurobusov, SAD a prázdnych bodov: {len(dpmk_stops)} zastávok")
-
-# 2. Zhlukovanie platforiem patriacich pod rovnaký parent_stop_id do vzdialenosti 45 m
-by_parent = {}
-for s in dpmk_stops:
-    pid = s.get('parent_stop_id') or s['stop_id']
-    by_parent.setdefault(pid, []).append(s)
-
-clustered_stops = []
-
-for pid, plist in by_parent.items():
-    clusters = []
-    for p in plist:
-        coord_p = [p['latitude'], p['longitude']]
-        assigned = False
-        for c in clusters:
-            coord_c = [c['latitude'], c['longitude']]
-            if haversine(coord_p, coord_c) <= 45.0:
-                c['items'].append(p)
-                c['latitude'] = sum(x['latitude'] for x in c['items']) / len(c['items'])
-                c['longitude'] = sum(x['longitude'] for x in c['items']) / len(c['items'])
-                assigned = True
-                break
-        if not assigned:
-            clusters.append({
-                'latitude': coord_p[0],
-                'longitude': coord_p[1],
-                'items': [p]
-            })
-
-    for c in clusters:
-        items = c['items']
-        primary = items[0]
-        all_lines = set()
-        for it in items:
-            all_lines.update(it.get('lines', []))
-
-        platforms = [str(it.get('platform')) for it in items if it.get('platform') is not None and str(it.get('platform')).strip() != '']
-        plat_str = ", ".join(sorted(set(platforms), key=lambda x: (x.isdigit() and int(x) or 999, x))) if platforms else None
-
-        base_name = primary.get('base_name') or primary.get('name')
-        if ' (' in base_name and 'Nást' in base_name:
-            base_name = base_name.split(' (')[0].strip()
-
-        display_name = f"{base_name} (Nást. {plat_str})" if plat_str else base_name
-
-        clustered_stops.append({
-            'stop_id': primary['stop_id'],
-            'parent_stop_id': pid,
+        parent_lines = [l for l in s.get('lines', []) if is_dpmk_line(l)]
+        
+        final_stops[sid] = {
+            'stop_id': sid,
+            'parent_stop_id': int(pid),
             'platform': plat_str,
-            'platforms_included': [it['stop_id'] for it in items],
-            'name': display_name,
             'base_name': base_name,
-            'city': primary.get('city', 'Košice'),
-            'latitude': round(c['latitude'], 6),
-            'longitude': round(c['longitude'], 6),
-            'lines': sorted(list(all_lines), key=sort_line_key),
+            'name': f"{base_name} (Nást. {plat_str})" if plat_str and plat_str != 'None' else base_name,
+            'city': s.get('city', 'Košice'),
+            'latitude': round(lat, 6),
+            'longitude': round(lng, 6),
+            'lines': set(parent_lines),
             'for_urban': True
-        })
+        }
 
-# Zoradenie podľa názvu
-clustered_stops.sort(key=lambda x: x.get('name', ''))
+    # Zlúčenie novoobjavených zastávok z trás spojov (Kavečany, ZOO, Budanova, atď.)
+    for sid, tp in trip_platforms.items():
+        pid = tp.get('parent_stop_id')
+        lat = float(tp.get('latitude') or 0)
+        lng = float(tp.get('longitude') or 0)
+        plat_str = str(tp.get('platform') or '1').strip()
+        base_name = tp.get('base_name')
+        if ' (Nást' in base_name:
+            base_name = base_name.split(' (Nást')[0].strip()
 
-print(f"Výsledný počet fyzických zastávok po zlúčení duplicít: {len(clustered_stops)}")
+        tp_lines = [l for l in tp.get('lines', []) if is_dpmk_line(l)]
 
-# Záloha pôvodného súboru ak ešte neexistuje
-if not os.path.exists(BACKUP_PATH):
-    import shutil
-    shutil.copy2(STOPS_PATH, BACKUP_PATH)
-    print(f"Pôvodný súbor zálohovaný do {BACKUP_PATH}")
+        if sid in final_stops:
+            final_stops[sid]['lines'].update(tp_lines)
+            if lat and lng:
+                final_stops[sid]['latitude'] = round(lat, 6)
+                final_stops[sid]['longitude'] = round(lng, 6)
+        else:
+            final_stops[sid] = {
+                'stop_id': sid,
+                'parent_stop_id': int(pid) if pid else sid,
+                'platform': plat_str,
+                'base_name': base_name,
+                'name': f"{base_name} (Nást. {plat_str})" if plat_str and plat_str != 'None' else base_name,
+                'city': tp.get('city', 'Košice'),
+                'latitude': round(lat, 6),
+                'longitude': round(lng, 6),
+                'lines': set(tp_lines),
+                'for_urban': True
+            }
 
-# Uloženie očisteného súboru
-with open(STOPS_PATH, 'w', encoding='utf-8') as f:
-    json.dump(clustered_stops, f, ensure_ascii=False, indent=2)
+    # Rafinácia liniek podľa odchodov z Ubianu
+    for sid, sobj in final_stops.items():
+        pid_str = str(sobj['parent_stop_id'])
+        plat_str = str(sobj['platform'])
+        
+        scraped_parent = scraped_plats.get(pid_str, {})
+        if plat_str in scraped_parent:
+            p_lines = [l for l in scraped_parent[plat_str].get('lines', []) if is_dpmk_line(l)]
+            if p_lines:
+                sobj['lines'] = set(p_lines)
+        elif 'default' in scraped_parent and len(scraped_parent) == 1:
+            p_lines = [l for l in scraped_parent['default'].get('lines', []) if is_dpmk_line(l)]
+            if p_lines:
+                sobj['lines'] = set(p_lines)
 
-print(f"Očistený dataset úspešne uložený do {STOPS_PATH}!")
+    # Výpočet stop_type (tram, bus, mixed)
+    clean_list = []
+    tram_cnt = bus_cnt = mixed_cnt = 0
+    for sid, sobj in final_stops.items():
+        clean_lines = sorted(list(sobj['lines']), key=sort_line_key)
+        has_tram = any(l in TRAM_LINES for l in clean_lines)
+        has_bus = any(l not in TRAM_LINES for l in clean_lines)
+        
+        if has_tram and has_bus:
+            st_type = 'mixed'
+            mixed_cnt += 1
+        elif has_tram:
+            st_type = 'tram'
+            tram_cnt += 1
+        else:
+            st_type = 'bus'
+            bus_cnt += 1
 
-# Kontrola Moskovskej
-mosk = [s for s in clustered_stops if 'Moskovsk' in s['name']]
-print(f"\nStav Moskovská ({len(mosk)} zastávky):")
-for m in mosk:
-    print(f"  {m['stop_id']}: {m['name']} | Nástupištia: {m['platform']} | Linky: {m['lines']} | GPS: {m['latitude']}, {m['longitude']}")
+        clean_item = {
+            'stop_id': sobj['stop_id'],
+            'parent_stop_id': sobj['parent_stop_id'],
+            'platform': sobj['platform'],
+            'name': sobj['name'],
+            'base_name': sobj['base_name'],
+            'city': sobj['city'],
+            'latitude': sobj['latitude'],
+            'longitude': sobj['longitude'],
+            'lines': clean_lines,
+            'stop_type': st_type,
+            'for_urban': True
+        }
+        clean_list.append(clean_item)
+
+    clean_list.sort(key=lambda x: (x['base_name'], str(x.get('platform') or '')))
+
+    print(f"Výsledný stav: {len(clean_list)} zastávok ({tram_cnt} električkových, {bus_cnt} autobusových, {mixed_cnt} zmiešaných)")
+
+    with open(STOPS_PATH, 'w', encoding='utf-8') as f:
+        json.dump(clean_list, f, ensure_ascii=False, indent=2)
+
+    print(f"Uložené do {STOPS_PATH}!")
+
+if __name__ == '__main__':
+    main()

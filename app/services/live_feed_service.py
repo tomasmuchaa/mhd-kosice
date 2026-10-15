@@ -431,14 +431,26 @@ class DpmkLiveFeed:
                 with open(stops_file, "r", encoding="utf-8") as f:
                     self._stops_cache = json.load(f)
                     self._stops_by_id = {}
+                    self._stops_by_parent = {}
+                    self._stops_by_basename = {}
                     for s in self._stops_cache:
+                        sid = str(s["stop_id"])
+                        self._stops_by_id[sid] = s
                         self._stops_by_id[s["stop_id"]] = s
                         for p_id in s.get("platforms_included", []):
                             if p_id not in self._stops_by_id:
                                 self._stops_by_id[p_id] = s
-                        parent_id = s.get("parent_stop_id")
-                        if parent_id is not None and parent_id not in self._stops_by_id:
-                            self._stops_by_id[parent_id] = s
+                        pid = s.get("parent_stop_id")
+                        if pid is not None:
+                            self._stops_by_parent.setdefault(pid, []).append(s)
+                            self._stops_by_parent.setdefault(str(pid), []).append(s)
+                            if pid not in self._stops_by_id:
+                                self._stops_by_id[pid] = s
+                            if str(pid) not in self._stops_by_id:
+                                self._stops_by_id[str(pid)] = s
+                        bname = s.get("base_name")
+                        if bname:
+                            self._stops_by_basename.setdefault(bname, []).append(s)
                     return
             except Exception:
                 pass
@@ -545,6 +557,51 @@ class DpmkLiveFeed:
                     pass
         return f"Zastávka #{stop_id}"
 
+    def get_stop_by_id(self, stop_id: Any) -> Optional[Dict[str, Any]]:
+        """Vyhľadá objekt zastávky podľa stop_id alebo parent_stop_id."""
+        self._ensure_stops_loaded()
+        if hasattr(self, "_stops_by_id"):
+            s = self._stops_by_id.get(stop_id) or self._stops_by_id.get(str(stop_id))
+            if s:
+                return s
+            if isinstance(stop_id, str) and "_" in stop_id:
+                try:
+                    base_id = int(stop_id.split("_")[0])
+                    return self._stops_by_id.get(base_id) or self._stops_by_id.get(str(base_id))
+                except Exception:
+                    pass
+        return None
+
+    def get_stop_siblings(self, stop_id: Any) -> List[Dict[str, Any]]:
+        """Nájde všetky súrodenecké nástupištia v rovnakom prestupnom uzle."""
+        self._ensure_stops_loaded()
+        stop_obj = self.get_stop_by_id(stop_id)
+        if not stop_obj:
+            return []
+        pid = stop_obj.get("parent_stop_id")
+        base = stop_obj.get("base_name")
+        siblings = []
+        seen = set()
+
+        candidates = []
+        if pid and hasattr(self, "_stops_by_parent") and pid in self._stops_by_parent:
+            candidates.extend(self._stops_by_parent[pid])
+        elif base and hasattr(self, "_stops_by_basename") and base in self._stops_by_basename:
+            candidates.extend(self._stops_by_basename[base])
+        else:
+            for s in self._stops_cache:
+                if (pid and s.get("parent_stop_id") == pid) or (base and s.get("base_name") == base):
+                    candidates.append(s)
+
+        for s in candidates:
+            s_id = str(s.get("stop_id"))
+            if s_id not in seen:
+                seen.add(s_id)
+                siblings.append(s)
+
+        siblings.sort(key=lambda x: (int(x.get("platform")) if str(x.get("platform") or "").isdigit() else 999, str(x.get("platform") or "")))
+        return siblings
+
     @staticmethod
     def normalize_stop_name(name: str) -> str:
         """Normalizuje názov zastávky (odstráni diakritiku, interpunkciu a viacnásobné medzery)."""
@@ -614,11 +671,15 @@ class DpmkLiveFeed:
         actual_sid = stop_id
         target_platform = str(platform).strip() if platform is not None else None
 
+        if target_platform in ("all", "*", "vsetky"):
+            aggregate = True
+            target_platform = "all"
+
         if isinstance(stop_id, str) and "_" in stop_id:
             parts = stop_id.split("_")
             try:
                 actual_sid = int(parts[0])
-                if not target_platform:
+                if not target_platform and not aggregate:
                     target_platform = parts[1].strip()
             except ValueError:
                 pass
@@ -631,13 +692,13 @@ class DpmkLiveFeed:
         if stop_obj:
             if stop_obj.get("parent_stop_id"):
                 actual_sid = stop_obj.get("parent_stop_id")
-            if not target_platform and stop_obj.get("platform"):
+            if not aggregate and not target_platform and stop_obj.get("platform"):
                 target_platform = str(stop_obj.get("platform")).strip()
 
         stop_name = self.get_stop_name(stop_id)
 
         allowed_platforms = set()
-        if target_platform:
+        if not aggregate and target_platform:
             for p in str(target_platform).split(","):
                 p_clean = p.strip()
                 if p_clean:
@@ -713,10 +774,13 @@ class DpmkLiveFeed:
                         existing["license_number"] = dep_item["license_number"]
             return unique
 
-        unique_departures = build_departures(filter_plat=True)
-        # Fallback: Ak filtrovanie podľa nástupišťa vyprázdnilo výsledky, ale raw_list má odchody, vrátime všetky odchody pre toto fyzické stanovište
-        if not unique_departures and raw_list and allowed_platforms:
+        if aggregate:
             unique_departures = build_departures(filter_plat=False)
+        else:
+            unique_departures = build_departures(filter_plat=True)
+            # Fallback: Ak filtrovanie podľa nástupišťa vyprázdnilo výsledky, ale raw_list má odchody, vrátime všetky odchody pre toto fyzické stanovište
+            if not unique_departures and raw_list and allowed_platforms:
+                unique_departures = build_departures(filter_plat=False)
 
         departures = list(unique_departures.values())
         departures.sort(key=lambda x: (x.get("expected_timestamp") or x.get("planned_timestamp") or 0, str(x.get("line") or "")))
@@ -724,7 +788,8 @@ class DpmkLiveFeed:
         return {
             "stop_id": stop_id,
             "stop_name": stop_name,
-            "platform": target_platform,
+            "platform": "all" if aggregate else target_platform,
+            "is_aggregated": aggregate,
             "total_departures": len(departures),
             "departures": departures
         }
