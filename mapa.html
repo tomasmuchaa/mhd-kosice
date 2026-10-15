@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>nexigo – Živá mapa a sledovanie MHD Košice</title>
+  <title>nexigo</title>
   <meta name="description" content="nexigo: Živá interaktívna mapa autobusov a električiek DPMK v Košiciach. Reálne polohy vozidiel, aktuálne meškania spojov, virtuálne odchodové tabule a inteligentné plánovanie trás.">
   <meta name="keywords" content="nexigo, nexigo kosice, nexigo mhd, mhd kosice live, dpmk mapa, sledovanie autobusov kosice, elektricky kosice live, meskanie mhd kosice">
   <meta name="robots" content="index, follow">
@@ -13,7 +13,7 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="nexigo – Živá mapa MHD Košice">
   <meta property="og:description" content="Sleduj polohy autobusov a električiek v reálnom čase, odchody zo zastávok a meškania v Košiciach.">
-  <meta property="og:image" content="/static/icons/icon-512.png">
+  <meta property="og:image" content="/static/icons/icon-512.png?v=3">
 
   <!-- PWA Meta Tags & Manifest -->
   <meta name="theme-color" content="#0ea5e9">
@@ -21,8 +21,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="nexigo">
   <link rel="manifest" href="/manifest.json">
-  <link rel="icon" type="image/png" href="static/icons/favicon.png?v=2">
-  <link rel="apple-touch-icon" href="static/icons/favicon.png?v=2">
+  <link rel="icon" type="image/png" href="/static/icons/favicon.png?v=3">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png?v=3">
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -5029,6 +5029,26 @@
       align-items: center;
       gap: 8px;
     }
+    .nexigo-brand-logo {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      object-fit: contain;
+      flex-shrink: 0;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .nexigo-brand-text {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 0.98rem;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      text-transform: lowercase;
+      color: inherit;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+    }
     .map-pill-inner-following {
       display: none;
       align-items: center;
@@ -6731,10 +6751,11 @@
     <div id="map"></div>
 
     <!-- Čistý mapový stavový pill (kliknutím prepne do Garáže, 5x klik pre Developer Mode) -->
-    <div class="map-live-pill apple-glass" id="app-logo-title" onclick="handleLogoClick(event)" title="Nexigo (5x klik pre Developer Mode)" style="cursor: pointer;">
+    <div class="map-live-pill apple-glass" id="app-logo-title" onclick="handleLogoClick(event)" title="nexigo (5x klik pre Developer Mode)" style="cursor: pointer;">
       <div id="map-pill-normal" class="map-pill-inner">
+        <img src="/static/icons/icon-192.png?v=3" alt="nexigo" class="nexigo-brand-logo" width="24" height="24" />
+        <span id="app-logo-text" class="nexigo-brand-text">nexigo</span>
         <span class="pulse-dot"></span>
-        <span id="app-logo-text">Nexigo</span>
         <span id="dev-mode-pill-map" class="dev-mode-pill" style="display: none;">DEV</span>
         <span class="map-count-badge" id="map-pill-count">-- vozidiel</span>
       </div>
@@ -7233,9 +7254,10 @@
   <!-- Bočný vysúvací panel filtrov a vrstiev (otvára sa cez ikonu vpravo hore na mape) -->
   <div class="glass-panel control-panel apple-glass" id="map-layers-drawer">
     <div class="mobile-drawer-header">
-      <div class="mobile-drawer-title">
-        <span>🎛️</span>
-        <span>Nexigo • Filtre a Vrstvy</span>
+      <div class="mobile-drawer-title" style="display: flex; align-items: center; gap: 8px;">
+        <img src="/static/icons/icon-192.png?v=3" alt="nexigo" class="nexigo-brand-logo" width="22" height="22" style="border-radius: 5px;" />
+        <span class="nexigo-brand-text">nexigo</span>
+        <span style="font-size: 0.82rem; color: #64748b; font-weight: 500;">• Filtre a Vrstvy</span>
       </div>
       <button class="mobile-drawer-close" onclick="closeMobileDrawer()" aria-label="Zavrieť">✕</button>
     </div>

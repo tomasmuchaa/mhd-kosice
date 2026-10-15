@@ -1,9 +1,9 @@
-const CACHE_NAME = 'nexigo-cache-v6';
+const CACHE_NAME = 'nexigo-cache-v7';
 const STATIC_ASSETS = [
   '/manifest.json',
-  '/static/icons/favicon.png?v=2',
-  '/static/icons/icon-192.png?v=2',
-  '/static/icons/icon-512.png?v=2',
+  '/static/icons/favicon.png?v=3',
+  '/static/icons/icon-192.png?v=3',
+  '/static/icons/icon-512.png?v=3',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap'
