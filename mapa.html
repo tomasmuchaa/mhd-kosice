@@ -110,6 +110,9 @@
     .leaflet-pane.leaflet-popup-pane {
       z-index: 10050 !important;
     }
+    .leaflet-tile-pane {
+      transition: filter 0.3s ease;
+    }
 
     /* Všeobecný štýl pre panely (Čistý biely Liquid Glass) */
     .glass-panel {
@@ -6137,6 +6140,13 @@
     }
     body.dark-mode .view-header-sub {
       color: #cbd5e1 !important;
+    }
+
+    /* Podkladová vrstva mapy OpenStreetMap (Tmavý režim cez CSS Filter) */
+    body.dark-mode .leaflet-tile-pane,
+    html.dark-mode .leaflet-tile-pane {
+      filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+      transition: filter 0.3s ease;
     }
 
     /* Glass panely a vysúvacie menu (Ultra-tmavý fialový Liquid Glass) */
