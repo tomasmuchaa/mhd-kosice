@@ -588,10 +588,11 @@
       background: rgba(0, 0, 0, 0.65);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      z-index: 10040;
+      z-index: 11990;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      visibility: hidden;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
     }
     .history-sheet-backdrop.open,
     .history-sheet-backdrop.active,
@@ -599,6 +600,7 @@
     .vehicle-history-backdrop.active {
       opacity: 1;
       pointer-events: auto !important;
+      visibility: visible !important;
     }
 
     .history-bottom-sheet,
@@ -619,7 +621,7 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 24px;
       box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
-      z-index: 10050;
+      z-index: 12000;
       display: flex;
       flex-direction: column;
       transform: translateY(115%);
@@ -4734,30 +4736,37 @@
       }
 
       /* Detail vozidla a história (imhd.sk) ako BOTTOM SHEET - UKOTVENÝ PRE MOBIL */
+      .history-sheet-backdrop,
+      .vehicle-history-backdrop {
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 11990 !important;
+      }
+
       .history-bottom-sheet,
       .vehicle-history-panel {
         position: fixed !important;
         top: auto !important;
-        bottom: calc(68px + max(10px, env(safe-area-inset-bottom, 0px))) !important;
+        bottom: 0 !important;
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
         height: auto !important;
-        max-height: 70dvh !important;
-        border-radius: 22px 22px 14px 14px !important;
-        border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        max-height: 75dvh !important;
+        border-radius: 24px 24px 0 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: none !important;
         border-top: 1.5px solid rgba(255, 255, 255, 0.18) !important;
-        background: rgba(15, 23, 42, 0.95) !important;
+        background: rgba(15, 23, 42, 0.96) !important;
         backdrop-filter: blur(32px) !important;
         -webkit-backdrop-filter: blur(32px) !important;
         transform: translateY(115%) !important;
         transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s !important;
-        z-index: 10050 !important;
-        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5) !important;
-        padding-bottom: 8px !important;
+        z-index: 12000 !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6) !important;
+        padding-bottom: calc(20px + max(10px, env(safe-area-inset-bottom, 0px))) !important;
         pointer-events: none !important;
         visibility: hidden !important;
         overflow-y: auto !important;
@@ -6820,6 +6829,7 @@
       <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 4px;">
         Automaticky aktualizuje polohu bez nutnosti klikať na tlačidlo (vyššia spotreba batérie)
       </div>
+    </div>
     <!-- Konfigurácia API servera (užitočné pre natívnu appku na mobile) -->
     <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px;">
       <div class="panel-section-title" style="margin-bottom: 4px;">
@@ -13484,6 +13494,7 @@
       }
 
       // Okamžité vysunutie existujúceho spodného panela
+      panel.style.transform = '';
       panel.classList.add('open');
       panel.classList.add('active');
       if (backdrop) {
@@ -14585,6 +14596,7 @@
       }
 
       // Okamžité zobrazenie Bottom Sheetu a stmavenia pozadia
+      panel.style.transform = '';
       panel.classList.add('open');
       panel.classList.add('active');
       if (backdrop) {
