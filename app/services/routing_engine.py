@@ -184,6 +184,10 @@ class RoutingEngine:
         if cname in self.stops_by_canonical_name:
             return self.stops_by_canonical_name[cname][0]
 
+        norm_canon = normalize_canonical_stop(cname)
+        if norm_canon in self.stops_by_norm_canonical:
+            return self.stops_by_norm_canonical[norm_canon][0]
+
         # 4. Zhoda bez diakritiky a interpunkcie s tokenizáciou
         def clean_search_str(txt: str) -> str:
             t = strip_accents(txt.lower())
@@ -911,11 +915,13 @@ class RoutingEngine:
         for v in vehicles:
             if str(v.get("line")).strip() == line_str:
                 v_dest = normalize_canonical_stop(v.get("destination") or v.get("destination_full") or "")
-                if norm_dest and v_dest and (norm_dest in v_dest or v_dest in norm_dest):
+                if norm_dest:
+                    if v_dest and (norm_dest in v_dest or v_dest in norm_dest):
+                        matched_veh = v
+                        break
+                else:
                     matched_veh = v
                     break
-                elif matched_veh is None:
-                    matched_veh = v
 
         if matched_veh:
             delay = int(matched_veh.get("delay_minutes", 0) or 0)
@@ -1008,9 +1014,13 @@ class RoutingEngine:
             if wait_sec > 18000:
                 continue
 
-            delay_min, veh_info, lic, is_live = self.get_live_delay_for_departure(
-                line_str, destination_stop=d["destination_stop"], trip_id=d["trip_id"], is_future=is_future
-            )
+            # Live delay overlay iba ak je spoj v rozumnom okne živého sledovania (<= 40 min / 2400 s)
+            if not is_future and wait_sec <= 2400:
+                delay_min, veh_info, lic, is_live = self.get_live_delay_for_departure(
+                    line_str, destination_stop=d["destination_stop"], trip_id=d["trip_id"], is_future=is_future
+                )
+            else:
+                delay_min, veh_info, lic, is_live = 0, None, None, False
             eff_wait_sec = max(0, wait_sec + (delay_min * 60))
 
             ds_key = (d["trip_id"], d["stop_sequence"])
@@ -1026,12 +1036,19 @@ class RoutingEngine:
                 downstream_list = []
                 for ds in downstream:
                     ride_sec = ds["departure_seconds"] - d["departure_seconds"]
-                    if ride_sec <= 0:
-                        ride_sec = max(60, ride_sec + 86400)
+                    if ride_sec < 0:
+                        ride_sec += 86400
+                    seq_diff = max(1, ds["stop_sequence"] - d["stop_sequence"])
+                    if ride_sec < 60:
+                        ride_sec = max(60, seq_diff * 60)
+
+                    arr_sec = (d["departure_seconds"] + ride_sec) % 86400
+                    arr_time_str = f"{arr_sec // 3600:02d}:{(arr_sec % 3600) // 60:02d}"
+
                     downstream_list.append({
                         "canonical_stop_name": ds["canonical_stop_name"],
                         "stop_name": ds["stop_name"],
-                        "departure_time_str": ds["departure_time_str"],
+                        "departure_time_str": arr_time_str,
                         "ride_seconds": ride_sec
                     })
                 self._trip_downstream_cache[ds_key] = downstream_list
@@ -1270,13 +1287,12 @@ class RoutingEngine:
                     "is_live": dep.get("is_live", False)
                 }
 
-        # 3. Fallback: zistenie z grafikónu celej linky
-        is_op, sched_wait_sec, headway = self.get_line_schedule_window(line_str, current_dt)
+        # 3. Ak spoj v grafikone vôbec neexistuje / nepremáva na danej zastávke:
         return {
-            "wait_seconds": sched_wait_sec,
-            "wait_minutes": round(sched_wait_sec / 60.0, 1),
+            "wait_seconds": 86400,
+            "wait_minutes": 1440.0,
             "delay_minutes": 0,
-            "expected_timestamp": current_ts + sched_wait_sec,
+            "expected_timestamp": current_ts + 86400,
             "trip_id": None,
             "vehicle_info": None,
             "license_number": None,
@@ -1932,9 +1948,9 @@ class RoutingEngine:
 
                 polyline_coords, intermediate_names = self.get_transit_segment_geometry(line, u_s, v_s, trip_id=trip_id)
 
-                ride_sec = act["ride_seconds"]
-                ride_min = round(ride_sec / 60.0, 1)
-                dist_m = act["distance_meters"]
+                ride_sec = max(60, int(act.get("ride_seconds", 60)))
+                ride_min = max(1.0, round(ride_sec / 60.0, 1))
+                dist_m = act.get("distance_meters", 0.0)
                 total_ride_sec += ride_sec
                 current_time_dt += timedelta(seconds=ride_sec)
 
@@ -2003,7 +2019,9 @@ class RoutingEngine:
         })
 
         total_duration_sec = int((current_time_dt - now_dt).total_seconds())
-        total_duration_min = round(total_duration_sec / 60.0, 1)
+        if total_duration_sec < 60:
+            total_duration_sec = max(60, sum(s.get("duration_seconds", 0) for s in steps) + sum(s.get("wait_seconds", 0) for s in steps))
+        total_duration_min = max(1.0, round(total_duration_sec / 60.0, 1))
         transfers_count = max(0, len(lines_used) - 1)
 
         summary = {

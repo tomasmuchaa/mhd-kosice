@@ -39,6 +39,7 @@ def normalize_canonical_stop(name: str) -> str:
     # Štandardizácia skratiek v Košiciach
     s = re.sub(r"\bnam\.\b|\bnam\b", "namestie", s)
     s = re.sub(r"\boc\b", "obchodne centrum", s)
+    s = re.sub(r"\bnippon\s+steel\b|\bu\.\s*s\.\s*steel\b|\bu\s*s\s*steel\b|\buss\b", "nssk", s)
     s = re.sub(r"\bmiu\b|\bmiestny\s*urad\b", "miu", s)
     s = re.sub(r"\bdarg\.\s*hrdinov\b|\bdargovskych\s*hrdinov\b", "dargovskych hrdinov", s)
     s = re.sub(r"\bzel\.\s*st\b|\bzel\s*st\b", "zeleznicna stanica", s)
@@ -148,9 +149,11 @@ class TimetableManager:
         )
         """)
         # Indexy pre bleskové vyhľadávanie v Dijkstrovom algoritme
-        cur.execute("CREATE INDEX idx_sd_lookup ON stop_departures (canonical_stop_name, line, day_type, departure_seconds)")
-        cur.execute("CREATE INDEX idx_sd_trip_seq ON stop_departures (trip_id, stop_sequence)")
-        cur.execute("CREATE INDEX idx_sd_stop_day ON stop_departures (canonical_stop_name, day_type, departure_seconds)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_sd_lookup ON stop_departures (canonical_stop_name, line, day_type, departure_seconds)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_sd_trip_seq ON stop_departures (trip_id, stop_sequence)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_sd_stop_day ON stop_departures (canonical_stop_name, day_type, departure_seconds)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_sd_stop_line_dir_dep ON stop_departures (canonical_stop_name, line, direction, departure_seconds)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_sd_lookup_dir ON stop_departures (canonical_stop_name, line, direction, day_type, departure_seconds)")
         conn.commit()
 
     @staticmethod
@@ -246,35 +249,52 @@ class TimetableManager:
             stops_table = p_soup.find("table", class_="stopsList")
             stops_data = []
             if stops_table:
+                last_offset_min = 0
                 for tr in stops_table.find_all("tr"):
                     tds = tr.find_all(["th", "td"])
-                    if not tds or len(tds) < 3:
+                    if not tds or len(tds) < 2:
                         continue
                     if any("zastávka" in c.get_text().lower() for c in tds):
                         continue
 
                     # Stop name: extract without platform / zone badge spans
-                    stop_cell = tds[-1]
+                    stop_cell = tr.find("td", class_="stopName") or tds[-1]
                     for bad_span in stop_cell.find_all("span", class_=["platform", "badge", "glyphicon"]):
                         bad_span.decompose()
                     clean_stop_name = stop_cell.get_text(strip=True)
                     clean_stop_name = re.sub(r"(\D+)\d+$", r"\1", clean_stop_name).strip()
+                    if not clean_stop_name:
+                        continue
 
-                    # Offset time: span.timemax has the exact scheduled travel minute from origin
+                    # Offset time: span.timemax or span.timemin in stopTime cell
                     offset_min = 0
-                    time_cell = tds[1] if len(tds) > 1 else None
+                    time_cell = tr.find("td", class_="stopTime")
+                    if not time_cell:
+                        for td in tds:
+                            if td.find("span", class_=["timemax", "timemin"]):
+                                time_cell = td
+                                break
+                    if not time_cell and len(tds) > 1:
+                        time_cell = tds[1]
+
                     if time_cell:
                         s_max = time_cell.find("span", class_="timemax")
                         if s_max and s_max.get_text(strip=True).isdigit():
                             offset_min = int(s_max.get_text(strip=True))
                         else:
                             s_min = time_cell.find("span", class_="timemin")
-                            if s_min and s_min.get_text(strip=True).isdigit():
-                                offset_min = int(s_min.get_text(strip=True))
+                            if s_min:
+                                m = re.findall(r"\d+", s_min.get_text(strip=True))
+                                if m:
+                                    offset_min = int(m[-1])
                             else:
                                 m = re.findall(r"\d+", time_cell.get_text(strip=True))
                                 if m:
                                     offset_min = int(m[-1])
+
+                    if offset_min < last_offset_min:
+                        offset_min = last_offset_min
+                    last_offset_min = offset_min
 
                     stops_data.append((clean_stop_name, offset_min * 60))
 
@@ -461,6 +481,7 @@ class TimetableManager:
             d1.departure_time_str as dep_str,
             d2.departure_seconds as arr_sec,
             d2.departure_time_str as arr_str,
+            (d2.stop_sequence - d1.stop_sequence) as seq_diff,
             d1.destination_stop
         FROM stop_departures d1
         JOIN stop_departures d2 
@@ -497,12 +518,19 @@ class TimetableManager:
 
         dep_sec = row["dep_sec"]
         arr_sec = row["arr_sec"]
+        seq_diff = max(1, row["seq_diff"] if "seq_diff" in row.keys() else 1)
 
         # Výpočet čistého času čakania a času jazdy
         wait_seconds = (dep_sec + wait_day_offset) - cur_sec
         ride_seconds = arr_sec - dep_sec
-        if ride_seconds <= 0:
-            ride_seconds = max(60, int(ride_seconds + 86400))
+        if ride_seconds < 0:
+            ride_seconds += 86400
+        # Úsek jazdy nesmie trvať 0 minút (minimálne 1 minúta na zastávku)
+        if ride_seconds < 60:
+            ride_seconds = max(60, seq_diff * 60)
+
+        final_arr_sec = (dep_sec + ride_seconds) % 86400
+        final_arr_str = f"{final_arr_sec // 3600:02d}:{(final_arr_sec % 3600) // 60:02d}"
 
         # Ak by cestujúci musel čakať viac ako 5 hodín (18 000 sekúnd),
         # spoj pre aktuálnu cestu neponúkame
@@ -517,8 +545,8 @@ class TimetableManager:
             "trip_id": row["trip_id"],
             "departure_time_str": row["dep_str"],
             "departure_seconds": dep_sec,
-            "arrival_time_str": row["arr_str"],
-            "arrival_seconds": arr_sec,
+            "arrival_time_str": final_arr_str,
+            "arrival_seconds": final_arr_sec,
             "wait_seconds": wait_seconds,
             "wait_minutes": round(wait_seconds / 60.0, 1),
             "ride_seconds": ride_seconds,
@@ -569,6 +597,8 @@ class TimetableManager:
         result = []
         for r in rows:
             wait_sec = r["departure_seconds"] - cur_sec
+            if wait_sec < 0:
+                wait_sec += 86400
             result.append({
                 "line": r["line"],
                 "direction": r["direction"],

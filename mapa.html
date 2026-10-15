@@ -19074,6 +19074,11 @@
       const depDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0], parts[1], 0);
       let diffMin = Math.round((depDate.getTime() - now.getTime()) / 60000);
 
+      // Ošetrenie prechodu cez polnoc (napr. o 23:45 vyhľadávame spoj o 00:15)
+      if (diffMin < -180) {
+        diffMin += 1440;
+      }
+
       // Ak je spoj v rozmedzí od -2 minút (práve odchádza) do +1 minúty
       if (diffMin <= 1 && diffMin >= -3) return 'teraz';
       if (diffMin < -3) {
@@ -19133,7 +19138,7 @@
           const depStop = cleanStopName(st.from_stop_name || wait.stop_name || (journey.from_stop ? journey.from_stop.name : 'Nástupná zastávka'));
           const arrStop = cleanStopName(st.to_stop_name || 'Výstupná zastávka');
           const depTime = currentClock;
-          const rideDur = Math.round(st.duration_minutes || (st.duration_seconds ? st.duration_seconds / 60 : 0));
+          const rideDur = Math.max(1, Math.round(st.duration_minutes || (st.duration_seconds ? st.duration_seconds / 60 : 1)));
           const arrTime = addMinutesToClock(depTime, rideDur);
           currentClock = arrTime;
 
@@ -19213,6 +19218,10 @@
           const [eh, em] = endClock.split(':').map(Number);
           let diff = (eh * 60 + em) - (sh * 60 + sm);
           if (diff < 0) diff += 1440;
+          if (diff === 0 || diff >= 1440) {
+            diff = timelineItems.reduce((acc, it) => acc + (it.durationMin || it.durationMinutes || 0), 0);
+            if (diff <= 0) diff = Math.max(1, Math.round(sum.total_duration_minutes || 1));
+          }
           sum.total_duration_minutes = diff;
         }
       }
