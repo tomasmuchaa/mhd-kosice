@@ -2878,7 +2878,6 @@
     .stop-pin-compact:hover {
       transform: scale(1.3);
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
-      z-index: 9999 !important;
     }
     .stop-pin-compact.tram {
       background-color: #0284c7;
@@ -14567,7 +14566,10 @@
       const icon = createVehicleMarkerIcon(v, comm.isStale);
       const popupContent = buildPopupHtml(v);
       const pos = initialPos || (isLivePredictionActive ? getPredictedVehicleLatLng(v) : [v.latitude, v.longitude]);
-      const marker = L.marker(pos, { icon: icon });
+      const marker = L.marker(pos, {
+        icon: icon,
+        zIndexOffset: 1000
+      });
       marker._vehicleId = v.vehicle_id;
       marker._tripId = v.trip_id;
       marker._targetLatLng = pos;
@@ -15407,7 +15409,8 @@
         if (!marker) {
           marker = L.marker([stop.latitude, stop.longitude], {
             icon: icon,
-            riseOnHover: true,
+            zIndexOffset: -500,
+            riseOnHover: false,
             interactive: true
           });
 
@@ -15456,6 +15459,7 @@
           marker.platform = stop.platform;
           marker.stop_latlng = [stop.latitude, stop.longitude];
           marker.setIcon(icon);
+          marker.setZIndexOffset(-500);
         }
       });
     }
@@ -17661,6 +17665,7 @@
             markers[id].setLatLng(latLng);
             markers[id]._targetLatLng = latLng;
           }
+          markers[id].setZIndexOffset(1000);
           if (!map.hasLayer(markers[id])) {
             markers[id].addTo(map);
           }
