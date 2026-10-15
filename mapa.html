@@ -70,29 +70,29 @@
        APPLE LIQUID GLASS (APPLE VISIONOS / IOS NATÍVNY VIZUÁL)
        ======================================================== */
     :root {
-      --glass-bg: rgba(255, 255, 255, 0.75);
-      --glass-bg-subtle: rgba(255, 255, 255, 0.55);
-      --glass-bg-card: rgba(255, 255, 255, 0.65);
-      --glass-bg-card-hover: rgba(255, 255, 255, 0.9);
-      --glass-border: rgba(255, 255, 255, 0.6);
-      --glass-border-specular: rgba(255, 255, 255, 0.85);
-      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-      --glass-shadow-lg: 0 12px 36px 0 rgba(31, 38, 135, 0.15);
+      --glass-bg: rgba(190, 175, 225, 0.65);
+      --glass-bg-subtle: rgba(190, 175, 225, 0.45);
+      --glass-bg-card: rgba(255, 255, 255, 0.6);
+      --glass-bg-card-hover: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.5);
+      --glass-border-specular: rgba(255, 255, 255, 0.75);
+      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      --glass-shadow-lg: 0 12px 36px 0 rgba(31, 38, 135, 0.2);
       --glass-radius: 20px;
       --glass-blur: 24px;
-      --glass-text: #1e293b;
-      --glass-text-sub: #64748b;
+      --glass-text: #1e103c;
+      --glass-text-sub: #4c3b70;
     }
 
-    /* Univerzálna trieda: Apple Liquid Glass efekt (Predvolený biely Liquid Glass) */
+    /* Univerzálna trieda: Apple Liquid Glass efekt (Predvolený svetlý levanduľový Liquid Glass) */
     .apple-glass {
-      background: rgba(255, 255, 255, 0.75) !important;
+      background: rgba(190, 175, 225, 0.65) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.6) !important;
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.5) !important;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15) !important;
       border-radius: 20px !important;
-      color: #1e293b !important;
+      color: #1e103c !important;
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
     }
 
@@ -111,15 +111,15 @@
       z-index: 10050 !important;
     }
 
-    /* Všeobecný štýl pre panely (Biely Liquid Glass) */
+    /* Všeobecný štýl pre panely (Svetlý levanduľový Liquid Glass) */
     .glass-panel {
-      background: rgba(255, 255, 255, 0.75);
+      background: rgba(190, 175, 225, 0.65);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 20px;
-      color: #1e293b;
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      color: #1e103c;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
     }
 
@@ -132,13 +132,13 @@
       padding: 14px 18px;
       max-width: 340px;
       width: calc(100% - 28px);
-      background: rgba(255, 255, 255, 0.75);
+      background: rgba(190, 175, 225, 0.65);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 20px;
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-      color: #1e293b;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      color: #1e103c;
       flex-wrap: wrap !important;
       box-sizing: border-box !important;
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
@@ -211,7 +211,7 @@
     .stat-val {
       font-size: 1.35rem;
       font-weight: 800;
-      color: #1e293b;
+      color: #1e103c;
       font-family: 'JetBrains Mono', monospace;
       letter-spacing: -0.3px;
       transition: color 0.3s ease;
@@ -219,7 +219,7 @@
 
     .stat-label {
       font-size: 0.66rem;
-      color: #64748b;
+      color: #4c3b70;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-top: 2px;
@@ -232,7 +232,7 @@
       align-items: center;
       justify-content: space-between;
       font-size: 0.76rem;
-      color: #64748b;
+      color: #4c3b70;
       padding-top: 8px;
       border-top: 1px solid rgba(0, 0, 0, 0.08);
       transition: color 0.3s ease, border-color 0.3s ease;
@@ -300,19 +300,19 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
-      background: rgba(255, 255, 255, 0.75);
+      background: rgba(190, 175, 225, 0.65);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border-left: 1px solid rgba(255, 255, 255, 0.6);
+      border-left: 1px solid rgba(255, 255, 255, 0.5);
       border-right: none;
       border-top: none;
       border-bottom: none;
       border-radius: 20px 0 0 20px;
       transform: translateX(110%);
       transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
-      box-shadow: -8px 0 32px 0 rgba(31, 38, 135, 0.1);
+      box-shadow: -8px 0 32px 0 rgba(31, 38, 135, 0.15);
       pointer-events: none;
-      color: #1e293b;
+      color: #1e103c;
     }
     .control-panel.mobile-open {
       transform: translateX(0);
@@ -326,7 +326,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: #475569;
+      color: #3b2864;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -349,7 +349,7 @@
       border: 1px solid rgba(255, 255, 255, 0.8);
       border-radius: 12px;
       padding: 10px 14px 10px 36px;
-      color: #1e293b;
+      color: #1e103c;
       font-size: 0.86rem;
       font-family: inherit;
       outline: none;
@@ -362,7 +362,7 @@
       box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
     }
     .search-input::placeholder {
-      color: #94a3b8;
+      color: #64748b;
       font-size: 0.8rem;
     }
 
@@ -473,7 +473,7 @@
       font-size: 0.8rem;
       font-weight: 600;
       font-family: 'JetBrains Mono', monospace;
-      color: #1e293b;
+      color: #1e103c;
       cursor: pointer;
       user-select: none;
       box-shadow: 0 2px 6px rgba(31, 38, 135, 0.06);
@@ -635,13 +635,13 @@
       margin: 0 auto;
       height: auto;
       max-height: 70dvh;
-      background: rgba(255, 255, 255, 0.75);
-      border-top: 1.5px solid rgba(255, 255, 255, 0.8);
-      border-left: 1px solid rgba(255, 255, 255, 0.6);
-      border-right: 1px solid rgba(255, 255, 255, 0.6);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(190, 175, 225, 0.65);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.7);
+      border-left: 1px solid rgba(255, 255, 255, 0.5);
+      border-right: 1px solid rgba(255, 255, 255, 0.5);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 24px;
-      box-shadow: 0 -8px 32px 0 rgba(31, 38, 135, 0.1);
+      box-shadow: 0 -8px 32px 0 rgba(31, 38, 135, 0.15);
       z-index: 12000;
       display: flex;
       flex-direction: column;
@@ -654,7 +654,7 @@
       pointer-events: none;
       visibility: hidden;
       padding-bottom: 8px;
-      color: #1e293b;
+      color: #1e103c;
     }
     .history-bottom-sheet.open,
     .history-bottom-sheet.active,
@@ -1883,7 +1883,7 @@
     }
     .spec-card-label {
       font-size: 0.7rem;
-      color: #64748b;
+      color: #4c3b70;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       font-weight: 600;
@@ -1892,7 +1892,7 @@
     .spec-card-val {
       font-size: 0.88rem;
       font-weight: 700;
-      color: #1e293b;
+      color: #1e103c;
       margin-top: 2px;
       font-family: 'JetBrains Mono', monospace;
       transition: color 0.3s ease;
@@ -4624,12 +4624,12 @@
         width: 42px;
         height: 42px;
         border-radius: 14px;
-        background: rgba(255, 255, 255, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        color: #1e293b;
+        background: rgba(190, 175, 225, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        color: #1e103c;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
         cursor: pointer;
@@ -4638,7 +4638,7 @@
       }
       .mobile-menu-btn:active {
         transform: scale(0.92);
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.85);
       }
 
       /* Tmavé pozadie (overlay) pre vysunutý panel */
@@ -4950,10 +4950,10 @@
       top: 12px !important;
       left: 12px !important;
       z-index: 10040 !important;
-      background: rgba(255, 255, 255, 0.75);
+      background: rgba(190, 175, 225, 0.65);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 14px;
       padding: 7px 14px;
       display: flex;
@@ -4961,8 +4961,8 @@
       gap: 9px;
       font-size: 0.84rem;
       font-weight: 700;
-      color: #1e293b;
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      color: #1e103c;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
       user-select: none;
       transition: transform 0.15s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
       max-width: calc(100vw - 70px) !important;
@@ -4970,7 +4970,7 @@
       box-sizing: border-box !important;
     }
     .map-live-pill:hover {
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.85);
       transform: translateY(-1px);
     }
     .map-live-pill .map-count-badge {
@@ -5053,10 +5053,10 @@
       width: 100% !important;
       max-width: 100vw !important;
       height: calc(60px + max(10px, env(safe-area-inset-bottom, 0px))) !important;
-      background: rgba(255, 255, 255, 0.75);
+      background: rgba(190, 175, 225, 0.65);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border-top: 1px solid rgba(255, 255, 255, 0.6);
+      border-top: 1px solid rgba(255, 255, 255, 0.5);
       border-bottom: none;
       border-left: none;
       border-right: none;
@@ -5064,7 +5064,7 @@
       display: flex;
       align-items: flex-start;
       padding: 6px 12px max(10px, env(safe-area-inset-bottom, 0px)) 12px !important;
-      box-shadow: 0 -8px 32px 0 rgba(31, 38, 135, 0.1);
+      box-shadow: 0 -8px 32px 0 rgba(31, 38, 135, 0.15);
       z-index: 10035 !important;
       margin: 0 !important;
       transform: none !important;
@@ -5079,7 +5079,7 @@
       left: 12px;
       width: calc((100% - 24px) / 4);
       height: 48px;
-      background: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.9);
@@ -5099,7 +5099,7 @@
       justify-content: center;
       background: none;
       border: none;
-      color: #64748b;
+      color: #4c3b70;
       cursor: pointer;
       position: relative;
       z-index: 2;
@@ -5113,7 +5113,7 @@
       transform: scale(0.95);
     }
     .nav-tab:hover {
-      color: #1e293b;
+      color: #1e103c;
     }
     .nav-tab.active {
       color: #0284c7;
@@ -5135,7 +5135,7 @@
       transition: color 0.3s ease;
     }
     .nav-tab.active .nav-tab-label {
-      color: #1e293b;
+      color: #1e103c;
       font-weight: 700;
     }
 
@@ -5148,8 +5148,8 @@
       bottom: calc(60px + env(safe-area-inset-bottom, 0px));
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      background: #f8fafc;
-      color: #1e293b;
+      background: #f4f0fa;
+      color: #1e103c;
       z-index: 500;
       padding: 18px 16px 24px 16px;
       transition: background 0.3s ease, color 0.3s ease;
@@ -5188,13 +5188,13 @@
     .view-header-title h2 {
       font-size: 1.25rem;
       font-weight: 800;
-      color: #1e293b;
+      color: #1e103c;
       margin: 0;
       transition: color 0.3s ease;
     }
     .view-header-sub {
       font-size: 0.78rem;
-      color: #64748b;
+      color: #4c3b70;
       margin-top: 3px;
       transition: color 0.3s ease;
     }
@@ -5251,7 +5251,7 @@
       background: rgba(255, 255, 255, 0.75);
       border: 1px solid rgba(255, 255, 255, 0.6);
       box-shadow: 0 4px 14px rgba(31, 38, 135, 0.08);
-      color: #1e293b;
+      color: #1e103c;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -5320,7 +5320,7 @@
       gap: 8px;
       font-size: 0.96rem;
       font-weight: 700;
-      color: #1e293b;
+      color: #1e103c;
       transition: color 0.3s ease;
     }
     .garage-group-count {
@@ -5341,25 +5341,25 @@
       padding: 13px 18px;
       border-radius: 16px;
       margin-bottom: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      background: rgba(255, 255, 255, 0.75);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(190, 175, 225, 0.65);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
     .garage-state-banner.banner-active {
       border-left: 5px solid #22c55e;
-      background: linear-gradient(90deg, rgba(34, 197, 94, 0.16), rgba(255, 255, 255, 0.85));
+      background: linear-gradient(90deg, rgba(34, 197, 94, 0.2), rgba(190, 175, 225, 0.65));
     }
     .garage-state-banner.banner-depot {
       border-left: 5px solid #64748b;
-      background: linear-gradient(90deg, rgba(100, 116, 139, 0.16), rgba(255, 255, 255, 0.85));
+      background: linear-gradient(90deg, rgba(100, 116, 139, 0.2), rgba(190, 175, 225, 0.65));
     }
     .garage-state-title {
       font-size: 1.15rem;
       font-weight: 800;
-      color: #1e293b;
+      color: #1e103c;
       display: flex;
       align-items: center;
       gap: 10px;
@@ -5384,21 +5384,21 @@
 
     /* Karta vozidla v Garáži (Apple VisionOS / iOS natívny štýl, 16px radius) */
     .garage-vehicle-card {
-      background: rgba(255, 255, 255, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(190, 175, 225, 0.65);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 16px;
       padding: 13px 15px;
       cursor: pointer;
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
-      color: #1e293b;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      color: #1e103c;
       transition: transform 0.15s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
       content-visibility: auto;
       contain-intrinsic-size: 0 88px;
     }
     .garage-vehicle-card:hover {
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.85);
       border-color: rgba(2, 132, 199, 0.4);
       transform: translateY(-2px);
     }
@@ -5408,13 +5408,13 @@
 
     /* Karta neaktívneho / odstaveného vozidla v depe */
     .garage-vehicle-card.inactive {
-      background: rgba(255, 255, 255, 0.55);
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      opacity: 0.88;
-      color: #475569;
+      background: rgba(190, 175, 225, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      opacity: 0.92;
+      color: #4c3b70;
     }
     .garage-vehicle-card.inactive:hover {
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.85);
       border-color: rgba(2, 132, 199, 0.35);
       opacity: 1;
       transform: translateY(-2px);
@@ -5533,23 +5533,23 @@
 
     /* Plánovač trás vo vlastnom view - Apple VisionOS Card (20px radius) */
     .planner-card {
-      background: rgba(255, 255, 255, 0.75);
+      background: rgba(190, 175, 225, 0.65);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 20px;
       padding: 20px;
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
       max-width: 650px;
       margin: 0 auto;
-      color: #1e293b;
+      color: #1e103c;
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
     }
     .nav-field-label {
       display: block;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #64748b;
+      color: #4c3b70;
       margin-bottom: 6px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -5899,12 +5899,12 @@
       width: 44px;
       height: 44px;
       border-radius: 14px;
-      background: rgba(255, 255, 255, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      color: #1e293b;
+      background: rgba(190, 175, 225, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      color: #1e103c;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       cursor: pointer;
@@ -5915,7 +5915,7 @@
       -webkit-tap-highlight-color: transparent;
     }
     .locate-me-btn:hover {
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.85);
       color: #0284c7;
       border-color: rgba(2, 132, 199, 0.4);
       transform: translateY(-1px);
@@ -6054,26 +6054,28 @@
     }
 
     /* ========================================================
-       DARK MODE / TMAVÝ REŽIM (TMAVOFIIALOVÝ LIQUID GLASS & VYSOKÝ KONTRAST)
+       DARK MODE / TMAVÝ REŽIM (ULTRA-TMAVÁ POLNOČNÁ FIALOVÁ / OBSIDIAN PURPLE)
        ======================================================== */
     body.dark-mode {
-      background: #090314 !important;
+      background: #06020c !important;
       color: #ffffff !important;
-      --glass-bg: rgba(35, 15, 55, 0.75);
-      --glass-border: rgba(255, 255, 255, 0.12);
-      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-      --glass-shadow-lg: 0 12px 36px 0 rgba(0, 0, 0, 0.5);
+      --glass-bg: rgba(12, 5, 24, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+      --glass-shadow-lg: 0 12px 36px 0 rgba(0, 0, 0, 0.6);
+      --glass-text: #ffffff;
+      --glass-text-sub: #cbd5e1;
     }
 
     body.dark-mode #view-map {
-      background: #090314;
+      background: #06020c;
     }
 
     /* Obrazovky Garáž, Plánovač a Dashboard */
     body.dark-mode #view-garage,
     body.dark-mode #view-planner,
     body.dark-mode #view-dashboard {
-      background: #0c041a !important;
+      background: #06020c !important;
       color: #ffffff !important;
     }
 
@@ -6081,16 +6083,16 @@
     body.dark-mode .dash-distribution-box,
     body.dark-mode .dash-fleet-composition-box,
     body.dark-mode .dash-vehicles-list-box {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
       color: #ffffff !important;
     }
 
     body.dark-mode .view-header {
-      border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+      border-bottom-color: rgba(255, 255, 255, 0.08) !important;
     }
     body.dark-mode .view-header-title h2 {
       color: #ffffff !important;
@@ -6099,23 +6101,23 @@
       color: #cbd5e1 !important;
     }
 
-    /* Glass panely a vysúvacie menu (Tmavofialový Liquid Glass) */
+    /* Glass panely a vysúvacie menu (Ultra-tmavý fialový Liquid Glass) */
     body.dark-mode .apple-glass,
     body.dark-mode .glass-panel {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
       color: #ffffff !important;
     }
 
     body.dark-mode .dashboard-panel {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
       color: #ffffff !important;
     }
     body.dark-mode .dashboard-title {
@@ -6123,44 +6125,44 @@
     }
 
     body.dark-mode .control-panel {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4) !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5) !important;
       color: #ffffff !important;
     }
     body.dark-mode .panel-section-title {
-      color: #cbd5e1 !important;
+      color: #e2e8f0 !important;
     }
     body.dark-mode .mobile-drawer-header {
-      border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+      border-bottom-color: rgba(255, 255, 255, 0.08) !important;
     }
     body.dark-mode .mobile-drawer-title {
       color: #ffffff !important;
     }
     body.dark-mode .mobile-drawer-close {
       background: rgba(255, 255, 255, 0.1) !important;
-      border-color: rgba(255, 255, 255, 0.15) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
       color: #ffffff !important;
     }
 
     body.dark-mode .map-live-pill {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
       color: #ffffff !important;
     }
 
-    /* Spodná navigačná lišta (Tmavofialový Liquid Glass) */
+    /* Spodná navigačná lišta (Ultra-tmavý fialový Liquid Glass) */
     body.dark-mode .bottom-nav-bar {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 -8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 -8px 32px 0 rgba(0, 0, 0, 0.5) !important;
     }
     body.dark-mode .nav-tab {
       color: rgba(255, 255, 255, 0.65) !important;
@@ -6175,33 +6177,33 @@
       color: #ffffff !important;
     }
     body.dark-mode .nav-slider-bubble {
-      background: rgba(255, 255, 255, 0.12) !important;
-      border: 1px solid rgba(255, 255, 255, 0.15) !important;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+      background: rgba(255, 255, 255, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.14) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
     }
 
     /* Mobilné tlačidlo hamburger a zameriavač polohy */
     body.dark-mode .mobile-menu-btn,
     body.dark-mode .locate-me-btn {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
       color: #ffffff !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
     }
     body.dark-mode .mobile-menu-btn:hover,
     body.dark-mode .locate-me-btn:hover {
-      background: rgba(55, 25, 85, 0.9) !important;
+      background: rgba(28, 14, 52, 0.95) !important;
       color: #38bdf8 !important;
     }
 
     /* Štatistické karty */
     body.dark-mode .stat-card,
     body.dark-mode .garage-stat-card {
-      background: rgba(50, 22, 75, 0.65) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+      background: rgba(28, 14, 52, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
       color: #ffffff !important;
     }
     body.dark-mode .stat-val,
@@ -6213,57 +6215,57 @@
       color: #cbd5e1 !important;
     }
 
-    /* Garáž karty a sekcie (Tmavofialový Liquid Glass) */
+    /* Garáž karty a sekcie (Ultra-tmavý fialový Liquid Glass) */
     body.dark-mode .garage-group-box {
-      background: rgba(35, 15, 55, 0.75) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
     }
     body.dark-mode .garage-group-title {
       color: #ffffff !important;
     }
     body.dark-mode .garage-state-banner {
-      background: rgba(35, 15, 55, 0.75) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
     }
     body.dark-mode .garage-state-title {
       color: #ffffff !important;
     }
     body.dark-mode .garage-vehicle-card {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
       color: #ffffff !important;
     }
     body.dark-mode .garage-vehicle-card:hover {
-      background: rgba(55, 25, 85, 0.85) !important;
-      border-color: rgba(255, 255, 255, 0.25) !important;
+      background: rgba(28, 14, 52, 0.9) !important;
+      border-color: rgba(255, 255, 255, 0.18) !important;
     }
     body.dark-mode .garage-vehicle-card.inactive {
-      background: rgba(25, 10, 40, 0.65) !important;
-      border-color: rgba(255, 255, 255, 0.08) !important;
+      background: rgba(16, 7, 30, 0.65) !important;
+      border-color: rgba(255, 255, 255, 0.05) !important;
       color: #cbd5e1 !important;
     }
     body.dark-mode .garage-vehicle-pill {
-      background: rgba(50, 22, 75, 0.8) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      background: rgba(28, 14, 52, 0.8) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
       color: #ffffff !important;
     }
     body.dark-mode .garage-vehicle-pill:hover {
-      background: rgba(65, 30, 95, 0.9) !important;
+      background: rgba(42, 20, 75, 0.9) !important;
       border-color: rgba(56, 189, 248, 0.5) !important;
     }
     body.dark-mode .garage-chip {
-      background: rgba(35, 15, 55, 0.75) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
       color: #ffffff !important;
     }
     body.dark-mode .garage-chip:hover {
-      background: rgba(55, 25, 85, 0.85) !important;
+      background: rgba(28, 14, 52, 0.9) !important;
       color: #ffffff !important;
     }
     body.dark-mode .garage-chip.active {
@@ -6276,27 +6278,27 @@
     /* Plánovač trasy */
     body.dark-mode .planner-card,
     body.dark-mode .journey-card {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
       color: #ffffff !important;
     }
     body.dark-mode .nav-field-label {
       color: #cbd5e1 !important;
     }
     body.dark-mode .journey-header {
-      border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+      border-bottom-color: rgba(255, 255, 255, 0.08) !important;
     }
     body.dark-mode .journey-leg-ride {
-      background: rgba(50, 22, 75, 0.65) !important;
-      border-color: rgba(255, 255, 255, 0.1) !important;
+      background: rgba(28, 14, 52, 0.65) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
       color: #ffffff !important;
     }
     body.dark-mode .planner-input-group {
-      background: rgba(50, 22, 75, 0.65) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      background: rgba(28, 14, 52, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 
     /* Formulárové vstupy */
@@ -6304,8 +6306,8 @@
     body.dark-mode .planner-input,
     body.dark-mode .override-input,
     body.dark-mode .override-select {
-      background: rgba(50, 22, 75, 0.65) !important;
-      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      background: rgba(28, 14, 52, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
       color: #ffffff !important;
     }
     body.dark-mode .search-input::placeholder,
@@ -6320,14 +6322,14 @@
       box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
     }
 
-    /* Bottom Sheet História vozidla (Tmavofialový Liquid Glass) */
+    /* Bottom Sheet História vozidla (Ultra-tmavý fialový Liquid Glass) */
     body.dark-mode .history-bottom-sheet,
     body.dark-mode .vehicle-history-panel {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       backdrop-filter: blur(24px) !important;
       -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 -8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 -8px 32px 0 rgba(0, 0, 0, 0.5) !important;
       color: #ffffff !important;
     }
     body.dark-mode .history-sheet-body,
@@ -6336,9 +6338,9 @@
     }
     body.dark-mode .veh-info-card,
     body.dark-mode .spec-card {
-      background: rgba(50, 22, 75, 0.65) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+      background: rgba(28, 14, 52, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
       color: #ffffff !important;
     }
     body.dark-mode .spec-card-label {
@@ -6359,29 +6361,29 @@
 
     /* Modálne okno Developer Mode */
     body.dark-mode .override-modal {
-      background: rgba(35, 15, 55, 0.95) !important;
-      border-color: rgba(255, 255, 255, 0.15) !important;
+      background: rgba(12, 5, 24, 0.95) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8) !important;
       color: #ffffff !important;
     }
     body.dark-mode .override-veh-summary {
-      background: rgba(50, 22, 75, 0.75) !important;
-      border-color: rgba(255, 255, 255, 0.12) !important;
+      background: rgba(28, 14, 52, 0.75) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
     }
 
     /* Leaflet prvky a popupy */
     body.dark-mode .leaflet-control-zoom a {
-      background: rgba(35, 15, 55, 0.85) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       color: #ffffff !important;
-      border-color: rgba(255, 255, 255, 0.15) !important;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
     }
     body.dark-mode .leaflet-control-zoom a:hover {
-      background: rgba(55, 25, 85, 0.95) !important;
+      background: rgba(28, 14, 52, 0.95) !important;
       color: #38bdf8 !important;
     }
     body.dark-mode .leaflet-control-attribution {
-      background: rgba(35, 15, 55, 0.75) !important;
+      background: rgba(12, 5, 24, 0.85) !important;
       color: #cbd5e1 !important;
       border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
@@ -6389,31 +6391,31 @@
       color: #38bdf8 !important;
     }
     body.dark-mode .custom-board-popup .leaflet-popup-content-wrapper {
-      background: rgba(35, 15, 55, 0.92) !important;
-      border-color: rgba(255, 255, 255, 0.15) !important;
+      background: rgba(12, 5, 24, 0.92) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7) !important;
       color: #ffffff !important;
     }
     body.dark-mode .custom-board-popup .leaflet-popup-tip {
-      background: rgba(35, 15, 55, 0.92) !important;
+      background: rgba(12, 5, 24, 0.92) !important;
     }
     body.dark-mode .board-row {
-      background: rgba(50, 22, 75, 0.65) !important;
+      background: rgba(28, 14, 52, 0.65) !important;
       border-color: rgba(255, 255, 255, 0.08) !important;
     }
     body.dark-mode .board-row:hover {
-      background: rgba(65, 30, 95, 0.85) !important;
+      background: rgba(42, 20, 75, 0.85) !important;
       border-color: rgba(56, 189, 248, 0.35) !important;
     }
     body.dark-mode .board-title {
       color: #ffffff !important;
     }
     body.dark-mode .theme-selector-section {
-      border-top-color: rgba(255, 255, 255, 0.12) !important;
+      border-top-color: rgba(255, 255, 255, 0.08) !important;
     }
     body.dark-mode .theme-switch-group {
-      background: rgba(50, 22, 75, 0.65) !important;
-      border-color: rgba(255, 255, 255, 0.12) !important;
+      background: rgba(28, 14, 52, 0.65) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
     }
     body.dark-mode .theme-switch-btn {
       color: #cbd5e1 !important;
@@ -7574,7 +7576,7 @@
       // Aktualizácia meta tagu theme-color pre mobilné prehliadače
       const metaTheme = document.querySelector('meta[name="theme-color"]');
       if (metaTheme) {
-        metaTheme.setAttribute('content', isDark ? '#090314' : '#ffffff');
+        metaTheme.setAttribute('content', isDark ? '#06020c' : '#beafe1');
       }
 
       setMapThemeLayer(isDark);
