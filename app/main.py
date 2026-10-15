@@ -470,15 +470,28 @@ def get_stops_list(
     Vráti zoznam všetkých zastávok v Košiciach s ich GPS súradnicami a obsluhovanými linkami.
     """
     stops = live_feed.get_stops()
-    if urban_only:
-        stops = [s for s in stops if s.get("for_urban", True)]
 
-    # Očistíme linky každej zastávky od Eurobusov a mimomestských liniek
+    # Tvrdá filtrácia: Iba reálne fyzické zastávky obsluhované linkami DPMK (električky 1-9, R1-R8; autobusy 10-72, N1-N7, RA1-RA8, Š1-Š3)
     clean_stops = []
     for s in stops:
+        sid_str = str(s.get("stop_id") or "")
+        name_lower = (s.get("name") or "").lower()
+
+        # Natvrdo vymažeme nástupištia Eurobusu (napr. ID 8195_*), SAD a železničné body na koľajniciach
+        if sid_str.startswith("8195") or sid_str.startswith("22282") or sid_str.startswith("19496"):
+            continue
+        if "autobusová stanica" in name_lower or "železničná stanica" in name_lower or "nást. as" in name_lower:
+            continue
+
         item = dict(s)
-        item["lines"] = [l for l in s.get("lines", []) if routing_engine.is_mhd_line(l)]
+        # Ponecháme výhradne platné DPMK linky
+        mhd_lines = [l for l in s.get("lines", []) if routing_engine.is_mhd_line(l)]
+        if not mhd_lines:
+            continue
+
+        item["lines"] = mhd_lines
         clean_stops.append(item)
+
     stops = clean_stops
 
     if q:

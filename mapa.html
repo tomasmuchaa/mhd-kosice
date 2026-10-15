@@ -2812,6 +2812,7 @@
     }
 
     /* Custom SVG Stop Markers with Smart Zoom */
+    .leaflet-div-icon.custom-stop-div-icon,
     .custom-stop-div-icon {
       background: transparent !important;
       border: none !important;
@@ -2819,16 +2820,17 @@
 
     /* Mode 1: Dot (Zoom 13) */
     .stop-pin-dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       border: 1.5px solid #ffffff;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
       cursor: pointer;
+      pointer-events: auto;
       transition: transform 0.15s ease;
     }
     .stop-pin-dot:hover {
-      transform: scale(1.4);
+      transform: scale(1.6);
     }
     .stop-pin-dot.tram {
       background-color: #0284c7;
@@ -2840,23 +2842,25 @@
       background: linear-gradient(135deg, #0284c7 48%, #2563eb 52%);
     }
 
-    /* Mode 2: Compact SVG Badge (Zoom 14 - 15) */
+    /* Mode 2: Compact SVG Transit Badge (Zoom 14 - 16) - BEZ AKÝCHKOĽVEK TEXTOVÝCH BUBLÍN */
     .stop-pin-compact {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
-      border: 2px solid #ffffff;
+      border: 1.5px solid #ffffff;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
       cursor: pointer;
+      pointer-events: auto;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
     .stop-pin-compact:hover {
-      transform: scale(1.2);
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+      transform: scale(1.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+      z-index: 9999 !important;
     }
     .stop-pin-compact.tram {
       background-color: #0284c7;
@@ -2868,104 +2872,40 @@
       background: linear-gradient(135deg, #0284c7 48%, #2563eb 52%);
     }
 
-    /* Mode 3: Detailed Frosted Glass Pill (Zoom >= 16) */
-    .stop-pill-detailed {
+    /* Mode 3: Maximálne priblíženie (Zoom >= 17) - Iba pri max zoome diskrétny malý text */
+    .stop-pin-max {
       display: inline-flex;
       align-items: center;
-      background: rgba(15, 23, 42, 0.90);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 16px;
-      padding: 2px 8px 2px 2px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      gap: 4px;
       cursor: pointer;
-      white-space: nowrap;
       pointer-events: auto;
-      gap: 6px;
-      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+      white-space: nowrap;
+      transition: transform 0.15s ease;
     }
-    .stop-pill-detailed:hover {
-      transform: scale(1.05);
-      background: rgba(15, 23, 42, 0.98);
-      border-color: #38bdf8;
-      box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+    .stop-pin-max:hover {
+      transform: scale(1.15);
       z-index: 9999 !important;
     }
-    .stop-pill-icon {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      border: 1.5px solid #ffffff;
-      flex-shrink: 0;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-    }
-    .stop-pill-icon.tram {
-      background-color: #0284c7;
-    }
-    .stop-pill-icon.bus {
-      background-color: #2563eb;
-    }
-    .stop-pill-icon.mixed {
-      background: linear-gradient(135deg, #0284c7 48%, #2563eb 52%);
-    }
-    .stop-pill-content {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-    .stop-pill-header {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .stop-pill-name {
-      font-size: 0.76rem;
-      font-weight: 700;
+    .stop-pin-max .stop-pin-label {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       color: #f8fafc;
-      line-height: 1.2;
-    }
-    .stop-pill-platform {
-      background: rgba(56, 189, 248, 0.2);
-      border: 1px solid rgba(56, 189, 248, 0.45);
-      color: #38bdf8;
-      font-size: 0.64rem;
-      font-weight: 700;
-      padding: 0 4px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 1px 6px;
       border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
       line-height: 1.2;
     }
-    .stop-pill-lines {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      margin-top: 1px;
-    }
-    .stop-pill-line-badge {
+    .stop-pin-max .stop-pin-plat {
+      background: rgba(2, 132, 199, 0.35);
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
       font-size: 0.62rem;
       font-weight: 700;
       padding: 0 3px;
       border-radius: 3px;
-      line-height: 1.2;
-    }
-    .stop-pill-line-badge.tram {
-      background: rgba(2, 132, 199, 0.3);
-      color: #7dd3fc;
-      border: 1px solid rgba(56, 189, 248, 0.4);
-    }
-    .stop-pill-line-badge.bus {
-      background: rgba(37, 99, 235, 0.3);
-      color: #93c5fd;
-      border: 1px solid rgba(59, 130, 246, 0.4);
-    }
-    .stop-pill-line-badge.night {
-      background: rgba(147, 51, 234, 0.3);
-      color: #d8b4fe;
-      border: 1px solid rgba(168, 85, 247, 0.4);
     }
 
     /* Virtuálna Odchodová Tabuľa (Digital LED Departure Board) */
@@ -15412,8 +15352,8 @@
         return L.divIcon({
           className: 'custom-stop-div-icon',
           html: `<div class="stop-pin-dot ${typeClass}"></div>`,
-          iconSize: [10, 10],
-          iconAnchor: [5, 5]
+          iconSize: [8, 8],
+          iconAnchor: [4, 4]
         });
       }
 
@@ -15423,58 +15363,36 @@
         return L.divIcon({
           className: 'custom-stop-div-icon',
           html: `<div class="stop-pin-compact ${typeClass}" title="${stop.name}">${svgIcon}</div>`,
-          iconSize: [22, 22],
-          iconAnchor: [11, 11]
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
         });
       }
 
-      // Mode: 'detailed' (Zoom >= 16)
-      const platText = (stop.platform !== null && stop.platform !== undefined && String(stop.platform).trim() !== '' && !stop.name.includes(`Nást. ${stop.platform}`))
-        ? `<span class="stop-pill-platform">Nást. ${stop.platform}</span>`
+      // Mode: 'detailed' (Zoom >= 17: výlučne pri maximálnom priblížení malý diskrétny label)
+      const platSpan = (stop.platform !== null && stop.platform !== undefined && String(stop.platform).trim() !== '' && !stop.name.includes(`Nást. ${stop.platform}`))
+        ? ` <span class="stop-pin-plat">Nást. ${stop.platform}</span>`
         : '';
 
-      let linesHtml = '';
-      if (Array.isArray(stop.lines) && stop.lines.length > 0) {
-        const displayed = stop.lines.slice(0, 5);
-        const badges = displayed.map(l => {
-          const lStr = String(l);
-          const isNight = lStr.startsWith('N');
-          const isTram = ['1','2','3','4','5','6','7','9','R1','R2','R3','R4','R5','R6','R7','R8'].includes(lStr);
-          const cls = isNight ? 'night' : (isTram ? 'tram' : 'bus');
-          return `<span class="stop-pill-line-badge ${cls}">${lStr}</span>`;
-        });
-        if (stop.lines.length > 5) {
-          badges.push(`<span class="stop-pill-line-badge" style="color:#94a3b8; background:transparent;">+${stop.lines.length - 5}</span>`);
-        }
-        linesHtml = `<div class="stop-pill-lines">${badges.join('')}</div>`;
-      }
-
-      const pillHtml = `
-        <div class="stop-pill-detailed">
-          <div class="stop-pill-icon ${typeClass}">${svgIcon}</div>
-          <div class="stop-pill-content">
-            <div class="stop-pill-header">
-              <span class="stop-pill-name">${stop.name}</span>
-              ${platText}
-            </div>
-            ${linesHtml}
-          </div>
+      const maxHtml = `
+        <div class="stop-pin-max">
+          <div class="stop-pin-compact ${typeClass}">${svgIcon}</div>
+          <span class="stop-pin-label">${stop.name}${platSpan}</span>
         </div>
       `;
 
       return L.divIcon({
         className: 'custom-stop-div-icon',
-        html: pillHtml,
-        iconSize: [null, 28],
-        iconAnchor: [14, 14]
+        html: maxHtml,
+        iconSize: [null, 20],
+        iconAnchor: [10, 10]
       });
     }
 
     function getStopsZoomMode(zoom) {
       if (zoom <= 12) return 'hidden';
       if (zoom === 13) return 'dot';
-      if (zoom >= 14 && zoom <= 15) return 'compact';
-      return 'detailed'; // zoom >= 16
+      if (zoom >= 14 && zoom <= 16) return 'compact';
+      return 'detailed'; // zoom >= 17
     }
 
     function renderAllStopsMarkers(mode) {
@@ -15488,7 +15406,8 @@
         if (!marker) {
           marker = L.marker([stop.latitude, stop.longitude], {
             icon: icon,
-            riseOnHover: true
+            riseOnHover: true,
+            interactive: true
           });
 
           const platInfo = (stop.platform !== null && stop.platform !== undefined && String(stop.platform).trim() !== '' && !stop.name.includes(`Nást. ${stop.platform}`))
@@ -15505,7 +15424,10 @@
             className: 'stop-tooltip'
           });
 
-          marker.on('click', () => {
+          marker.on('click', (e) => {
+            if (e && e.originalEvent) {
+              L.DomEvent.stopPropagation(e.originalEvent);
+            }
             openStopBoard(stop.stop_id, [stop.latitude, stop.longitude], stop.name, stop.platform);
           });
 
@@ -15517,7 +15439,7 @@
       });
     }
 
-    // Smart zoom viditeľnosť a prepínanie úrovne detailu (Smart Zoom Level 12 -> 13 -> 14-15 -> 16+)
+    // Smart zoom viditeľnosť a prepínanie úrovne detailu (Smart Zoom Level 12 -> 13 -> 14-16 -> 17+)
     function updateStopsZoomVisibility() {
       const countElem = document.getElementById('stops-toggle-count');
       const toggle = document.getElementById('stops-toggle');
@@ -15570,7 +15492,20 @@
         const resp = await fetch(`${STOPS_API_URL}?t=${Date.now()}`, { cache: 'no-store' });
         if (!resp.ok) return;
         const data = await resp.json();
-        const stops = data.stops || [];
+        const rawStops = data.stops || [];
+
+        // Prísny klientský filter: iba linky DPMK Košice, natvrdo vyhodiť Eurobus a ŽSR
+        const dpmkRegex = /^(?:[1-9]|[1-6][0-9]|7[0-2]|R[1-8]|N[1-7]|RA[1-8]|Š[1-3]|26P)$/;
+        const stops = rawStops.filter(s => {
+          if (!s.latitude || !s.longitude) return false;
+          const sid = String(s.stop_id || '');
+          const sName = (s.name || '').toLowerCase();
+          if (sid.startsWith('8195') || sid.startsWith('22282') || sid.startsWith('19496')) return false;
+          if (sName.includes('autobusová stanica') || sName.includes('železničná stanica')) return false;
+          if (!Array.isArray(s.lines) || s.lines.length === 0) return false;
+          return s.lines.some(l => dpmkRegex.test(String(l).trim()));
+        });
+
         allStopsList = stops;
 
         const statElem = document.getElementById('stat-stops');
@@ -16076,8 +16011,6 @@
     }
     window.renderFavoritesQuickAccess = renderFavoritesQuickAccess;
 
-    let currentBoardPopup = null;
-
     async function openStopBoard(stopId, latLng, stopName, platformFilter = null) {
       // Asynchrónne načítanie a vykreslenie peších prestupov do 500 m
       clearWalkingTransfers();
@@ -16103,28 +16036,19 @@
         </div>
       `;
 
-      let popup = currentBoardPopup;
-      if (!popup || !map.hasLayer(popup)) {
-        popup = L.popup({
-          maxWidth: 440,
-          className: 'custom-board-popup',
-          autoPan: false
-        })
-        .setLatLng(latLng)
-        .setContent(loadingHtml)
-        .openOn(map);
+      // Vždy spoľahlivo vytvoríme a otvoríme L.popup na mape
+      const popup = L.popup({
+        maxWidth: 420,
+        className: 'custom-board-popup',
+        autoPan: true
+      })
+      .setLatLng(latLng)
+      .setContent(loadingHtml)
+      .openOn(map);
 
-        currentBoardPopup = popup;
-
-        popup.on('remove', () => {
-          clearWalkingTransfers();
-          if (currentBoardPopup === popup) {
-            currentBoardPopup = null;
-          }
-        });
-      } else {
-        popup.setLatLng(latLng).setContent(loadingHtml);
-      }
+      popup.on('remove', () => {
+        clearWalkingTransfers();
+      });
 
       try {
         let apiUrl = `${BASE_ORIGIN}/api/v1/stops/${stopId}/departures?t=${Date.now()}`;
@@ -16444,6 +16368,7 @@
         `);
       }
     }
+    window.openStopBoard = openStopBoard;
 
     // Dynamická aktualizácia zoznamu liniek pre filter
     function updateLinesFilterUI(vehicles) {

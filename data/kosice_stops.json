@@ -885,8 +885,7 @@
       "19",
       "55",
       "N2",
-      "R4",
-      "V4"
+      "R4"
     ],
     "stop_type": "mixed",
     "for_urban": true
@@ -4628,8 +4627,7 @@
       "56",
       "N1",
       "RA5",
-      "RA8",
-      "V2"
+      "RA8"
     ],
     "stop_type": "bus",
     "for_urban": true
@@ -5514,36 +5512,6 @@
     "for_urban": true
   },
   {
-    "stop_id": "1000000579",
-    "parent_stop_id": 1000000579,
-    "platform": "1",
-    "name": "NSSK,  Haniska,  železničná stanica (Nást. 1)",
-    "base_name": "NSSK,  Haniska,  železničná stanica",
-    "city": "Haniska",
-    "latitude": 48.63155,
-    "longitude": 21.24742,
-    "lines": [
-      "21"
-    ],
-    "stop_type": "bus",
-    "for_urban": true
-  },
-  {
-    "stop_id": "1000000579_1",
-    "parent_stop_id": 1000000579,
-    "platform": "1",
-    "name": "NSSK,  Haniska,  železničná stanica (Nást. 1)",
-    "base_name": "NSSK,  Haniska,  železničná stanica",
-    "city": "Haniska",
-    "latitude": 48.63155,
-    "longitude": 21.24742,
-    "lines": [
-      "21"
-    ],
-    "stop_type": "bus",
-    "for_urban": true
-  },
-  {
     "stop_id": "1000000325",
     "parent_stop_id": 1000000325,
     "platform": "1",
@@ -6016,8 +5984,7 @@
       "N6",
       "N7",
       "R1",
-      "R5",
-      "V1"
+      "R5"
     ],
     "stop_type": "mixed",
     "for_urban": true
@@ -6107,8 +6074,7 @@
       "N6",
       "N7",
       "R1",
-      "R5",
-      "V1"
+      "R5"
     ],
     "stop_type": "mixed",
     "for_urban": true
@@ -6955,8 +6921,7 @@
       "12",
       "16",
       "29",
-      "N2",
-      "V1"
+      "N2"
     ],
     "stop_type": "bus",
     "for_urban": true
@@ -8252,8 +8217,7 @@
       "24",
       "30",
       "N4",
-      "R5",
-      "V1"
+      "R5"
     ],
     "stop_type": "mixed",
     "for_urban": true
@@ -9873,12 +9837,7 @@
       "24",
       "30",
       "54",
-      "R2",
-      "V1",
-      "V2",
-      "V3",
-      "V4",
-      "s2"
+      "R2"
     ],
     "stop_type": "mixed",
     "for_urban": true
@@ -10163,8 +10122,7 @@
       "28",
       "52",
       "N7",
-      "R2",
-      "s2"
+      "R2"
     ],
     "stop_type": "mixed",
     "for_urban": true
@@ -10423,60 +10381,6 @@
       "14",
       "16",
       "29"
-    ],
-    "stop_type": "bus",
-    "for_urban": true
-  },
-  {
-    "stop_id": "1000002510",
-    "parent_stop_id": 1000002510,
-    "platform": "1",
-    "name": "Volvo,  hala pohonu (Nást. 1)",
-    "base_name": "Volvo,  hala pohonu",
-    "city": "Košice",
-    "latitude": 48.630249,
-    "longitude": 21.280831,
-    "lines": [
-      "V1",
-      "V2",
-      "V3",
-      "V4"
-    ],
-    "stop_type": "bus",
-    "for_urban": true
-  },
-  {
-    "stop_id": "1000002508",
-    "parent_stop_id": 1000002508,
-    "platform": "1",
-    "name": "Volvo,  lisovňa (Nást. 1)",
-    "base_name": "Volvo,  lisovňa",
-    "city": "Košice",
-    "latitude": 48.633888,
-    "longitude": 21.275498,
-    "lines": [
-      "V1",
-      "V2",
-      "V3",
-      "V4"
-    ],
-    "stop_type": "bus",
-    "for_urban": true
-  },
-  {
-    "stop_id": "1000002509",
-    "parent_stop_id": 1000002509,
-    "platform": "1",
-    "name": "Volvo,  vstupný areál (Nást. 1)",
-    "base_name": "Volvo,  vstupný areál",
-    "city": "Košice",
-    "latitude": 48.633827,
-    "longitude": 21.281215,
-    "lines": [
-      "V1",
-      "V2",
-      "V3",
-      "V4"
     ],
     "stop_type": "bus",
     "for_urban": true
@@ -11194,8 +11098,7 @@
     "latitude": 48.65597,
     "longitude": 21.26964,
     "lines": [
-      "12",
-      "V4"
+      "12"
     ],
     "stop_type": "bus",
     "for_urban": true
@@ -11225,8 +11128,7 @@
     "latitude": 48.656859,
     "longitude": 21.270673,
     "lines": [
-      "12",
-      "V4"
+      "12"
     ],
     "stop_type": "bus",
     "for_urban": true
@@ -11241,8 +11143,7 @@
     "latitude": 48.65682,
     "longitude": 21.270775,
     "lines": [
-      "12",
-      "V4"
+      "12"
     ],
     "stop_type": "bus",
     "for_urban": true

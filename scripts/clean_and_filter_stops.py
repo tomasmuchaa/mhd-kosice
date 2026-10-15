@@ -21,17 +21,15 @@ def is_dpmk_line(line) -> bool:
     # Exclude trains
     if any(l.startswith(p) for p in ("OS ", "REX ", "EX ", "EN ", "RJ ", "SC ", "R ")):
         return False
-    # 1 - 99
+    # 1 - 72 (MHD električky a autobusy)
     if l.isdigit():
         val = int(l)
-        return 1 <= val <= 99
-    # 20L, 26P etc
-    m = re.match(r"^(\d{1,2})([A-Z])$", l)
-    if m:
-        val = int(m.group(1))
-        return 1 <= val <= 99
-    # R1-R8, RA1-RA8, N1-N7, Š1-Š3, S1-S3, X1-X9, H, A, V1-V4
-    if re.match(r"^(?:R[1-8]|RA[1-8]|N[1-7]|[ŠS][1-3]|X\d?|[HA]\d?|V[1-4])$", l):
+        return 1 <= val <= 72
+    # 26P
+    if l == "26P":
+        return True
+    # R1-R8, RA1-RA8, N1-N7, Š1-Š3
+    if re.match(r"^(?:R[1-8]|RA[1-8]|N[1-7]|Š[1-3])$", l):
         return True
     return False
 
@@ -146,6 +144,13 @@ def main():
     tram_cnt = bus_cnt = mixed_cnt = 0
     for sid, sobj in final_stops.items():
         clean_lines = sorted(list(sobj['lines']), key=sort_line_key)
+        if not clean_lines:
+            continue
+
+        name_lower = (sobj.get('base_name') or sobj.get('name') or '').lower()
+        if 'autobusová stanica' in name_lower or 'železničná stanica' in name_lower or 'nást. as' in name_lower:
+            continue
+
         has_tram = any(l in TRAM_LINES for l in clean_lines)
         has_bus = any(l not in TRAM_LINES for l in clean_lines)
         
