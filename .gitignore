@@ -44,3 +44,5 @@ android/build/
 ios/DerivedData/
 *.apk
 *.aab
+*.bak
+scratch/

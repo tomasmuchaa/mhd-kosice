@@ -228,6 +228,11 @@ class RoutingEngine:
             sid = s["stop_id"]
             self.stops_by_id[sid] = s
             self.stops_by_id[str(sid)] = s
+            for p_id in s.get("platforms_included", []):
+                if p_id not in self.stops_by_id:
+                    self.stops_by_id[p_id] = s
+                if str(p_id) not in self.stops_by_id:
+                    self.stops_by_id[str(p_id)] = s
             parent_id = s.get("parent_stop_id")
             if parent_id is not None:
                 if parent_id not in self.stops_by_id:

@@ -433,6 +433,9 @@ class DpmkLiveFeed:
                     self._stops_by_id = {}
                     for s in self._stops_cache:
                         self._stops_by_id[s["stop_id"]] = s
+                        for p_id in s.get("platforms_included", []):
+                            if p_id not in self._stops_by_id:
+                                self._stops_by_id[p_id] = s
                         parent_id = s.get("parent_stop_id")
                         if parent_id is not None and parent_id not in self._stops_by_id:
                             self._stops_by_id[parent_id] = s
@@ -599,6 +602,15 @@ class DpmkLiveFeed:
         """
         self._ensure_stops_loaded()
 
+        stop_obj = None
+        if hasattr(self, "_stops_by_id"):
+            stop_obj = self._stops_by_id.get(stop_id)
+            if not stop_obj and isinstance(stop_id, str) and "_" in stop_id:
+                try:
+                    stop_obj = self._stops_by_id.get(int(stop_id.split("_")[0]))
+                except (ValueError, TypeError):
+                    pass
+
         actual_sid = stop_id
         target_platform = str(platform).strip() if platform is not None else None
 
@@ -616,75 +628,95 @@ class DpmkLiveFeed:
             except (ValueError, TypeError):
                 pass
 
+        if stop_obj:
+            if stop_obj.get("parent_stop_id"):
+                actual_sid = stop_obj.get("parent_stop_id")
+            if not target_platform and stop_obj.get("platform"):
+                target_platform = str(stop_obj.get("platform")).strip()
+
         stop_name = self.get_stop_name(stop_id)
 
-        # Výlučne jedno kliknuté stop_id bez agregácie okolitých nástupíšť s rovnakým názvom
+        allowed_platforms = set()
+        if target_platform:
+            for p in str(target_platform).split(","):
+                p_clean = p.strip()
+                if p_clean:
+                    allowed_platforms.add(p_clean)
+
+        # Stiahnutie plánovaných odchodov z Ubianu pre dané stopID
         raw_list = self._fetch_single_stop_departures_raw(actual_sid, date, time)
 
         now_ts = int(datetime.now().timestamp())
-        unique_departures: Dict[str, Dict[str, Any]] = {}
 
-        for d in raw_list:
-            trip = d.get("timeTableTrip") or {}
-            line_info = trip.get("timeTableLine") or {}
-            trip_id = trip.get("tripID")
+        def build_departures(filter_plat: bool) -> Dict[str, Dict[str, Any]]:
+            unique: Dict[str, Dict[str, Any]] = {}
+            for d in raw_list:
+                trip = d.get("timeTableTrip") or {}
+                line_info = trip.get("timeTableLine") or {}
+                trip_id = trip.get("tripID")
 
-            plat = d.get("platformNumber")
-            if plat is None or str(plat).strip() == "":
-                plat = d.get("platformName") or None
-            else:
-                plat = str(plat).strip()
+                plat = d.get("platformNumber")
+                if plat is None or str(plat).strip() == "":
+                    plat = d.get("platformName") or None
+                else:
+                    plat = str(plat).strip()
 
-            # Ak je zvolené konkrétne fyzické nástupište, filtrujeme odchody len pre toto nástupište
-            if target_platform and plat and plat != target_platform:
-                continue
+                # Ak filtrujeme podľa nástupišťa a nástupište spoju je známe, preveríme zhodu
+                if filter_plat and allowed_platforms and plat and plat not in allowed_platforms:
+                    continue
 
-            planned_ts = d.get("plannedDepartureTimestamp") or d.get("plannedDepartureTime") or 0
-            delay = d.get("delayMinutes") or 0
-            expected_ts = planned_ts + (delay * 60)
+                planned_ts = d.get("plannedDepartureTimestamp") or d.get("plannedDepartureTime") or 0
+                delay = d.get("delayMinutes") or 0
+                expected_ts = planned_ts + (delay * 60)
 
-            planned_str = datetime.fromtimestamp(planned_ts).strftime("%H:%M") if planned_ts else "--:--"
-            expected_str = datetime.fromtimestamp(expected_ts).strftime("%H:%M") if expected_ts else planned_str
+                planned_str = datetime.fromtimestamp(planned_ts).strftime("%H:%M") if planned_ts else "--:--"
+                expected_str = datetime.fromtimestamp(expected_ts).strftime("%H:%M") if expected_ts else planned_str
 
-            diff_min = max(0, int((expected_ts - now_ts) / 60))
+                diff_min = max(0, int((expected_ts - now_ts) / 60))
 
-            dest_name = trip.get("destinationStopName") or trip.get("destination") or ""
-            if dest_name.startswith("Košice, "):
-                dest_name = dest_name[len("Košice, "):].strip()
+                dest_name = trip.get("destinationStopName") or trip.get("destination") or ""
+                if dest_name.startswith("Košice, "):
+                    dest_name = dest_name[len("Košice, "):].strip()
 
-            dep_item = {
-                "line": line_info.get("line"),
-                "destination": dest_name,
-                "platform": plat,
-                "planned_time": planned_str,
-                "expected_time": expected_str,
-                "planned_timestamp": planned_ts,
-                "expected_timestamp": expected_ts,
-                "delay_minutes": delay,
-                "minutes_left": diff_min,
-                "low_floor": trip.get("lowFloor", True),
-                "air_conditioning": True,
-                "wifi": trip.get("wifi", False),
-                "trip_id": trip_id,
-                "vehicle_id": d.get("plannedOrRealVehicleID"),
-                "license_number": d.get("plannedOrRealLicenceNumber")
-            }
+                dep_item = {
+                    "line": line_info.get("line"),
+                    "destination": dest_name,
+                    "platform": plat,
+                    "planned_time": planned_str,
+                    "expected_time": expected_str,
+                    "planned_timestamp": planned_ts,
+                    "expected_timestamp": expected_ts,
+                    "delay_minutes": delay,
+                    "minutes_left": diff_min,
+                    "low_floor": trip.get("lowFloor", True),
+                    "air_conditioning": True,
+                    "wifi": trip.get("wifi", False),
+                    "trip_id": trip_id,
+                    "vehicle_id": d.get("plannedOrRealVehicleID"),
+                    "license_number": d.get("plannedOrRealLicenceNumber")
+                }
 
-            if trip_id:
-                dedup_key = f"trip_{trip_id}"
-            else:
-                dedup_key = f"{dep_item['line']}_{planned_ts}_{plat}_{dest_name}"
+                if trip_id:
+                    dedup_key = f"trip_{trip_id}"
+                else:
+                    dedup_key = f"{dep_item['line']}_{planned_ts}_{plat}_{dest_name}"
 
-            if dedup_key not in unique_departures:
-                unique_departures[dedup_key] = dep_item
-            else:
-                existing = unique_departures[dedup_key]
-                if not existing.get("platform") and plat:
-                    existing["platform"] = plat
-                if not existing.get("vehicle_id") and dep_item.get("vehicle_id"):
-                    existing["vehicle_id"] = dep_item["vehicle_id"]
-                if not existing.get("license_number") and dep_item.get("license_number"):
-                    existing["license_number"] = dep_item["license_number"]
+                if dedup_key not in unique:
+                    unique[dedup_key] = dep_item
+                else:
+                    existing = unique[dedup_key]
+                    if not existing.get("platform") and plat:
+                        existing["platform"] = plat
+                    if not existing.get("vehicle_id") and dep_item.get("vehicle_id"):
+                        existing["vehicle_id"] = dep_item["vehicle_id"]
+                    if not existing.get("license_number") and dep_item.get("license_number"):
+                        existing["license_number"] = dep_item["license_number"]
+            return unique
+
+        unique_departures = build_departures(filter_plat=True)
+        # Fallback: Ak filtrovanie podľa nástupišťa vyprázdnilo výsledky, ale raw_list má odchody, vrátime všetky odchody pre toto fyzické stanovište
+        if not unique_departures and raw_list and allowed_platforms:
+            unique_departures = build_departures(filter_plat=False)
 
         departures = list(unique_departures.values())
         departures.sort(key=lambda x: (x.get("expected_timestamp") or x.get("planned_timestamp") or 0, str(x.get("line") or "")))

@@ -15819,21 +15819,55 @@
       try {
         const resp = await fetch(`${BASE_ORIGIN}/api/v1/stops/${stopId}/departures?t=${Date.now()}`, { cache: 'no-store' });
         if (!resp.ok) {
+          const safeName = stopName.replace(/'/g, "\\'");
           popup.setContent(`
             <div class="departure-board-popup">
               <div class="board-header">
                 <div class="board-title">🚏 ${stopName}</div>
+                <button class="board-refresh-btn" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${safeName}')">
+                  ↻ Skúsiť znova
+                </button>
               </div>
-              <div class="board-empty-state">Nepodarilo sa stiahnuť odchody (Chyba ${resp.status}).</div>
+              <div class="board-empty-state" style="padding: 16px 8px; text-align: center;">
+                <div style="font-size: 1.5rem; margin-bottom: 6px;">⚠️</div>
+                <div style="font-weight: 600; color: #f87171; margin-bottom: 4px;">Nepodarilo sa načítať odchody</div>
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">Server odchodov neodpovedá (Chyba ${resp.status}).</div>
+                <button class="board-refresh-btn" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.78rem;" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${safeName}')">
+                  ↻ Skúsiť znova
+                </button>
+              </div>
             </div>
           `);
           return;
         }
 
         const data = await resp.json();
-        const departures = data.departures || [];
         const finalStopName = data.stop_name || stopName;
         const finalSafeName = finalStopName.replace(/'/g, "\\'");
+
+        if (data && data.status === 'error') {
+          popup.setContent(`
+            <div class="departure-board-popup">
+              <div class="board-header">
+                <div class="board-title">🚏 ${finalStopName}</div>
+                <button class="board-refresh-btn" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${finalSafeName}')">
+                  ↻ Skúsiť znova
+                </button>
+              </div>
+              <div class="board-empty-state" style="padding: 16px 8px; text-align: center;">
+                <div style="font-size: 1.5rem; margin-bottom: 6px;">⚠️</div>
+                <div style="font-weight: 600; color: #f87171; margin-bottom: 4px;">Nepodarilo sa načítať odchody</div>
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">${data.message || 'Nepodarilo sa stiahnuť živé odchody pre túto zastávku.'}</div>
+                <button class="board-refresh-btn" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.78rem;" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${finalSafeName}')">
+                  ↻ Skúsiť znova
+                </button>
+              </div>
+            </div>
+          `);
+          return;
+        }
+
+        const departures = data.departures || [];
         const platformSubtitle = (data.platform !== null && data.platform !== undefined && String(data.platform).trim() !== '') 
           ? ` • Nástupište ${data.platform}` 
           : '';
@@ -15841,9 +15875,13 @@
         let rowsHtml = '';
         if (departures.length === 0) {
           rowsHtml = `
-            <div class="board-empty-state">
-              🌙 Žiadne plánované odchody v najbližšom čase.<br>
-              <span style="font-size: 0.72rem; opacity: 0.7;">(Nočná pauza / spojenie mimo prevádzky)</span>
+            <div class="board-empty-state" style="padding: 16px 8px; text-align: center;">
+              <div style="font-size: 1.5rem; margin-bottom: 6px;">🌙</div>
+              <div style="font-weight: 600; color: #f1f5f9; margin-bottom: 4px;">Žiadne odchody v najbližšom čase</div>
+              <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;">Momentálne nie sú evidované žiadne odchody MHD na tomto stanovišti.</div>
+              <button class="board-refresh-btn" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.78rem;" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${finalSafeName}')">
+                ↻ Obnoviť tabuľu
+              </button>
             </div>
           `;
         } else {
@@ -16000,6 +16038,7 @@
 
       } catch (err) {
         console.error('Chyba pri načítaní odchodov:', err);
+        const safeName = stopName.replace(/'/g, "\\'");
         popup.setContent(`
           <div class="departure-board-popup">
             <div class="board-header">
@@ -16008,13 +16047,23 @@
                 <button id="btn-fav-stop-${stopId}" 
                         data-stop-id="${stopId}"
                         class="btn-fav-stop ${FavoritesManager.isFavoriteStop(stopId) ? 'is-fav' : ''}" 
-                        onclick="event.stopPropagation(); toggleFavoriteStop('${stopId}', '${stopName.replace(/'/g, "\\'")}', [${latLng[0]}, ${latLng[1]}]);" 
+                        onclick="event.stopPropagation(); toggleFavoriteStop('${stopId}', '${safeName}', [${latLng[0]}, ${latLng[1]}]);" 
                         title="${FavoritesManager.isFavoriteStop(stopId) ? 'Odstrániť z obľúbených' : 'Pridať medzi obľúbené'}">
                   ${FavoritesManager.isFavoriteStop(stopId) ? '⭐' : '☆'}
                 </button>
               </div>
+              <button class="board-refresh-btn" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${safeName}')">
+                ↻ Skúsiť znova
+              </button>
             </div>
-            <div class="board-empty-state">Chyba pripojenia k serveru odchodov.</div>
+            <div class="board-empty-state" style="padding: 16px 8px; text-align: center;">
+              <div style="font-size: 1.5rem; margin-bottom: 6px;">⚠️</div>
+              <div style="font-weight: 600; color: #f87171; margin-bottom: 4px;">Nepodarilo sa načítať odchody</div>
+              <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">Chyba pripojenia k serveru odchodov.</div>
+              <button class="board-refresh-btn" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.78rem;" onclick="openStopBoard('${stopId}', [${latLng[0]}, ${latLng[1]}], '${safeName}')">
+                ↻ Skúsiť znova
+              </button>
+            </div>
           </div>
         `);
       }

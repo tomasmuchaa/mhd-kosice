@@ -503,7 +503,17 @@ def get_stop_departures_board(
     try:
         data = live_feed.get_stop_departures(stop_id, platform=platform)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Chyba pri sťahovaní odchodov: {str(e)}")
+        stop_name = live_feed.get_stop_name(stop_id)
+        return {
+            "status": "error",
+            "message": f"Chyba pri sťahovaní odchodov: {str(e)}",
+            "stop_id": stop_id,
+            "stop_name": stop_name,
+            "platform": platform,
+            "timestamp": datetime.now().isoformat(),
+            "total_departures": 0,
+            "departures": []
+        }
 
     # Aktívne vozidlá pre prípadné spárovanie cez trip_id
     active_vehicles = []
