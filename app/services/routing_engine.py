@@ -507,110 +507,541 @@ class RoutingEngine:
         nearby.sort(key=lambda x: x["distance_meters"])
         return nearby[:limit]
 
+    def clear_geometry_caches(self) -> None:
+        """Vymaže vyrovnávaciu pamäť geometrií trás a OSRM dopytov."""
+        self._route_geometry_cache.clear()
+        self._osrm_cache.clear()
+
+    @staticmethod
+    def _calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> int:
+        """Vypočíta kompasový azimut (0-359 stupňov) z bodu 1 do bodu 2."""
+        phi1, lam1 = math.radians(lat1), math.radians(lon1)
+        phi2, lam2 = math.radians(lat2), math.radians(lon2)
+        dlam = lam2 - lam1
+        x = math.sin(dlam) * math.cos(phi2)
+        y = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(dlam)
+        return int(round((math.degrees(math.atan2(x, y)) + 360.0) % 360.0)) % 360
+
+    def _slice_polyline_between_endpoints(
+        self,
+        coords: List[List[float]],
+        u_pt: List[float],
+        v_pt: List[float]
+    ) -> List[List[float]]:
+        """
+        Pravidlo 2 (TVRDÉ OREZANIE KRIVKY / Polyline Slicing):
+        Nájde na krivke index bodu (start_idx) najbližšie k nástupnej zastávke u_pt
+        a index bodu (end_idx) najbližšie k výstupnej zastávke v_pt.
+        Ak start_idx < end_idx, vyreže striktne len podúsek coords[start_idx : end_idx + 1].
+        """
+        if not coords or len(coords) < 2:
+            return []
+
+        start_idx = min(
+            range(len(coords)),
+            key=lambda i: self.haversine_distance(coords[i][0], coords[i][1], u_pt[0], u_pt[1])
+        )
+        end_idx = min(
+            range(len(coords)),
+            key=lambda i: self.haversine_distance(coords[i][0], coords[i][1], v_pt[0], v_pt[1])
+        )
+
+        # Ak by kvôli slučke bol najbližší bod cieľa pred štartom, hľadáme end_idx striktne za start_idx
+        if start_idx >= end_idx and start_idx < len(coords) - 1:
+            end_idx_after = min(
+                range(start_idx + 1, len(coords)),
+                key=lambda i: self.haversine_distance(coords[i][0], coords[i][1], v_pt[0], v_pt[1])
+            )
+            if self.haversine_distance(coords[end_idx_after][0], coords[end_idx_after][1], v_pt[0], v_pt[1]) <= 220.0:
+                end_idx = end_idx_after
+
+        if start_idx >= end_idx:
+            return []
+
+        start_dist = self.haversine_distance(coords[start_idx][0], coords[start_idx][1], u_pt[0], u_pt[1])
+        end_dist = self.haversine_distance(coords[end_idx][0], coords[end_idx][1], v_pt[0], v_pt[1])
+        if start_dist > 220.0 or end_dist > 220.0:
+            return []
+
+        sliced = [list(pt) for pt in coords[start_idx : end_idx + 1]]
+
+        # Presné ukotvenie prvého a posledného bodu na súradnice smerového stĺpika (ak je v tesnej blízkosti <= 80 m)
+        d0 = self.haversine_distance(sliced[0][0], sliced[0][1], u_pt[0], u_pt[1])
+        if d0 <= 2.0:
+            sliced[0] = [float(u_pt[0]), float(u_pt[1])]
+        elif d0 <= 80.0:
+            sliced.insert(0, [float(u_pt[0]), float(u_pt[1])])
+
+        d1 = self.haversine_distance(sliced[-1][0], sliced[-1][1], v_pt[0], v_pt[1])
+        if d1 <= 2.0:
+            sliced[-1] = [float(v_pt[0]), float(v_pt[1])]
+        elif d1 <= 80.0:
+            sliced.append([float(v_pt[0]), float(v_pt[1])])
+
+        return sliced
+
+    def _has_geometry_jump(self, coords: List[List[float]], max_step_meters: float = 250.0) -> bool:
+        """
+        Pravidlo 3 (DETEKCIA TRHLÍN A SKOKOV / Jump Guard):
+        Skontroluje vzdialenosť medzi všetkými po sebe idúcimi bodmi [i] a [i+1].
+        Ak je medzi ktorýmikoľvek dvoma susednými bodmi medzera > 250 m, vráti True.
+        """
+        if not coords or len(coords) < 2:
+            return True
+        for i in range(len(coords) - 1):
+            d = self.haversine_distance(
+                coords[i][0], coords[i][1],
+                coords[i + 1][0], coords[i + 1][1]
+            )
+            if d > max_step_meters:
+                return True
+        return False
+
+    def select_directional_platform(
+        self,
+        line: str,
+        norm_canonical: str,
+        prev_pt: Optional[Tuple[float, float]],
+        next_pt: Optional[Tuple[float, float]],
+        fallback_stop: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Pravidlo 1 (Správny smerový stĺpik zastávky):
+        Vyberie zo super-uzla presne ten fyzický stĺpik (nástupište), ktorý obsluhuje linku `line`
+        a leží na správnej (pravej) strane vozovky v smere jazdy z `prev_pt` do `next_pt`.
+        """
+        candidates = self.stops_by_norm_canonical.get(norm_canonical, [])
+        if not candidates and fallback_stop:
+            cname = self.get_canonical_name(fallback_stop)
+            candidates = self.stops_by_canonical_name.get(cname, [fallback_stop])
+        if not candidates:
+            return fallback_stop
+
+        line_str = str(line).strip()
+        line_cands = [c for c in candidates if line_str in [str(x).strip() for x in c.get("lines", [])]]
+        pool = line_cands if line_cands else candidates
+
+        if len(pool) == 1:
+            return pool[0]
+
+        p_from = prev_pt
+        p_to = next_pt
+        if p_from is None and p_to is None:
+            return pool[0]
+
+        # Ťažisko kandidátnych stĺpikov v danom uzle
+        c_lat = sum(float(c["latitude"]) for c in pool) / len(pool)
+        c_lon = sum(float(c["longitude"]) for c in pool) / len(pool)
+
+        if p_from is None:
+            p_from = (c_lat, c_lon)
+        if p_to is None:
+            p_to = (c_lat, c_lon)
+
+        # Smerový vektor jazdy v lokálnych metrických súradniciach (x = Východ, y = Sever)
+        dx = (float(p_to[1]) - float(p_from[1])) * 73400.0
+        dy = (float(p_to[0]) - float(p_from[0])) * 111320.0
+        mag = math.hypot(dx, dy)
+        if mag < 1.0:
+            return pool[0]
+
+        tx, ty = dx / mag, dy / mag
+        # Pravostranná normála v smere jazdy: n_right = (ty, -tx)
+        nx, ny = ty, -tx
+
+        best_cand = pool[0]
+        best_score = -float("inf")
+        for cand in pool:
+            px = (float(cand["longitude"]) - c_lon) * 73400.0
+            py = (float(cand["latitude"]) - c_lat) * 111320.0
+            right_proj = px * nx + py * ny
+            fwd_proj = px * tx + py * ty
+            score = right_proj + 0.35 * fwd_proj
+            if score > best_score:
+                best_score = score
+                best_cand = cand
+
+        return best_cand
+
+    def get_ordered_subpath_stops(
+        self,
+        line: str,
+        u_stop: Dict[str, Any],
+        v_stop: Dict[str, Any],
+        trip_id: Optional[Any] = None,
+        sub_path_canonical: Optional[List[str]] = None,
+        intermediate_stops: Optional[List[str]] = None
+    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+        """
+        Pravidlo 1 (PRESNÝ ZOZNAM ZASTÁVOK ÚSEKU / Sub-path):
+        Vráti (ordered_directional_stops, intermediate_stop_names) striktne len medzi nástupnou (u_stop)
+        a výstupnou (v_stop) zastávkou v presnom poradí jazdy spoja, pričom pre každú zastávku vyberie
+        smerovo správny fyzický stĺpik.
+        """
+        line_str = str(line).strip()
+        u_norm = normalize_canonical_stop(self.get_canonical_name(u_stop))
+        v_norm = normalize_canonical_stop(self.get_canonical_name(v_stop))
+
+        ordered_norms: List[str] = []
+        ordered_names: List[str] = []
+
+        # 1. Ak už máme presný zoznam kanonických zastávok úseku priamo z Dijkstru (pre dané trip_id)
+        if sub_path_canonical and len(sub_path_canonical) >= 2:
+            for cn in sub_path_canonical:
+                if not ordered_norms or ordered_norms[-1] != cn:
+                    ordered_norms.append(cn)
+            if intermediate_stops is not None:
+                ordered_names = list(intermediate_stops)
+
+        # 2. Dopyt do timetables.db podľa trip_id alebo route_stops pre danú linku a smer (u_seq < v_seq)
+        if len(ordered_norms) < 2 and hasattr(self, "timetable_manager") and self.timetable_manager:
+            try:
+                conn = self.timetable_manager._ensure_connection()
+                cur = conn.cursor()
+
+                if trip_id:
+                    cur.execute(
+                        "SELECT stop_sequence, canonical_stop_name, stop_name FROM stop_departures WHERE trip_id = ? ORDER BY stop_sequence ASC",
+                        (str(trip_id),)
+                    )
+                    t_rows = cur.fetchall()
+                    u_seq_idx = next((idx for idx, r in enumerate(t_rows) if r["canonical_stop_name"] == u_norm), None)
+                    v_seq_idx = next(
+                        (idx for idx, r in enumerate(t_rows) if u_seq_idx is not None and idx > u_seq_idx and r["canonical_stop_name"] == v_norm),
+                        None
+                    )
+                    if u_seq_idx is not None and v_seq_idx is not None:
+                        sub_rows = t_rows[u_seq_idx : v_seq_idx + 1]
+                        ordered_norms = [r["canonical_stop_name"] for r in sub_rows]
+                        ordered_names = [r["stop_name"] for r in sub_rows[1:-1] if r["stop_name"]]
+
+                if len(ordered_norms) < 2:
+                    cur.execute(
+                        "SELECT DISTINCT route_id FROM route_stops WHERE line = ?",
+                        (line_str,)
+                    )
+                    route_ids = [r[0] for r in cur.fetchall()]
+                    for rid in route_ids:
+                        cur.execute(
+                            "SELECT stop_sequence, canonical_stop_name, stop_name FROM route_stops WHERE route_id = ? ORDER BY stop_sequence ASC",
+                            (rid,)
+                        )
+                        r_rows = cur.fetchall()
+                        u_seq_idx = next((idx for idx, r in enumerate(r_rows) if r["canonical_stop_name"] == u_norm), None)
+                        v_seq_idx = next(
+                            (idx for idx, r in enumerate(r_rows) if u_seq_idx is not None and idx > u_seq_idx and r["canonical_stop_name"] == v_norm),
+                            None
+                        )
+                        if u_seq_idx is not None and v_seq_idx is not None:
+                            sub_rows = r_rows[u_seq_idx : v_seq_idx + 1]
+                            ordered_norms = [r["canonical_stop_name"] for r in sub_rows]
+                            ordered_names = [r["stop_name"] for r in sub_rows[1:-1] if r["stop_name"]]
+                            break
+            except Exception:
+                pass
+
+        if len(ordered_norms) < 2:
+            ordered_norms = [u_norm, v_norm]
+
+        # Odstránenie prípadných duplikátov za sebou
+        clean_norms: List[str] = []
+        for cn in ordered_norms:
+            if not clean_norms or clean_norms[-1] != cn:
+                clean_norms.append(cn)
+        ordered_norms = clean_norms
+
+        # Výpočet hrubých ťažiskových súradníc jednotlivých uzlov na určenie vektora jazdy
+        centroids: List[Tuple[float, float]] = []
+        for idx, cn in enumerate(ordered_norms):
+            cands = self.stops_by_norm_canonical.get(cn, [])
+            line_cands = [c for c in cands if line_str in [str(x).strip() for x in c.get("lines", [])]]
+            pool = line_cands if line_cands else cands
+            if pool:
+                clat = sum(float(c["latitude"]) for c in pool) / len(pool)
+                clon = sum(float(c["longitude"]) for c in pool) / len(pool)
+                centroids.append((clat, clon))
+            elif idx == 0:
+                centroids.append((float(u_stop["latitude"]), float(u_stop["longitude"])))
+            else:
+                centroids.append((float(v_stop["latitude"]), float(v_stop["longitude"])))
+
+        # Výber smerovo správneho stĺpika pre každú zastávku v úseku
+        directional_stops: List[Dict[str, Any]] = []
+        n_total = len(ordered_norms)
+        for i, cn in enumerate(ordered_norms):
+            prev_pt = centroids[i - 1] if i > 0 else centroids[0]
+            next_pt = centroids[i + 1] if i < n_total - 1 else centroids[-1]
+            fb = u_stop if i == 0 else (v_stop if i == n_total - 1 else None)
+            chosen = self.select_directional_platform(line_str, cn, prev_pt, next_pt, fallback_stop=fb)
+            if chosen:
+                directional_stops.append(chosen)
+            elif fb:
+                directional_stops.append(fb)
+
+        if not ordered_names and len(directional_stops) > 2:
+            seen_n = set()
+            for s in directional_stops[1:-1]:
+                cname = self.get_canonical_name(s)
+                if cname and cname not in seen_n:
+                    seen_n.add(cname)
+                    ordered_names.append(cname)
+
+        return directional_stops, ordered_names
+
+    def _select_osrm_key_waypoints(self, ordered_stops: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Pravidlo 4 (OPRAVA OSRM FALLBACKU - Zákaz slučiek v protismere):
+        Neposiela do OSRM všetky medzizastávky. Vyberie len nástupný stĺpik, výstupný stĺpik
+        a maximálne 1-2 kľúčové smerové rázcestia (iba ak trasa reálne odbočuje mimo priamu spojnicu o >= 350 m).
+        """
+        if not ordered_stops or len(ordered_stops) <= 2:
+            return ordered_stops or []
+
+        u_s = ordered_stops[0]
+        v_s = ordered_stops[-1]
+        u_lat, u_lon = float(u_s["latitude"]), float(u_s["longitude"])
+        v_lat, v_lon = float(v_s["latitude"]), float(v_s["longitude"])
+
+        def perp_dist_meters(pt_stop: Dict[str, Any], a_lat: float, a_lon: float, b_lat: float, b_lon: float) -> float:
+            ax, ay = 0.0, 0.0
+            bx = (b_lon - a_lon) * 73400.0
+            by = (b_lat - a_lat) * 111320.0
+            px = (float(pt_stop["longitude"]) - a_lon) * 73400.0
+            py = (float(pt_stop["latitude"]) - a_lat) * 111320.0
+            seg_len_sq = bx * bx + by * by
+            if seg_len_sq < 1.0:
+                return math.hypot(px, py)
+            t = max(0.0, min(1.0, (px * bx + py * by) / seg_len_sq))
+            proj_x, proj_y = t * bx, t * by
+            return math.hypot(px - proj_x, py - proj_y)
+
+        # Nájdi najväčšiu kolmú odchýlku spomedzi medzizastávok
+        best_idx = None
+        max_dev = 0.0
+        for i in range(1, len(ordered_stops) - 1):
+            dev = perp_dist_meters(ordered_stops[i], u_lat, u_lon, v_lat, v_lon)
+            if dev > max_dev:
+                max_dev = dev
+                best_idx = i
+
+        # Ak trasa neodbočuje o viac ako 350 m od hlavného ťahu, routujeme priamo medzi nástupom a výstupom!
+        if best_idx is None or max_dev < 350.0:
+            return [u_s, v_s]
+
+        pivots = [best_idx]
+        pivot_stop = ordered_stops[best_idx]
+        p_lat, p_lon = float(pivot_stop["latitude"]), float(pivot_stop["longitude"])
+
+        # Skontrolujeme, či v prvej alebo druhej polovici nie je ešte jedno výrazné rázcestie (>= 400 m)
+        best_idx_2 = None
+        max_dev_2 = 0.0
+        for i in range(1, len(ordered_stops) - 1):
+            if i == best_idx:
+                continue
+            if i < best_idx:
+                dev = perp_dist_meters(ordered_stops[i], u_lat, u_lon, p_lat, p_lon)
+            else:
+                dev = perp_dist_meters(ordered_stops[i], p_lat, p_lon, v_lat, v_lon)
+            if dev > max_dev_2:
+                max_dev_2 = dev
+                best_idx_2 = i
+
+        if best_idx_2 is not None and max_dev_2 >= 400.0:
+            pivots.append(best_idx_2)
+            pivots.sort()
+
+        return [u_s] + [ordered_stops[idx] for idx in pivots] + [v_s]
+
     def get_osrm_road_geometry(
         self,
         waypoint_stops: List[Dict[str, Any]],
         mode: str = "driving"
     ) -> List[List[float]]:
         """
-        Získa detailnú geometriu ulíc (stovky bodov) pomocou OSRM routingu pozdĺž zadaných zastávok.
-        mode: 'driving' (pre MHD trasy) alebo 'foot' (pre pešie presuny po chodníkoch).
+        Získa detailnú geometriu ulíc pomocou OSRM routingu.
+        Pre mode='driving' aplikuje ochranu proti protismerným slučkám a otočkám (Pravidlo 4):
+        - Používa continue_straight=true a obmedzený počet kľúčových smerových bodov.
+        - Ak medzizastávka spôsobí v OSRM protismernú otočku (predĺženie trasy > 1.85x),
+          automaticky prepočíta priamu trasu medzi nástupom a výstupom so smerovým azimutom (bearings).
         """
         if not waypoint_stops or len(waypoint_stops) < 2:
             return []
 
-        # Obmedzíme počet prechodných bodov na max 12 (pre stabilitu a rýchlosť OSRM API)
-        if len(waypoint_stops) > 12:
-            step = (len(waypoint_stops) - 1) / 10.0
-            sampled = [waypoint_stops[0]]
-            for i in range(1, 10):
-                idx = int(round(i * step))
-                if 0 < idx < len(waypoint_stops) - 1 and waypoint_stops[idx] not in sampled:
-                    sampled.append(waypoint_stops[idx])
-            sampled.append(waypoint_stops[-1])
-            stops_to_route = sampled
+        if mode == "driving" and len(waypoint_stops) > 4:
+            stops_to_route = self._select_osrm_key_waypoints(waypoint_stops)
         else:
-            stops_to_route = waypoint_stops
+            stops_to_route = list(waypoint_stops)
+
+        u_pt = [float(stops_to_route[0]["latitude"]), float(stops_to_route[0]["longitude"])]
+        v_pt = [float(stops_to_route[-1]["latitude"]), float(stops_to_route[-1]["longitude"])]
 
         coords_param = ";".join(
             f"{float(s['longitude']):.6f},{float(s['latitude']):.6f}"
             for s in stops_to_route
         )
 
-        cache_key = f"osrm_{mode}_{coords_param}"
+        cache_key = f"osrm_v2_{mode}_{coords_param}"
         if cache_key in self._osrm_cache:
             return self._osrm_cache[cache_key]
 
-        url = f"https://router.project-osrm.org/route/v1/{mode}/{coords_param}?overview=full&geometries=geojson"
-        req = urllib.request.Request(url, headers={"User-Agent": "MHD-Kosice-Routing/2.0"})
+        def fetch_osrm(pts_list: List[Dict[str, Any]], use_bearings: bool = False) -> Tuple[List[List[float]], float]:
+            c_str = ";".join(
+                f"{float(s['longitude']):.6f},{float(s['latitude']):.6f}"
+                for s in pts_list
+            )
+            extra_params = "&continue_straight=true" if mode == "driving" else ""
+            if mode == "driving" and use_bearings:
+                b_list = []
+                r_list = []
+                for idx_p in range(len(pts_list)):
+                    p_a = pts_list[idx_p - 1] if idx_p > 0 else pts_list[idx_p]
+                    p_b = pts_list[idx_p + 1] if idx_p < len(pts_list) - 1 else pts_list[idx_p]
+                    ang = self._calculate_bearing(
+                        float(p_a["latitude"]), float(p_a["longitude"]),
+                        float(p_b["latitude"]), float(p_b["longitude"])
+                    )
+                    b_list.append(f"{ang},65")
+                    r_list.append("55")
+                extra_params += f"&bearings={';'.join(b_list)}&radiuses={';'.join(r_list)}"
 
-        try:
+            url = f"https://router.project-osrm.org/route/v1/{mode}/{c_str}?overview=full&geometries=geojson{extra_params}"
+            req = urllib.request.Request(url, headers={"User-Agent": "MHD-Kosice-Routing/3.0"})
             with urllib.request.urlopen(req, timeout=4.0) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 if data.get("code") == "Ok" and data.get("routes"):
-                    geojson_coords = data["routes"][0]["geometry"]["coordinates"]
-                    # GeoJSON má [lon, lat], Leaflet vyžaduje [lat, lon]
-                    leaflet_coords = [[float(c[1]), float(c[0])] for c in geojson_coords]
-                    if len(leaflet_coords) >= 2:
-                        self._osrm_cache[cache_key] = leaflet_coords
-                        return leaflet_coords
+                    route_obj = data["routes"][0]
+                    geojson_coords = route_obj["geometry"]["coordinates"]
+                    l_coords = [[float(c[1]), float(c[0])] for c in geojson_coords]
+                    return l_coords, float(route_obj.get("distance") or 0.0)
+            return [], 0.0
+
+        direct_chord_sum = sum(
+            self.haversine_distance(
+                float(stops_to_route[i]["latitude"]), float(stops_to_route[i]["longitude"]),
+                float(stops_to_route[i + 1]["latitude"]), float(stops_to_route[i + 1]["longitude"])
+            )
+            for i in range(len(stops_to_route) - 1)
+        )
+
+        try:
+            leaflet_coords, osrm_dist = fetch_osrm(stops_to_route, use_bearings=False)
+
+            # Ak medzibod prichytil protismerný pruh a vytvoril otočku (predĺženie > 1.85x),
+            # routujeme priamo medzi nástupnou a výstupnou zastávkou
+            if mode == "driving" and len(stops_to_route) > 2 and direct_chord_sum > 100.0:
+                if not leaflet_coords or osrm_dist > direct_chord_sum * 1.85:
+                    direct_pair = [stops_to_route[0], stops_to_route[-1]]
+                    alt_coords, alt_dist = fetch_osrm(direct_pair, use_bearings=False)
+                    if len(alt_coords) >= 2 and (not leaflet_coords or alt_dist < osrm_dist):
+                        leaflet_coords, osrm_dist = alt_coords, alt_dist
+
+            # Ak by aj pri 2 bodoch OSRM chytil protismer na štvorprúdovke, vynútime smerový azimut (bearings)
+            end_to_end_m = self.haversine_distance(u_pt[0], u_pt[1], v_pt[0], v_pt[1])
+            if mode == "driving" and end_to_end_m > 150.0 and osrm_dist > end_to_end_m * 2.05:
+                try:
+                    b_coords, b_dist = fetch_osrm([stops_to_route[0], stops_to_route[-1]], use_bearings=True)
+                    if len(b_coords) >= 2 and b_dist < osrm_dist:
+                        leaflet_coords, osrm_dist = b_coords, b_dist
+                except Exception:
+                    pass
+
+            if len(leaflet_coords) >= 2:
+                if mode == "driving":
+                    sliced = self._slice_polyline_between_endpoints(leaflet_coords, u_pt, v_pt)
+                    if len(sliced) >= 2:
+                        leaflet_coords = sliced
+                self._osrm_cache[cache_key] = leaflet_coords
+                return leaflet_coords
         except Exception:
             pass
 
-        return [[float(s["latitude"]), float(s["longitude"])] for s in waypoint_stops]
+        return [[float(s["latitude"]), float(s["longitude"])] for s in stops_to_route]
 
     def get_transit_segment_geometry(
         self,
         line: str,
         u_stop: Dict[str, Any],
         v_stop: Dict[str, Any],
-        trip_id: Optional[int] = None
-    ) -> Tuple[List[List[float]], List[str]]:
+        trip_id: Optional[Any] = None,
+        sub_path_canonical: Optional[List[str]] = None,
+        intermediate_stops: Optional[List[str]] = None,
+        return_directional_stops: bool = False
+    ) -> Union[Tuple[List[List[float]], List[str]], Tuple[List[List[float]], List[str], Dict[str, Any], Dict[str, Any]]]:
         """
-        Získa reálnu geometriu ulíc (shape polyline z modelRoutePoints alebo OSRM routing) a zoznam nácestných zastávok
-        pre úsek jazdy linkou 'line' medzi nástupnou (u_stop) a výstupnou (v_stop) zastávkou.
-        Využíva Ubian modelRoutePoints a ako spoľahlivý fallback OSRM routing, čím garantuje stovky detailných bodov.
+        Získa presnú geometriu ulíc a zoznam medzizastávok pre úsek jazdy linkou `line`
+        medzi nástupnou (`u_stop`) a výstupnou (`v_stop`) zastávkou podľa 4 striktných pravidiel:
+        1. Presný zoznam zastávok úseku (Sub-path) a smerovo správny stĺpik (pravá strana vozovky v smere jazdy).
+        2. Tvrdé orezanie Ubian krivky (Polyline Slicing: coords[start_idx : end_idx + 1] kde start_idx < end_idx).
+        3. Detekcia trhlín a skokov (Jump Guard: ak susedné body > 250 m, Ubian krivka sa zahodí).
+        4. Čistý OSRM fallback bez slučiek v protismere (iba kľúčové smerové body + kontrola otočiek).
         """
-        u_id = u_stop["stop_id"]
-        v_id = v_stop["stop_id"]
-        cache_key = (str(line), u_id, v_id, trip_id or 0)
+        line_str = str(line).strip()
+
+        # PRAVIDLO 1: Presný zoznam zastávok úseku (Sub-path) a výber smerových stĺpikov
+        ordered_stops, inter_names = self.get_ordered_subpath_stops(
+            line_str,
+            u_stop,
+            v_stop,
+            trip_id=trip_id,
+            sub_path_canonical=sub_path_canonical,
+            intermediate_stops=intermediate_stops
+        )
+        u_dir_stop = dict(ordered_stops[0]) if ordered_stops else dict(u_stop)
+        v_dir_stop = dict(ordered_stops[-1]) if ordered_stops else dict(v_stop)
+
+        u_id = u_dir_stop["stop_id"]
+        v_id = v_dir_stop["stop_id"]
+        u_base_id = str(u_id).split("_")[0]
+        v_base_id = str(v_id).split("_")[0]
+        u_norm = normalize_canonical_stop(self.get_canonical_name(u_dir_stop))
+        v_norm = normalize_canonical_stop(self.get_canonical_name(v_dir_stop))
+
+        cache_key = ("v2", line_str, u_id, v_id, str(trip_id or 0))
         if cache_key in self._route_geometry_cache:
-            return self._route_geometry_cache[cache_key]
+            cached_coords, cached_inter = self._route_geometry_cache[cache_key]
+            if cached_coords:
+                u_dir_stop["latitude"], u_dir_stop["longitude"] = cached_coords[0][0], cached_coords[0][1]
+                v_dir_stop["latitude"], v_dir_stop["longitude"] = cached_coords[-1][0], cached_coords[-1][1]
+            if return_directional_stops:
+                return cached_coords, cached_inter, u_dir_stop, v_dir_stop
+            return cached_coords, cached_inter
 
-        u_pt = [float(u_stop["latitude"]), float(u_stop["longitude"])]
-        v_pt = [float(v_stop["latitude"]), float(v_stop["longitude"])]
-        u_name_clean = strip_accents(u_stop.get("name", "")).lower().strip()
-        v_name_clean = strip_accents(v_stop.get("name", "")).lower().strip()
+        u_pt = [float(u_dir_stop["latitude"]), float(u_dir_stop["longitude"])]
+        v_pt = [float(v_dir_stop["latitude"]), float(v_dir_stop["longitude"])]
 
-        # 1. Zozbieranie kandidátnych jázd (trip_id) pre danú linku z Ubianu
+        # 1. Zozbieranie kandidátnych Ubian jázd (numerické trip_id) pre danú linku
         candidate_trip_ids: List[int] = []
-        if trip_id and trip_id not in candidate_trip_ids:
-            candidate_trip_ids.append(trip_id)
+        if trip_id is not None and str(trip_id).strip().isdigit():
+            tid_int = int(str(trip_id).strip())
+            if tid_int not in candidate_trip_ids:
+                candidate_trip_ids.append(tid_int)
 
         if self.live_feed:
             # A. Zo živých vozidiel v premávke
             try:
                 live_vehicles = self.get_live_vehicles_cached() or []
                 for veh in live_vehicles:
-                    if str(veh.get("line")) == str(line) and veh.get("trip_id"):
+                    if str(veh.get("line")).strip() == line_str and veh.get("trip_id"):
                         tid = veh["trip_id"]
-                        if tid not in candidate_trip_ids:
-                            candidate_trip_ids.append(tid)
+                        if str(tid).isdigit() and int(tid) not in candidate_trip_ids:
+                            candidate_trip_ids.append(int(tid))
             except Exception:
                 pass
 
-            # B. Z odchodov na nástupnej zastávke u_stop
+            # B. Z odchodov na nástupnej zastávke
             try:
                 cached_deps = self.get_stop_departures_cached(u_id, datetime.now(), allow_network=False) or []
+                if not cached_deps and u_stop["stop_id"] != u_id:
+                    cached_deps = self.get_stop_departures_cached(u_stop["stop_id"], datetime.now(), allow_network=False) or []
                 for dep in cached_deps:
-                    if str(dep.get("line")) == str(line) and dep.get("trip_id"):
+                    if str(dep.get("line")).strip() == line_str and dep.get("trip_id"):
                         tid = dep["trip_id"]
-                        if tid not in candidate_trip_ids:
-                            candidate_trip_ids.append(tid)
+                        if str(tid).isdigit() and int(tid) not in candidate_trip_ids:
+                            candidate_trip_ids.append(int(tid))
             except Exception:
                 pass
 
-        # 2. Hľadanie jazdy v správnom smere (u_idx < v_idx) a extrakcia modelRoutePoints
+        # 2. Hľadanie jazdy v správnom smere (u_idx < v_idx), tvrdé orezanie krivky (Pravidlo 2) a Jump Guard (Pravidlo 3)
         for tid in candidate_trip_ids:
             trip_data = None
             if tid in self._trip_details_cache:
@@ -630,57 +1061,83 @@ class RoutingEngine:
             if not trip_stops:
                 continue
 
-            # Nájdenie indexu nástupnej zastávky (u) a výstupnej zastávky (v)
             u_idx = None
             v_idx = None
 
             for i, st in enumerate(trip_stops):
-                st_id = st.get("stopID")
-                st_name_clean = strip_accents(st.get("stopName", "")).lower().strip()
+                st_id_str = str(st.get("stopID") or "").split("_")[0]
+                st_norm = normalize_canonical_stop(st.get("stopName") or "")
 
                 if u_idx is None:
-                    if st_id == u_id or (u_name_clean and st_name_clean == u_name_clean):
+                    if (st_id_str and st_id_str == u_base_id) or (u_norm and st_norm == u_norm):
                         u_idx = i
                         continue
-                    if st.get("latitude") and st.get("longitude"):
-                        if self.haversine_distance(st["latitude"], st["longitude"], u_pt[0], u_pt[1]) < 90:
+                    if st.get("latitude") is not None and st.get("longitude") is not None:
+                        if self.haversine_distance(float(st["latitude"]), float(st["longitude"]), u_pt[0], u_pt[1]) < 95.0:
                             u_idx = i
                             continue
 
                 if u_idx is not None and v_idx is None:
-                    if st_id == v_id or (v_name_clean and st_name_clean == v_name_clean):
+                    if (st_id_str and st_id_str == v_base_id) or (v_norm and st_norm == v_norm):
                         v_idx = i
                         break
-                    if st.get("latitude") and st.get("longitude"):
-                        if self.haversine_distance(st["latitude"], st["longitude"], v_pt[0], v_pt[1]) < 90:
+                    if st.get("latitude") is not None and st.get("longitude") is not None:
+                        if self.haversine_distance(float(st["latitude"]), float(st["longitude"]), v_pt[0], v_pt[1]) < 95.0:
                             v_idx = i
                             break
 
-            # Ak sme našli jazdu v správnom smere
             if u_idx is not None and v_idx is not None and u_idx < v_idx:
                 sub_stops = trip_stops[u_idx : v_idx + 1]
-                raw_names = [s.get("stopName") for s in sub_stops[1:-1] if s.get("stopName")]
+
+                # Presné smerové GPS súradnice nástupného a výstupného stĺpika priamo z danej jazdy Ubianu (Pravidlo 1)
+                u_st_obj = sub_stops[0]
+                v_st_obj = sub_stops[-1]
+                ubian_u_pt = [
+                    float(u_st_obj["latitude"]) if u_st_obj.get("latitude") is not None else u_pt[0],
+                    float(u_st_obj["longitude"]) if u_st_obj.get("longitude") is not None else u_pt[1]
+                ]
+                ubian_v_pt = [
+                    float(v_st_obj["latitude"]) if v_st_obj.get("latitude") is not None else v_pt[0],
+                    float(v_st_obj["longitude"]) if v_st_obj.get("longitude") is not None else v_pt[1]
+                ]
+
+                if u_st_obj.get("stopID") and u_st_obj.get("platformNumber"):
+                    cand_uid = f"{u_st_obj['stopID']}_{u_st_obj['platformNumber']}"
+                    if cand_uid in self.stops_by_id:
+                        u_dir_stop = dict(self.stops_by_id[cand_uid])
+                if v_st_obj.get("stopID") and v_st_obj.get("platformNumber"):
+                    cand_vid = f"{v_st_obj['stopID']}_{v_st_obj['platformNumber']}"
+                    if cand_vid in self.stops_by_id:
+                        v_dir_stop = dict(self.stops_by_id[cand_vid])
+
+                u_dir_stop["latitude"], u_dir_stop["longitude"] = ubian_u_pt[0], ubian_u_pt[1]
+                v_dir_stop["latitude"], v_dir_stop["longitude"] = ubian_v_pt[0], ubian_v_pt[1]
+
+                # Presný zoznam medzizastávok z podúseku jazdy
+                ubian_inter_names: List[str] = []
                 seen_n = set()
-                intermediate_names = []
-                for sn in raw_names:
-                    cn = strip_accents(sn).lower().strip()
-                    if cn and cn not in seen_n:
-                        seen_n.add(cn)
-                        intermediate_names.append(sn)
+                for s_item in sub_stops[1:-1]:
+                    sn = s_item.get("stopName")
+                    if sn:
+                        cn = normalize_canonical_stop(sn)
+                        if cn and cn not in seen_n:
+                            seen_n.add(cn)
+                            ubian_inter_names.append(sn)
 
-                u_order = sub_stops[0].get("stopOrder")
-                v_order = sub_stops[-1].get("stopOrder")
+                final_inter_names = ubian_inter_names if ubian_inter_names else inter_names
 
+                # Zostavenie bodov krivky z Ubian route segmentov
+                u_order = u_st_obj.get("stopOrder")
+                v_order = v_st_obj.get("stopOrder")
                 route_segs = trip_data.get("route") or []
-                matching_segs = []
 
+                matching_segs = []
                 if u_order is not None and v_order is not None:
                     matching_segs = [s for s in route_segs if u_order <= s.get("tripStopOrder", 0) < v_order]
                 if not matching_segs:
-                    matching_segs = route_segs[u_idx:v_idx]
+                    matching_segs = route_segs
 
-                # Extrakcia detailných modelRoutePoints pozdĺž ulíc
-                road_coords: List[List[float]] = []
+                raw_road_coords: List[List[float]] = []
                 for seg in matching_segs:
                     for pt in seg.get("modelRoutePoints") or []:
                         lat = pt.get("latitude")
@@ -688,69 +1145,41 @@ class RoutingEngine:
                         if lat is not None and lng is not None:
                             lat_f = float(lat)
                             lng_f = float(lng)
-                            if not road_coords or (
-                                abs(road_coords[-1][0] - lat_f) > 1e-6 or
-                                abs(road_coords[-1][1] - lng_f) > 1e-6
+                            if not raw_road_coords or (
+                                abs(raw_road_coords[-1][0] - lat_f) > 1e-6 or
+                                abs(raw_road_coords[-1][1] - lng_f) > 1e-6
                             ):
-                                road_coords.append([lat_f, lng_f])
+                                raw_road_coords.append([lat_f, lng_f])
 
-                if len(road_coords) >= 2:
-                    if abs(road_coords[0][0] - u_pt[0]) > 0.0001 or abs(road_coords[0][1] - u_pt[1]) > 0.0001:
-                        road_coords.insert(0, u_pt)
-                    if abs(road_coords[-1][0] - v_pt[0]) > 0.0001 or abs(road_coords[-1][1] - v_pt[1]) > 0.0001:
-                        road_coords.append(v_pt)
+                # PRAVIDLO 2: Tvrdé orezanie Ubian krivky (Polyline Slicing: coords[start_idx : end_idx + 1])
+                sliced_coords = self._slice_polyline_between_endpoints(raw_road_coords, ubian_u_pt, ubian_v_pt)
 
-                    self._route_geometry_cache[cache_key] = (road_coords, intermediate_names)
-                    return road_coords, intermediate_names
+                # PRAVIDLO 3: Detekcia trhlín a skokov (Jump Guard: susedné body nesmú byť ďalej ako 250 m)
+                if len(sliced_coords) >= 2 and not self._has_geometry_jump(sliced_coords, max_step_meters=250.0):
+                    u_dir_stop["latitude"], u_dir_stop["longitude"] = sliced_coords[0][0], sliced_coords[0][1]
+                    v_dir_stop["latitude"], v_dir_stop["longitude"] = sliced_coords[-1][0], sliced_coords[-1][1]
+                    self._route_geometry_cache[cache_key] = (sliced_coords, final_inter_names)
+                    if return_directional_stops:
+                        return sliced_coords, final_inter_names, u_dir_stop, v_dir_stop
+                    return sliced_coords, final_inter_names
 
-        # 3. ROBUSTNÝ FALLBACK: OSRM Routing (garantuje reálnu geometriu ulíc po cestách)
-        corridor = []
-        try:
-            corridor = self.get_corridor_stops(line, u_stop, v_stop)
-        except Exception:
-            corridor = [u_stop, v_stop]
-
-        raw_inter = [s.get("name") for s in corridor[1:-1] if s.get("name")] if corridor else []
-        seen_ci = set()
-        inter_names = []
-        for iname in raw_inter:
-            c_iname = self.get_canonical_name({"name": iname}) if isinstance(iname, str) else str(iname)
-            if c_iname not in seen_ci:
-                seen_ci.add(c_iname)
-                inter_names.append(iname)
-
-        if trip_id and hasattr(self, "timetable_manager") and self.timetable_manager:
-            try:
-                u_norm = normalize_canonical_stop(self.get_canonical_name(u_stop))
-                v_norm = normalize_canonical_stop(self.get_canonical_name(v_stop))
-                conn = self.timetable_manager._ensure_connection()
-                cur = conn.cursor()
-                cur.execute("SELECT stop_sequence FROM stop_departures WHERE trip_id = ? AND canonical_stop_name = ?", (str(trip_id), u_norm))
-                u_r = cur.fetchone()
-                cur.execute("SELECT stop_sequence FROM stop_departures WHERE trip_id = ? AND canonical_stop_name = ?", (str(trip_id), v_norm))
-                v_r = cur.fetchone()
-                if u_r and v_r and v_r[0] > u_r[0]:
-                    cur.execute("""
-                        SELECT stop_name FROM stop_departures
-                        WHERE trip_id = ? AND stop_sequence > ? AND stop_sequence < ?
-                        ORDER BY stop_sequence ASC
-                    """, (str(trip_id), u_r[0], v_r[0]))
-                    db_names = [r[0] for r in cur.fetchall()]
-                    if db_names:
-                        inter_names = db_names
-            except Exception:
-                pass
-
-        waypoints = corridor if (corridor and len(corridor) >= 2) else [u_stop, v_stop]
-
+        # 3. PRAVIDLO 4: Čistý OSRM Fallback bez slučiek v protismere (iba kľúčové smerové body)
+        waypoints = self._select_osrm_key_waypoints(ordered_stops) if len(ordered_stops) >= 2 else [u_dir_stop, v_dir_stop]
         osrm_road = self.get_osrm_road_geometry(waypoints, mode="driving")
+
         if len(osrm_road) >= 2:
+            u_dir_stop["latitude"], u_dir_stop["longitude"] = osrm_road[0][0], osrm_road[0][1]
+            v_dir_stop["latitude"], v_dir_stop["longitude"] = osrm_road[-1][0], osrm_road[-1][1]
             self._route_geometry_cache[cache_key] = (osrm_road, inter_names)
+            if return_directional_stops:
+                return osrm_road, inter_names, u_dir_stop, v_dir_stop
             return osrm_road, inter_names
 
         # Záložný plán pri úplnej nedostupnosti internetu
-        fallback_coords = [[float(s["latitude"]), float(s["longitude"])] for s in waypoints]
+        fallback_coords = [[float(s["latitude"]), float(s["longitude"])] for s in ordered_stops] if len(ordered_stops) >= 2 else [u_pt, v_pt]
         self._route_geometry_cache[cache_key] = (fallback_coords, inter_names)
+        if return_directional_stops:
+            return fallback_coords, inter_names, u_dir_stop, v_dir_stop
         return fallback_coords, inter_names
 
     def get_corridor_stops(
@@ -760,36 +1189,10 @@ class RoutingEngine:
         v_stop: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """
-        Nájde a zoradí všetky zastávky na linke 'line' ležiace pozdĺž koridoru
-        medzi počiatočnou (u_stop) a cieľovou (v_stop) zastávkou s deduplikáciou nástupíšť.
+        Vráti presne zoradené zastávky úseku medzi u_stop a v_stop so smerovo správnymi stĺpikmi.
         """
-        du = (v_stop["latitude"] - u_stop["latitude"], v_stop["longitude"] - u_stop["longitude"])
-        mag_sq = du[0] ** 2 + du[1] ** 2
-        if mag_sq < 1e-10:
-            return [u_stop, v_stop]
-
-        line_stop_ids = self.lines_to_stops.get(line, [])
-        stops_on_line = [self.stops_by_id[sid] for sid in line_stop_ids if sid in self.stops_by_id]
-
-        corridor = []
-        seen_names = {self.get_canonical_name(u_stop), self.get_canonical_name(v_stop)}
-        for s in stops_on_line:
-            vec = (s["latitude"] - u_stop["latitude"], s["longitude"] - u_stop["longitude"])
-            t = (vec[0] * du[0] + vec[1] * du[1]) / mag_sq
-            perp = math.sqrt(max(0.0, (vec[0] ** 2 + vec[1] ** 2) - (t ** 2 * mag_sq)))
-            if 0.01 <= t <= 0.99 and perp < 0.018:
-                cname = self.get_canonical_name(s)
-                if cname not in seen_names:
-                    seen_names.add(cname)
-                    corridor.append((t, s))
-
-        corridor.sort(key=lambda x: x[0])
-        res = [s for _, s in corridor]
-        if not res or res[0]["stop_id"] != u_stop["stop_id"]:
-            res.insert(0, u_stop)
-        if res[-1]["stop_id"] != v_stop["stop_id"]:
-            res.append(v_stop)
-        return res
+        ordered_stops, _ = self.get_ordered_subpath_stops(line, u_stop, v_stop)
+        return ordered_stops if len(ordered_stops) >= 2 else [u_stop, v_stop]
 
     def get_live_vehicles_cached(self, max_age_seconds: float = 30.0) -> List[Dict[str, Any]]:
         """Získa živé vozidlá z pamäte alebo stiahne čerstvé z Ubianu (s TTL vyrovnávacou pamäťou)."""
@@ -1496,7 +1899,8 @@ class RoutingEngine:
                     veh_info = dep.get("vehicle_info")
                     is_live = dep.get("is_live", False)
 
-                    for ds in dep["downstream_stops"]:
+                    downstream_all = dep["downstream_stops"]
+                    for ds_idx, ds in enumerate(downstream_all):
                         to_ds_norm = ds["canonical_stop_name"]
                         ride_sec = ds["ride_seconds"]
                         arr_time_str = ds["departure_time_str"]
@@ -1505,13 +1909,23 @@ class RoutingEngine:
                         if not target_cand_stops:
                             continue
 
-                        matched_v_stop = None
-                        for cand in target_cand_stops:
-                            if line in cand.get("lines", []):
-                                matched_v_stop = cand
-                                break
-                        if matched_v_stop is None:
-                            matched_v_stop = target_cand_stops[0]
+                        # Smerovo správny výber stĺpika na výstupnej zastávke
+                        prev_norm = downstream_all[ds_idx - 1]["canonical_stop_name"] if ds_idx > 0 else u_norm
+                        prev_cands = self.stops_by_norm_canonical.get(prev_norm, [u_stop])
+                        prev_pt = (
+                            (float(prev_cands[0]["latitude"]), float(prev_cands[0]["longitude"]))
+                            if prev_cands else (float(u_lat), float(u_lon))
+                        )
+                        next_pt = None
+                        if ds_idx + 1 < len(downstream_all):
+                            next_norm = downstream_all[ds_idx + 1]["canonical_stop_name"]
+                            next_cands = self.stops_by_norm_canonical.get(next_norm, [])
+                            if next_cands:
+                                next_pt = (float(next_cands[0]["latitude"]), float(next_cands[0]["longitude"]))
+
+                        matched_v_stop = self.select_directional_platform(
+                            line, to_ds_norm, prev_pt, next_pt, fallback_stop=target_cand_stops[0]
+                        ) or target_cand_stops[0]
 
                         v = matched_v_stop["stop_id"]
                         v_str = str(v)
@@ -1541,6 +1955,14 @@ class RoutingEngine:
                         v_lon = matched_v_stop.get("longitude")
                         dist_m = self.haversine_distance(u_lat, u_lon, v_lat, v_lon) if (v_lat is not None and v_lon is not None) else 0.0
 
+                        # Presný podúsek zastávok (Sub-path) iba medzi nástupnou a výstupnou zastávkou z daného trip_id
+                        sub_path_canonical = [u_norm] + [
+                            s_item["canonical_stop_name"] for s_item in downstream_all[: ds_idx + 1]
+                        ]
+                        inter_stop_names = [
+                            s_item["stop_name"] for s_item in downstream_all[:ds_idx] if s_item.get("stop_name")
+                        ]
+
                         action = {
                             "type": "transit",
                             "line": line,
@@ -1560,7 +1982,9 @@ class RoutingEngine:
                             "trip_id": trip_id,
                             "vehicle_info": veh_info,
                             "expected_timestamp": int(current_node_dt.timestamp()) + eff_wait_sec,
-                            "is_live": is_live
+                            "is_live": is_live,
+                            "sub_path_canonical": sub_path_canonical,
+                            "intermediate_stops": inter_stop_names
                         }
                         counter += 1
                         heapq.heappush(
@@ -1680,7 +2104,7 @@ class RoutingEngine:
         else:
             if from_id is None:
                 raise ValueError("Musíte zadať buď počiatočnú zastávku (from_id) alebo GPS súradnice (from_coords).")
-            from_stop = self.resolve_stop(from_id)
+            from_stop = dict(self.resolve_stop(from_id) or {})
             if not from_stop:
                 raise ValueError(f"Počiatočná zastávka s ID/názvom '{from_id}' nebola nájdená.")
             from_canonical = self.get_canonical_name(from_stop)
@@ -1821,18 +2245,23 @@ class RoutingEngine:
             if step_zero_segment:
                 map_segments.append(step_zero_segment)
 
-        final_reached_platform = to_stop
+        final_reached_platform = dict(to_stop)
+        has_updated_origin_pin = (from_coords is not None)
+        last_alight_coords: Optional[List[float]] = None
 
         for act in path_actions:
             if act["type"] == "walk":
                 # Nulový presun medzi stĺpikmi v rámci rovnakého uzla ignorujeme ako samostatný peší krok
                 if act.get("is_platform_transfer") or act.get("duration_seconds", 0) == 0:
-                    final_reached_platform = self.stops_by_id.get(act["to_id"], final_reached_platform)
+                    final_reached_platform = dict(self.stops_by_id.get(act["to_id"], final_reached_platform))
                     continue
 
-                u_s = self.stops_by_id[act["from_id"]]
-                v_s = self.stops_by_id[act["to_id"]]
-                final_reached_platform = v_s
+                u_s = dict(self.stops_by_id[act["from_id"]])
+                v_s = dict(self.stops_by_id[act["to_id"]])
+                if last_alight_coords is not None:
+                    u_s["latitude"], u_s["longitude"] = last_alight_coords[0], last_alight_coords[1]
+
+                final_reached_platform = dict(v_s)
                 w_sec = act["duration_seconds"]
                 w_min = round(w_sec / 60.0, 1)
                 dist_m = act["distance_meters"]
@@ -1848,6 +2277,11 @@ class RoutingEngine:
                         [float(v_s["latitude"]), float(v_s["longitude"])]
                     ]
                 coords = walk_coords
+
+                if not has_updated_origin_pin:
+                    from_stop["stop_id"] = u_s["stop_id"]
+                    from_stop["latitude"], from_stop["longitude"] = coords[0][0], coords[0][1]
+                    has_updated_origin_pin = True
 
                 u_canon = self.get_canonical_name(u_s)
                 v_canon = self.get_canonical_name(v_s)
@@ -1887,9 +2321,8 @@ class RoutingEngine:
                 if line not in lines_used:
                     lines_used.append(line)
 
-                u_s = self.stops_by_id[act["from_id"]]
-                v_s = self.stops_by_id[act["to_id"]]
-                final_reached_platform = v_s
+                u_s = dict(self.stops_by_id[act["from_id"]])
+                v_s = dict(self.stops_by_id[act["to_id"]])
 
                 wait_sec = act.get("wait_seconds", 180)
                 wait_min = act.get("wait_minutes", round(wait_sec / 60.0, 1))
@@ -1910,6 +2343,54 @@ class RoutingEngine:
                             trip_id = fresh_wait.get("trip_id") or trip_id
                     except Exception:
                         pass
+
+                # Najprv vypočítame presnú smerovú geometriu a stĺpiky (Pravidlá 1-4),
+                # aby oranžový bod čakania/nástupu, začiatok čiary a prípadný predchádzajúci peší presun
+                # ležali na 100 % identickej súradnici!
+                polyline_coords, intermediate_names, u_dir_stop, v_dir_stop = self.get_transit_segment_geometry(
+                    line,
+                    u_s,
+                    v_s,
+                    trip_id=trip_id,
+                    sub_path_canonical=act.get("sub_path_canonical"),
+                    intermediate_stops=act.get("intermediate_stops"),
+                    return_directional_stops=True
+                )
+
+                u_s = u_dir_stop
+                v_s = v_dir_stop
+                final_reached_platform = dict(v_s)
+
+                board_coords = (
+                    [float(polyline_coords[0][0]), float(polyline_coords[0][1])]
+                    if polyline_coords else [float(u_s["latitude"]), float(u_s["longitude"])]
+                )
+                alight_coords = (
+                    [float(polyline_coords[-1][0]), float(polyline_coords[-1][1])]
+                    if polyline_coords else [float(v_s["latitude"]), float(v_s["longitude"])]
+                )
+                last_alight_coords = alight_coords
+
+                # Ak je toto prvý krok trasy, ukotvíme štartovací bod presne na začiatok čiary
+                if not has_updated_origin_pin:
+                    from_stop["stop_id"] = u_s["stop_id"]
+                    from_stop["latitude"], from_stop["longitude"] = board_coords[0], board_coords[1]
+                    has_updated_origin_pin = True
+
+                # Ak pred týmto nástupom predchádzal peší presun, napojíme jeho koniec presne na nástupný stĺpik
+                if steps and steps[-1]["type"] in ("walk", "walk_to_stop"):
+                    prev_w = steps[-1]
+                    prev_w["to_stop_id"] = u_s["stop_id"]
+                    prev_w["to_coords"] = board_coords
+                    if prev_w.get("coords") and len(prev_w["coords"]) >= 2:
+                        if self.haversine_distance(
+                            prev_w["coords"][-1][0], prev_w["coords"][-1][1],
+                            board_coords[0], board_coords[1]
+                        ) <= 180.0:
+                            prev_w["coords"][-1] = list(board_coords)
+                            prev_w["polyline"] = prev_w["coords"]
+                            if map_segments and map_segments[-1]["type"] == "walk":
+                                map_segments[-1]["coords"] = prev_w["coords"]
 
                 u_canon = self.get_canonical_name(u_s)
                 v_canon = self.get_canonical_name(v_s)
@@ -1933,7 +2414,7 @@ class RoutingEngine:
                     "line": line,
                     "stop_id": u_s["stop_id"],
                     "stop_name": u_canon,
-                    "coords": [u_s["latitude"], u_s["longitude"]],
+                    "coords": board_coords,
                     "wait_seconds": wait_sec,
                     "wait_minutes": wait_min,
                     "delay_minutes": delay_min,
@@ -1946,15 +2427,13 @@ class RoutingEngine:
                 step_idx += 1
                 current_time_dt += timedelta(seconds=wait_sec)
 
-                polyline_coords, intermediate_names = self.get_transit_segment_geometry(line, u_s, v_s, trip_id=trip_id)
-
                 ride_sec = max(60, int(act.get("ride_seconds", 60)))
                 ride_min = max(1.0, round(ride_sec / 60.0, 1))
                 dist_m = act.get("distance_meters", 0.0)
                 total_ride_sec += ride_sec
                 current_time_dt += timedelta(seconds=ride_sec)
 
-                if intermediate_names:
+                if intermediate_names is not None:
                     stops_count = max(1, len(intermediate_names) + 1)
                 else:
                     stops_count = max(1, round(ride_min / 1.9))
@@ -1976,8 +2455,8 @@ class RoutingEngine:
                     "arrival_time_str": arr_time_str,
                     "direction": act.get("direction"),
                     "destination_stop": act.get("destination_stop"),
-                    "from_coords": [u_s["latitude"], u_s["longitude"]],
-                    "to_coords": [v_s["latitude"], v_s["longitude"]],
+                    "from_coords": board_coords,
+                    "to_coords": alight_coords,
                     "polyline": polyline_coords,
                     "coords": polyline_coords,
                     "points_count": len(polyline_coords),
@@ -1992,7 +2471,7 @@ class RoutingEngine:
                     "line": line,
                     "stop_id": v_s["stop_id"],
                     "stop_name": v_canon,
-                    "coords": [v_s["latitude"], v_s["longitude"]],
+                    "coords": alight_coords,
                     "instruction": f"Vystúp na zastávke {v_canon}",
                     "icon": "🚪"
                 })
@@ -2008,12 +2487,17 @@ class RoutingEngine:
                     "label": f"🚌 Linka {line} ({ride_min} min)"
                 })
 
+        final_coords = [float(final_reached_platform["latitude"]), float(final_reached_platform["longitude"])]
+        if map_segments and map_segments[-1].get("coords"):
+            final_coords = list(map_segments[-1]["coords"][-1])
+            final_reached_platform["latitude"], final_reached_platform["longitude"] = final_coords[0], final_coords[1]
+
         steps.append({
             "step_index": step_idx,
             "type": "arrival",
             "stop_id": final_reached_platform["stop_id"],
             "stop_name": to_canonical,
-            "coords": [final_reached_platform["latitude"], final_reached_platform["longitude"]],
+            "coords": final_coords,
             "instruction": f"Cieľová zastávka: {to_canonical}",
             "icon": "🏁"
         })
