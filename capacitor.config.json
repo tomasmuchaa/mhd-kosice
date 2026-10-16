@@ -3,7 +3,7 @@
   "appName": "Nexigo",
   "webDir": "www",
   "server": {
-    "androidScheme": "https",
+    "url": "https://nexigo.duckdns.org",
     "cleartext": true
   }
 }
