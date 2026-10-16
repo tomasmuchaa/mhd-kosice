@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
-  <!-- Okamžitá aplikácia preferovaného motívu (prevencia bieleho/tmavého prebliknutia pri načítaní) -->
+  <!-- Okamžitá aplikácia preferovaného motívu a režimu výkonu (Lite Mode) -->
   <script>
     (function() {
       try {
@@ -42,6 +42,14 @@
           document.documentElement.classList.add('dark-mode');
         } else {
           document.documentElement.classList.remove('dark-mode');
+        }
+
+        var isTouchOrLowEnd = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || 
+                              (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 6);
+        var savedLite = localStorage.getItem('lite_mode');
+        var shouldLite = (savedLite === 'true') || (savedLite === null && isTouchOrLowEnd);
+        if (shouldLite) {
+          document.documentElement.classList.add('lite-mode');
         }
       } catch (e) {}
     })();
@@ -6741,6 +6749,104 @@
     .leaflet-popup {
       max-width: 85vw !important;
     }
+
+    /* ========================================================
+       REŽIM VYSOKÉHO VÝKONU (LITE MODE) & TOUCH PERFORMANCE
+       Vypína náročný backdrop-filter (blur), znižuje tiene na minimum,
+       nahrádza sklo jemne priehľadným tmavým pozadím a ruší drop-shadow z markerov
+       ======================================================== */
+    body.lite-mode .apple-glass,
+    body.lite-mode .glass-panel,
+    body.lite-mode .dashboard-panel,
+    body.lite-mode .control-panel,
+    body.lite-mode #map-layers-drawer,
+    body.lite-mode .bottom-nav-bar,
+    body.lite-mode .map-live-pill,
+    body.lite-mode .locate-me-btn,
+    body.lite-mode .feedback-quick-btn,
+    body.lite-mode .mobile-menu-btn,
+    body.lite-mode .live-nav-card,
+    body.lite-mode .live-nav-recenter-btn,
+    body.lite-mode .planner-card,
+    body.lite-mode .planner-time-panel,
+    body.lite-mode .bottom-sheet,
+    body.lite-mode .journey-card,
+    body.lite-mode .garage-vehicle-card.apple-glass,
+    body.lite-mode .dash-vehicles-list-box,
+    body.lite-mode .leaflet-popup-content-wrapper,
+    body.lite-mode .leaflet-popup-tip,
+    body.lite-mode .custom-board-popup .leaflet-popup-content-wrapper,
+    body.lite-mode .custom-board-popup .leaflet-popup-tip,
+    html.lite-mode .apple-glass,
+    html.lite-mode .glass-panel,
+    html.lite-mode .bottom-nav-bar,
+    html.lite-mode .leaflet-popup-content-wrapper {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: rgba(15, 23, 42, 0.94) !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+      color: #ffffff !important;
+    }
+
+    /* Vypnutie drop-shadow filtrov zo samotných SVG markerov */
+    body.lite-mode .modern-veh-marker,
+    body.lite-mode .modern-veh-marker:hover,
+    body.lite-mode .modern-veh-marker.veh-stale,
+    body.lite-mode .veh-front-svg,
+    body.lite-mode .veh-front-svg *,
+    html.lite-mode .modern-veh-marker,
+    html.lite-mode .modern-veh-marker:hover,
+    html.lite-mode .modern-veh-marker.veh-stale,
+    html.lite-mode .veh-front-svg,
+    html.lite-mode .veh-front-svg * {
+      filter: none !important;
+    }
+
+    /* Globálna optimalizácia pre všetky dotykové zariadenia (pointer: coarse) */
+    @media (pointer: coarse) {
+      .modern-veh-marker,
+      .modern-veh-marker:hover,
+      .modern-veh-marker.veh-stale,
+      .veh-front-svg,
+      .veh-front-svg * {
+        filter: none !important;
+      }
+      body.lite-mode .apple-glass,
+      body.lite-mode .glass-panel,
+      body.lite-mode .bottom-nav-bar,
+      body.lite-mode .leaflet-popup-content-wrapper {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: rgba(15, 23, 42, 0.94) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+      }
+    }
+
+    /* Štýly pre ultra-ľahký Level of Detail (LOD) krúžkový marker */
+    .lod-circle-icon-wrapper {
+      background: transparent !important;
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+    }
+    .lod-circle-veh-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .lod-circle-veh-marker:hover {
+      transform: scale(1.22);
+      z-index: 9999 !important;
+    }
+    .lod-circle-veh-marker.veh-stale {
+      opacity: 0.65;
+      filter: grayscale(0.5);
+    }
   </style>
 </head>
 <body>
@@ -7381,6 +7487,23 @@
       </div>
     </div>
 
+    <!-- Režim vysokého výkonu (Lite Mode) -->
+    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="panel-section-title" style="margin-bottom: 0;">
+          <span>⚡</span>
+          <span>Režim vysokého výkonu (Lite Mode)</span>
+        </div>
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.74rem; color: #cbd5e1;">
+          <input type="checkbox" id="lite-mode-toggle" onchange="toggleLiteMode(this.checked)" style="accent-color: #38bdf8; cursor: pointer;" />
+          <span id="lite-mode-toggle-label">Zapnutý</span>
+        </label>
+      </div>
+      <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 4px;">
+        Vypína náročný blur (backdrop-filter) a tiene panelov, aktivuje zjednodušené kruhové ikony pri oddialení (zoom &lt; 14) pre plynulých 60 FPS na mobiloch a tabletoch.
+      </div>
+    </div>
+
     <!-- Neustále sledovať moju polohu (Live User Location Tracking) -->
     <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -7811,6 +7934,66 @@
       }
     }
     window.triggerHaptic = triggerHaptic;
+
+    // ==========================================
+    // DETEKCIA DOTYKOVÝCH A SLABŠÍCH ZARIADENÍ & REŽIM VYSOKÉHO VÝKONU (LITE MODE)
+    // ==========================================
+    const isTouchOrLowEnd = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || 
+                            (typeof navigator !== 'undefined' && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 6);
+    window.isTouchOrLowEnd = isTouchOrLowEnd;
+
+    function isLiteModeActive() {
+      if (typeof document === 'undefined' || !document.body) return false;
+      return document.body.classList.contains('lite-mode') || document.documentElement.classList.contains('lite-mode');
+    }
+    window.isLiteModeActive = isLiteModeActive;
+
+    function initLiteModeState() {
+      try {
+        const saved = localStorage.getItem('lite_mode');
+        // Pre dotykové a slabšie zariadenia (vrátane tabletov) je zapnutý automaticky
+        const shouldEnable = (saved === 'true') || (saved === null && isTouchOrLowEnd);
+
+        if (shouldEnable) {
+          if (document.body) document.body.classList.add('lite-mode');
+          if (document.documentElement) document.documentElement.classList.add('lite-mode');
+        } else {
+          if (document.body) document.body.classList.remove('lite-mode');
+          if (document.documentElement) document.documentElement.classList.remove('lite-mode');
+        }
+
+        const toggle = document.getElementById('lite-mode-toggle');
+        const label = document.getElementById('lite-mode-toggle-label');
+        if (toggle) toggle.checked = shouldEnable;
+        if (label) label.innerText = shouldEnable ? 'Zapnutý' : 'Vypnutý';
+      } catch (e) {
+        console.warn('Chyba pri inicializácii Lite Mode:', e);
+      }
+    }
+    window.initLiteModeState = initLiteModeState;
+
+    function toggleLiteMode(enabled) {
+      try {
+        localStorage.setItem('lite_mode', enabled ? 'true' : 'false');
+      } catch (e) {}
+
+      if (enabled) {
+        if (document.body) document.body.classList.add('lite-mode');
+        if (document.documentElement) document.documentElement.classList.add('lite-mode');
+      } else {
+        if (document.body) document.body.classList.remove('lite-mode');
+        if (document.documentElement) document.documentElement.classList.remove('lite-mode');
+      }
+
+      const label = document.getElementById('lite-mode-toggle-label');
+      if (label) label.innerText = enabled ? 'Zapnutý' : 'Vypnutý';
+
+      // Okamžitá synchronizácia markerov vozidiel (prepnutie LOD ikôn bez nutnosti zoomovania)
+      if (typeof syncVisibleMarkers === 'function') {
+        syncVisibleMarkers(true);
+      }
+    }
+    window.toggleLiteMode = toggleLiteMode;
 
     // Globálna vrstva plánovača trás (vyhľadávanie spojení a prestupy)
     let journeyLayer = null;
@@ -12990,8 +13173,46 @@
     function renderShortBusSvg(b, s, line, d) { return renderGeneralBusSvg(line, d, b, s); }
     function renderLongBusSvg(b, s, line, d) { return renderSorNb18Svg(line, d); }
 
-    // Tvorba dynamickej front-view SVG ikony vozidla pre konkrétny model
-    function createVehicleMarkerIcon(v, isStale) {
+    // Ultra-ľahký LOD (Level of Detail) marker pre zoom < 14 na dotykových a slabších zariadeniach
+    function createLodCircleVehicleMarkerIcon(v, isStale) {
+      const cat = getVehicleCategory(v) || {};
+      const line = String(v.line || '?');
+
+      // Farba podľa trakcie a kategórie vozidla
+      let bgColor = cat.color || '#0ea5e9';
+      if (cat.id && (cat.id.startsWith('tram') || cat.brand === 'tram')) {
+        bgColor = '#d97706'; // tmavší odtieň jantárovej pre dokonalý kontrast bieleho čísla
+      } else if (cat.id && cat.id.includes('ebn')) {
+        bgColor = '#10b981'; // zelená pre elektrobus
+      }
+
+      const stopInfo = (v.is_on_stop && v.current_stop_name) ? ` • Stojí na: ${v.current_stop_name}` : '';
+      const tooltipTitle = `Linka ${line} • ${cat.name || 'Vozidlo'}${stopInfo} • ${v.destination || 'Neznámy smer'}`;
+
+      const fontSize = line.length >= 3 ? '10px' : (line.length === 2 ? '11px' : '12px');
+
+      return L.divIcon({
+        className: 'lod-circle-icon-wrapper',
+        html: `
+          <div class="lod-circle-veh-marker ${isStale ? 'veh-stale' : ''}" title="${tooltipTitle}" style="width: 24px; height: 24px; border-radius: 50%; background: ${bgColor}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', -apple-system, sans-serif; font-size: ${fontSize}; font-weight: 800; border: 1.5px solid rgba(255, 255, 255, 0.95); box-sizing: border-box; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); user-select: none; cursor: pointer;">
+            ${line}
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        popupAnchor: [0, -14]
+      });
+    }
+
+    // Určenie, či použiť zjednodušený kruhový LOD marker (pri oddialení zoom < 14 na touch/lite zariadeniach)
+    function shouldRenderLodCircleIcon() {
+      const currentZoom = (typeof map !== 'undefined' && map && typeof map.getZoom === 'function') ? map.getZoom() : 14;
+      const isLite = isLiteModeActive() || isTouchOrLowEnd;
+      return isLite && currentZoom < 14;
+    }
+
+    // Tvorba plnej detailnej front-view SVG ikony vozidla pre konkrétny model (pri zoom >= 14 alebo na PC bez lite-mode)
+    function createDetailedVehicleMarkerIcon(v, isStale) {
       const cat = getVehicleCategory(v) || {};
       const line = String(v.line || '?');
       const modelKey = getVehicleModelKey(v);
@@ -13189,6 +13410,15 @@
         iconAnchor: iconAnchor,
         popupAnchor: popupAnchor
       });
+    }
+
+    // Univerzálna funkcia pre získanie ikony vozidla (automaticky volí LOD krúžok alebo detailný SVG model)
+    function createVehicleMarkerIcon(v, isStale, forceLodMode) {
+      const isCircle = (forceLodMode === 'circle') || (forceLodMode !== 'full' && shouldRenderLodCircleIcon());
+      if (isCircle) {
+        return createLodCircleVehicleMarkerIcon(v, isStale);
+      }
+      return createDetailedVehicleMarkerIcon(v, isStale);
     }
 
     function buildPopupHtml(v) {
@@ -14347,7 +14577,7 @@
       if (!map || typeof map.project !== 'function' || typeof map.unproject !== 'function') {
         return [lat, lng];
       }
-      const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768);
+      const isMobile = (typeof window !== 'undefined' && (window.innerWidth <= 768 || isTouchOrLowEnd));
       let targetOffset = offsetY;
       if (targetOffset === undefined) {
         if (isMobile) {
@@ -14422,7 +14652,7 @@
       // Priama vzdialenosť
       const directDist = getDistanceMeters([startLat, startLng], [targetLat, targetLng]);
 
-      const isMobileDevice = (typeof window !== 'undefined' && window.innerWidth <= 768);
+      const isMobileDevice = (typeof window !== 'undefined' && (window.innerWidth <= 768 || isTouchOrLowEnd));
       const isFollowed = options.isFollowed || (typeof followingVehicleId !== 'undefined' && followingVehicleId !== null && (String(marker._vehicleId) === String(followingVehicleId)));
 
       // 2. Vozidlo stojí (< 2.5 metra - prah šumu) -> animáciu nespúšťame
@@ -14449,10 +14679,10 @@
         return;
       }
 
-      // 4. Viewport Culling pre neviditeľné markery (iba na mobile pri polohe mimo obrazovky)
+      // 4. Viewport Culling pre neviditeľné markery na všetkých zariadeniach (mobil, tablet, PC)
       if (!isFollowed && typeof map !== 'undefined') {
         const bounds = (map.getBounds && typeof map.getBounds === 'function') ? map.getBounds() : null;
-        if (!map.hasLayer(marker) || (isMobileDevice && bounds && bounds.isValid && bounds.isValid() && !bounds.contains([targetLat, targetLng]) && !bounds.contains([startLat, startLng]))) {
+        if (!map.hasLayer(marker) || (bounds && bounds.isValid && bounds.isValid() && !bounds.contains([targetLat, targetLng]) && !bounds.contains([startLat, startLng]))) {
           marker.setLatLng([targetLat, targetLng]);
           marker._targetLatLng = [targetLat, targetLng];
           if (options.onComplete) options.onComplete();
@@ -15037,9 +15267,10 @@
     window.getPredictedVehicleLatLng = getPredictedVehicleLatLng;
 
     // Tvorba kompletného Leaflet markera pre vozidlo (ikona, popup, interakcie)
-    function createVehicleMarker(v, initialPos) {
+    function createVehicleMarker(v, initialPos, targetLodMode) {
       const comm = formatLastCommunication(v.last_communication);
-      const icon = createVehicleMarkerIcon(v, comm.isStale);
+      const chosenLodMode = targetLodMode || (shouldRenderLodCircleIcon() ? 'circle' : 'full');
+      const icon = createVehicleMarkerIcon(v, comm.isStale, chosenLodMode);
       const popupContent = buildPopupHtml(v);
       const pos = initialPos || (isLivePredictionActive ? getPredictedVehicleLatLng(v) : [v.latitude, v.longitude]);
       const marker = L.marker(pos, {
@@ -15049,6 +15280,7 @@
       marker._vehicleId = v.vehicle_id;
       marker._tripId = v.trip_id;
       marker._targetLatLng = pos;
+      marker._lodMode = chosenLodMode;
       // Inteligentný Leaflet AutoPan: posunie mapu s dostatočnou rezervou hore (220px) pre vysokú informačnú bublinu
       marker.bindPopup(popupContent, {
         autoPan: true,
@@ -15059,7 +15291,7 @@
       marker.on('click', () => {
         startFollowingVehicle(v);
         if (v.trip_id) loadAndDrawTripRoute(v.trip_id);
-        if (window.innerWidth <= 768) {
+        if (window.innerWidth <= 768 || isTouchOrLowEnd) {
           setTimeout(() => {
             marker.closePopup();
             openVehicleDetailBottomSheet(v);
@@ -15078,7 +15310,7 @@
           popup.options.autoPanPaddingTopLeft = [10, 220];
           popup.options.autoPanPaddingBottomRight = [10, 20];
         }
-        if (window.innerWidth <= 768) {
+        if (window.innerWidth <= 768 || isTouchOrLowEnd) {
           marker.closePopup();
           openVehicleDetailBottomSheet(v);
           return;
@@ -17031,7 +17263,7 @@
     window.handleMapSearchFocus = handleMapSearchFocus;
 
     // ========================================================
-    // RESPONZÍVNY FILTER VIDITEĽNOSTI VOZIDIEL (PLNÉ ZOBRAZENIE NA PC)
+    // RESPONZÍVNY FILTER VIDITEĽNOSTI VOZIDIEL (STRIKTNÝ VIEWPORT CULLING)
     // ========================================================
     let latestVisibleVehicleIds = null;
 
@@ -17041,7 +17273,6 @@
         return visibleIds;
       }
 
-      const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768);
       let mapBounds = null;
       try {
         mapBounds = (map && typeof map.getBounds === 'function') ? map.getBounds() : null;
@@ -17064,51 +17295,30 @@
         visibleIds.add(Number(followingVehicleId));
       }
 
-      // 2. VÝNIMKA PRE AKTÍVNE VYHĽADÁVANIE (Search & Model Filter Bypass):
-      // Ak používateľ aktívne vyhľadá konkrétnu linku, model, evidenčné číslo alebo ŠPZ
-      if (hasActiveSearch) {
-        rawList.forEach(v => {
-          const id = v.vehicle_id;
-          if (!v.latitude || !v.longitude) return;
-          if (disabledLines.has(v.line) && id !== followingVehicleId) return;
+      const hasValidBounds = Boolean(mapBounds && mapBounds.isValid && mapBounds.isValid());
 
+      // 2. STRIKTNÝ VIEWPORT CULLING NA VŠETKÝCH ZARIADENIACH (mobil, tablet aj PC):
+      // map.getBounds().contains(latLng) kontroluje každý spoj.
+      // Vozidlá mimo aktuálneho výrezu obrazovky sa nepridajú do visibleIds
+      // a následne v syncVisibleMarkers() sú okamžite odstránené z DOMu (map.removeLayer).
+      rawList.forEach(v => {
+        const id = v.vehicle_id;
+        if (!v.latitude || !v.longitude) return;
+        if (disabledLines.has(v.line) && id !== followingVehicleId) return;
+
+        // Filter vyhľadávania / modelu (ak používateľ aktívne filtruje)
+        if (hasActiveSearch) {
           let isMatched = false;
           if (activeModelVehicleIds && activeModelVehicleIds.size > 0) {
             isMatched = activeModelVehicleIds.has(id);
           } else if (searchQuery.length > 0) {
             isMatched = matchesSearchQuery(v, searchQuery);
           }
+          if (!isMatched && id !== followingVehicleId) return;
+        }
 
-          if (isMatched) {
-            visibleIds.add(id);
-          }
-        });
-        return visibleIds;
-      }
-
-      // 3. DESKTOP / PC (window.innerWidth > 768):
-      // Plné zobrazenie VŠETKÝCH aktívnych vozidiel po celých Košiciach bez obmedzenia zoomu,
-      // bez akéhokoľvek stropu počtu a bez proximity rádiusu.
-      if (!isMobile) {
-        rawList.forEach(v => {
-          const id = v.vehicle_id;
-          if (!v.latitude || !v.longitude) return;
-          if (disabledLines.has(v.line) && id !== followingVehicleId) return;
-          visibleIds.add(id);
-        });
-        return visibleIds;
-      }
-
-      // 4. MOBIL (window.innerWidth <= 768) - Responzívny Viewport Culling:
-      // Žiadny zákaz nízkeho zoomu (< 14) ani proximity filter!
-      // Pri oddialení na celé mesto výrez obrazovky zahŕňa celé Košice, takže sa zobrazia VŠETKY vozidlá.
-      // Pri priblížení na detail ulice sa mimo výrezu markery nezobrazujú pre šetrenie výkonu.
-      rawList.forEach(v => {
-        const id = v.vehicle_id;
-        if (!v.latitude || !v.longitude) return;
-        if (disabledLines.has(v.line) && id !== followingVehicleId) return;
-
-        if (mapBounds && mapBounds.isValid && mapBounds.isValid()) {
+        // Viewport check cez map.getBounds().contains(latLng)
+        if (hasValidBounds && id !== followingVehicleId) {
           const pos = (typeof isLivePredictionActive !== 'undefined' && isLivePredictionActive) ? getPredictedVehicleLatLng(v) : [v.latitude, v.longitude];
           const vLatLng = L.latLng(pos[0], pos[1]);
           if (mapBounds.contains(vLatLng)) {
@@ -17872,7 +18082,7 @@
           setTimeout(() => {
             syncVisibleMarkers();
             const m = markers[vehicleId] || markers[sId] || markers[numId];
-            if (window.innerWidth <= 768 && typeof openVehicleDetailBottomSheet === 'function') {
+            if ((window.innerWidth <= 768 || isTouchOrLowEnd) && typeof openVehicleDetailBottomSheet === 'function') {
               openVehicleDetailBottomSheet(v);
             } else if (m) {
               m.openPopup();
@@ -18007,9 +18217,13 @@
           if (markers[id] && v.latitude && v.longitude) {
             markers[id]._tripId = v.trip_id;
             const comm = formatLastCommunication(v.last_communication);
-            const icon = createVehicleMarkerIcon(v, comm.isStale);
+            const targetLodMode = shouldRenderLodCircleIcon() ? 'circle' : 'full';
+            if (markers[id]._lodMode !== targetLodMode) {
+              const icon = createVehicleMarkerIcon(v, comm.isStale, targetLodMode);
+              markers[id].setIcon(icon);
+              markers[id]._lodMode = targetLodMode;
+            }
             const popupContent = buildPopupHtml(v);
-            markers[id].setIcon(icon);
             markers[id].setPopupContent(popupContent);
 
             const isFollowed = (followingVehicleId !== null && String(followingVehicleId) === String(id));
@@ -18019,14 +18233,16 @@
             const targetPos = (typeof isLivePredictionActive !== 'undefined' && isLivePredictionActive) ? getPredictedVehicleLatLng(v) : [v.latitude, v.longitude];
 
             // Viewport Culling: ak vozidlo nie je viditeľné a nie je sledované,
-            // nezaťažujeme procesor animáciou, ale priamo nastavíme súradnice
+            // okamžite ho z mapy odstráň z DOMu (map.removeLayer)
             if (!isVisible && !isFollowed) {
               if (markers[id]._slideAnim && markers[id]._slideAnim.frameId) {
                 cancelAnimationFrame(markers[id]._slideAnim.frameId);
                 markers[id]._slideAnim = null;
               }
-              markers[id].setLatLng(targetPos);
-              markers[id]._targetLatLng = targetPos;
+              if (map.hasLayer(markers[id])) {
+                map.removeLayer(markers[id]);
+              }
+              delete markers[id];
               return;
             }
 
@@ -18079,7 +18295,7 @@
     }
 
     // EXTRÉMNY VIEWPORT CULLING, DYNAMICKÉ ČISTENIE & 60 FPS LIMIT
-    function syncVisibleMarkers() {
+    function syncVisibleMarkers(forceIconRefresh = false) {
       const rawList = (vehiclesCache && vehiclesCache.length > 0) ? vehiclesCache : latestVehiclesList;
       if (!rawList || rawList.length === 0 || currentAppView !== 'map') return;
 
@@ -18088,8 +18304,11 @@
         map.invalidateSize();
       }
 
-      // Prepočet množiny povolených vozidiel (Plné zobrazenie na PC, Responzívny Viewport Culling na mobile, Search Bypass)
+      // Prepočet množiny povolených vozidiel (Striktný Viewport Culling na všetkých zariadeniach)
       latestVisibleVehicleIds = computeVisibleVehicleIds(rawList);
+
+      // Určíme cieľový LOD režim pre aktuálny zoom a výkonnostný profil
+      const targetLodMode = shouldRenderLodCircleIcon() ? 'circle' : 'full';
 
       // Asynchrónne prednačítanie trás (Trip Route Prefetch) pre viditeľné a sledované vozidlá
       latestVisibleVehicleIds.forEach(id => {
@@ -18132,11 +18351,18 @@
         // Vykresli marker vozidla a pridaj ho do mapy (DOM) IBA vtedy,
         // ak je schválený vo visibleIds
         if (!markers[id]) {
-          const marker = createVehicleMarker(v, latLng);
+          const marker = createVehicleMarker(v, latLng, targetLodMode);
           marker.addTo(map);
           markers[id] = marker;
         } else {
-          // Marker už existuje v DOMe: ak neprebieha plynulá animácia, zosúladíme polohu
+          // Marker už existuje v DOMe:
+          // Ak sa zmenil LOD režim (napr. zoom preťal hranicu 14) alebo je vyžiadané vynútené obnovenie,
+          // okamžite prehodíme ikonu na krúžok / plný model
+          if (markers[id]._lodMode !== targetLodMode || forceIconRefresh) {
+            const comm = formatLastCommunication(v.last_communication);
+            markers[id].setIcon(createVehicleMarkerIcon(v, comm.isStale, targetLodMode));
+            markers[id]._lodMode = targetLodMode;
+          }
           if (!markers[id]._slideAnim) {
             markers[id].setLatLng(latLng);
             markers[id]._targetLatLng = latLng;
@@ -18174,7 +18400,7 @@
     let syncVisibleMarkersTimeout = null;
     let isUserDraggingMap = false;
 
-    function debouncedSyncVisibleMarkers(delay = 110) {
+    function debouncedSyncVisibleMarkers(delay = 120) {
       if (syncVisibleMarkersTimeout) {
         clearTimeout(syncVisibleMarkersTimeout);
       }
@@ -18206,15 +18432,15 @@
     });
 
     // EVENT LISTENER 'moveend' a 'zoomend':
-    // Spúšťame syncVisibleMarkers až po dokončení pohybu/zoomu s debounce 110 ms
+    // Spúšťame syncVisibleMarkers až po dokončení pohybu/zoomu s debounce 120 ms
     map.on('moveend', () => {
       isUserDraggingMap = false;
-      debouncedSyncVisibleMarkers(110);
+      debouncedSyncVisibleMarkers(120);
     });
 
     map.on('zoomend', () => {
       isUserDraggingMap = false;
-      debouncedSyncVisibleMarkers(110);
+      debouncedSyncVisibleMarkers(120);
     });
 
     // ==========================================
@@ -19850,6 +20076,7 @@
 
     // Prvotné načítanie dát
     updateDevModeUI();
+    initLiteModeState();
     initLivePredictionState();
     initAutoTrackLocationState();
     initCustomApiServerState();

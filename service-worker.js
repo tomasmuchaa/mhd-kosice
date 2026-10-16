@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nexigo-cache-v7';
+const CACHE_NAME = 'nexigo-cache-v8';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/static/icons/favicon.png?v=3',
