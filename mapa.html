@@ -4629,6 +4629,7 @@
       }
       .control-panel.mobile-search-mode .mobile-drawer-header,
       .control-panel.mobile-search-mode .theme-selector-section,
+      .control-panel.mobile-search-mode .perf-selector-section,
       .control-panel.mobile-search-mode .developer-mode-section {
         display: none !important;
       }
@@ -5697,6 +5698,114 @@
       margin-top: 5px;
       text-align: center;
       font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ========================================================
+       PREPÍNAČ REŽIMU VÝKONU (LITE MODE V MENU)
+       ======================================================== */
+    .perf-selector-section {
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      padding-top: 10px;
+      margin-top: 8px;
+      margin-bottom: 8px;
+      transition: border-color 0.3s ease;
+    }
+    body.dark-mode .perf-selector-section {
+      border-top-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    .perf-status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      gap: 8px;
+    }
+    .perf-status-desc {
+      font-size: 0.68rem;
+      color: #64748b;
+      line-height: 1.35;
+      flex: 1;
+    }
+    body.dark-mode .perf-status-desc {
+      color: #94a3b8;
+    }
+    .perf-status-badge {
+      font-size: 0.70rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(14, 165, 233, 0.15);
+      color: #0284c7;
+      border: 1px solid rgba(14, 165, 233, 0.3);
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    body.dark-mode .perf-status-badge {
+      background: rgba(56, 189, 248, 0.18);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+    .perf-status-badge.off {
+      background: rgba(100, 116, 139, 0.15);
+      color: #64748b;
+      border-color: rgba(100, 116, 139, 0.25);
+    }
+    body.dark-mode .perf-status-badge.off {
+      background: rgba(100, 116, 139, 0.2);
+      color: #94a3b8;
+      border-color: rgba(100, 116, 139, 0.3);
+    }
+
+    /* Moderný prepínač (iOS Toggle Switch) */
+    .modern-toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .modern-toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .modern-toggle-switch .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: rgba(100, 116, 139, 0.3);
+      transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 24px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    body.dark-mode .modern-toggle-switch .toggle-slider {
+      background-color: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .modern-toggle-switch .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background-color: #ffffff;
+      transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .modern-toggle-switch input:checked + .toggle-slider {
+      background-color: #0284c7;
+      border-color: #0284c7;
+    }
+    body.dark-mode .modern-toggle-switch input:checked + .toggle-slider {
+      background-color: #38bdf8;
+      border-color: #38bdf8;
+    }
+    .modern-toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(20px);
     }
 
     /* ========================================================
@@ -7456,6 +7565,24 @@
       <div id="theme-current-desc" class="theme-status-text">Režim: Systémový (Auto)</div>
     </div>
 
+    <!-- Režim vysokého výkonu (Lite Mode) - priamo pod motívom, okamžite viditeľný bez rolovania -->
+    <div class="perf-selector-section">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="panel-section-title" style="margin-bottom: 0;">
+          <span>⚡</span>
+          <span>Režim výkonu (Lite Mode)</span>
+        </div>
+        <label class="modern-toggle-switch" title="Prepnúť Režim vysokého výkonu">
+          <input type="checkbox" id="lite-mode-toggle" class="lite-mode-toggle-input" onchange="toggleLiteMode(this.checked)" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="perf-status-row">
+        <span class="perf-status-desc">Vypína náročný blur a tiene pre 60 FPS na mobiloch</span>
+        <span id="lite-mode-toggle-label" class="lite-mode-toggle-label perf-status-badge">Zapnutý</span>
+      </div>
+    </div>
+
     <!-- Rýchle hľadanie na mape -->
     <div class="panel-search-section">
       <div class="panel-section-title">
@@ -7552,20 +7679,21 @@
       </div>
     </div>
 
-    <!-- Režim vysokého výkonu (Lite Mode) -->
-    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px;">
+    <!-- Režim vysokého výkonu (Lite Mode) - sekundárny prepínač vo vrstvách -->
+    <div style="border-top: 1px solid rgba(0, 0, 0, 0.08); padding-top: 10px; margin-top: 10px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div class="panel-section-title" style="margin-bottom: 0;">
           <span>⚡</span>
-          <span>Režim vysokého výkonu (Lite Mode)</span>
+          <span>Režim výkonu (Lite Mode)</span>
         </div>
-        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.74rem; color: #cbd5e1;">
-          <input type="checkbox" id="lite-mode-toggle" onchange="toggleLiteMode(this.checked)" style="accent-color: #38bdf8; cursor: pointer;" />
-          <span id="lite-mode-toggle-label">Zapnutý</span>
+        <label class="modern-toggle-switch" title="Prepnúť Režim vysokého výkonu">
+          <input type="checkbox" id="lite-mode-toggle-layers" class="lite-mode-toggle-input" onchange="toggleLiteMode(this.checked)" />
+          <span class="toggle-slider"></span>
         </label>
       </div>
-      <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 4px;">
-        Vypína náročný blur (backdrop-filter) a tiene panelov, aktivuje zjednodušené kruhové ikony pri oddialení (zoom &lt; 14) pre plynulých 60 FPS na mobiloch a tabletoch.
+      <div class="perf-status-row">
+        <span class="perf-status-desc">Vypína náročný blur a tiene pre 60 FPS na mobiloch</span>
+        <span id="lite-mode-toggle-label-layers" class="lite-mode-toggle-label perf-status-badge">Zapnutý</span>
       </div>
     </div>
 
@@ -8027,10 +8155,18 @@
           if (document.documentElement) document.documentElement.classList.remove('lite-mode');
         }
 
-        const toggle = document.getElementById('lite-mode-toggle');
-        const label = document.getElementById('lite-mode-toggle-label');
-        if (toggle) toggle.checked = shouldEnable;
-        if (label) label.innerText = shouldEnable ? 'Zapnutý' : 'Vypnutý';
+        const toggles = document.querySelectorAll('.lite-mode-toggle-input, #lite-mode-toggle, #lite-mode-toggle-layers');
+        toggles.forEach(t => { t.checked = shouldEnable; });
+
+        const labels = document.querySelectorAll('.lite-mode-toggle-label, #lite-mode-toggle-label, #lite-mode-toggle-label-layers');
+        labels.forEach(l => {
+          l.innerText = shouldEnable ? 'Zapnutý' : 'Vypnutý';
+          if (shouldEnable) {
+            l.classList.remove('off');
+          } else {
+            l.classList.add('off');
+          }
+        });
       } catch (e) {
         console.warn('Chyba pri inicializácii Lite Mode:', e);
       }
@@ -8050,8 +8186,18 @@
         if (document.documentElement) document.documentElement.classList.remove('lite-mode');
       }
 
-      const label = document.getElementById('lite-mode-toggle-label');
-      if (label) label.innerText = enabled ? 'Zapnutý' : 'Vypnutý';
+      const toggles = document.querySelectorAll('.lite-mode-toggle-input, #lite-mode-toggle, #lite-mode-toggle-layers');
+      toggles.forEach(t => { t.checked = enabled; });
+
+      const labels = document.querySelectorAll('.lite-mode-toggle-label, #lite-mode-toggle-label, #lite-mode-toggle-label-layers');
+      labels.forEach(l => {
+        l.innerText = enabled ? 'Zapnutý' : 'Vypnutý';
+        if (enabled) {
+          l.classList.remove('off');
+        } else {
+          l.classList.add('off');
+        }
+      });
 
       // Okamžitá synchronizácia markerov vozidiel (prepnutie LOD ikôn bez nutnosti zoomovania)
       if (typeof syncVisibleMarkers === 'function') {

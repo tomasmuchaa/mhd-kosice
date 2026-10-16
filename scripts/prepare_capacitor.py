@@ -23,6 +23,13 @@ def prepare_www():
             shutil.copy2(src_path, dst_path)
             print(f"[OK] Skopírované: {src_name} -> www/{dst_name}")
 
+    # Synchronize root index.html with mapa.html
+    root_mapa = os.path.join(project_root, 'mapa.html')
+    root_index = os.path.join(project_root, 'index.html')
+    if os.path.exists(root_mapa):
+        shutil.copy2(root_mapa, root_index)
+        print("[OK] Skopírované: mapa.html -> index.html (root)")
+
     # Copy static directory
     src_static = os.path.join(project_root, 'static')
     dst_static = os.path.join(www_dir, 'static')
