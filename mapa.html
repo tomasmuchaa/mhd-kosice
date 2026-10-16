@@ -78,27 +78,27 @@
        APPLE LIQUID GLASS (APPLE VISIONOS / IOS NATÍVNY VIZUÁL)
        ======================================================== */
     :root {
-      --glass-bg: rgba(255, 255, 255, 0.85);
-      --glass-bg-subtle: rgba(255, 255, 255, 0.65);
+      --glass-bg: rgba(246, 243, 252, 0.88);
+      --glass-bg-subtle: rgba(246, 243, 252, 0.75);
       --glass-bg-card: #ffffff;
-      --glass-bg-card-hover: rgba(255, 255, 255, 0.95);
-      --glass-border: rgba(255, 255, 255, 0.9);
-      --glass-border-specular: rgba(255, 255, 255, 0.95);
-      --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-      --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+      --glass-bg-card-hover: rgba(255, 255, 255, 0.98);
+      --glass-border: rgba(168, 85, 247, 0.22);
+      --glass-border-specular: rgba(192, 132, 252, 0.35);
+      --glass-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
+      --glass-shadow-lg: 0 12px 32px -4px rgba(88, 28, 135, 0.12);
       --glass-radius: 20px;
-      --glass-blur: 24px;
+      --glass-blur: 20px;
       --glass-text: #0f172a;
       --glass-text-sub: #475569;
     }
 
-    /* Univerzálna trieda: Apple Liquid Glass efekt (Predvolený čistý biely Liquid Glass) */
+    /* Univerzálna trieda: Apple Liquid Glass efekt (Nexigo Soft Frosted Lavender Glass) */
     .apple-glass {
-      background: rgba(255, 255, 255, 0.85) !important;
-      backdrop-filter: blur(24px) !important;
-      -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.9) !important;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
+      background: rgba(246, 243, 252, 0.88) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border: 1px solid rgba(168, 85, 247, 0.22) !important;
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08) !important;
       border-radius: 20px !important;
       color: #0f172a !important;
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
@@ -122,15 +122,15 @@
       transition: filter 0.3s ease;
     }
 
-    /* Všeobecný štýl pre panely (Čistý biely Liquid Glass) */
+    /* Všeobecný štýl pre panely (Nexigo Soft Frosted Lavender Glass) */
     .glass-panel {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.9);
+      background: rgba(246, 243, 252, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(168, 85, 247, 0.22);
       border-radius: 20px;
       color: #0f172a;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
     }
 
@@ -143,12 +143,12 @@
       padding: 14px 18px;
       max-width: 340px;
       width: calc(100% - 28px);
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.9);
+      background: rgba(246, 243, 252, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(168, 85, 247, 0.22);
       border-radius: 20px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
       color: #0f172a;
       flex-wrap: wrap !important;
       box-sizing: border-box !important;
@@ -208,14 +208,14 @@
 
     .stat-card {
       flex: 1;
-      background: #ffffff;
+      background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(147, 51, 234, 0.14);
       border-radius: 12px;
       padding: 8px 10px;
       text-align: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 2px 8px rgba(88, 28, 135, 0.05);
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
 
@@ -311,17 +311,17 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border-left: 1px solid rgba(255, 255, 255, 0.9);
+      background: rgba(246, 243, 252, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(168, 85, 247, 0.22);
       border-right: none;
       border-top: none;
       border-bottom: none;
       border-radius: 20px 0 0 20px;
       transform: translateX(110%);
       transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
-      box-shadow: -8px 0 32px 0 rgba(0, 0, 0, 0.08);
+      box-shadow: -8px 0 32px 0 rgba(88, 28, 135, 0.08);
       pointer-events: none;
       color: #0f172a;
     }
@@ -475,10 +475,10 @@
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      background: rgba(255, 255, 255, 0.65);
+      background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(147, 51, 234, 0.15);
       border-radius: 10px;
       padding: 5px 10px;
       font-size: 0.8rem;
@@ -487,23 +487,24 @@
       color: #0f172a;
       cursor: pointer;
       user-select: none;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 2px 6px rgba(88, 28, 135, 0.04);
       transition: all 0.2s ease;
     }
     .line-chip:hover {
-      background: rgba(255, 255, 255, 0.95);
-      border-color: rgba(2, 132, 199, 0.4);
-      color: #0284c7;
+      background: #ffffff;
+      border-color: rgba(147, 51, 234, 0.4);
+      color: #7c3aed;
       transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(147, 51, 234, 0.12);
     }
     .line-chip.active {
-      background: rgba(14, 165, 233, 0.25);
-      border-color: #38bdf8;
-      color: #38bdf8;
+      background: rgba(147, 51, 234, 0.15);
+      border-color: #9333ea;
+      color: #7c3aed;
     }
     .line-chip.inactive {
       opacity: 0.4;
-      background: rgba(15, 23, 42, 0.3);
+      background: rgba(246, 243, 252, 0.6);
       text-decoration: line-through;
     }
     .line-chip .line-count {
@@ -648,17 +649,17 @@
       margin: 0 auto;
       height: auto;
       max-height: 70dvh;
-      background: rgba(255, 255, 255, 0.85) !important;
-      border: 1px solid rgba(255, 255, 255, 0.9) !important;
+      background: rgba(246, 243, 252, 0.88) !important;
+      border: 1px solid rgba(168, 85, 247, 0.22) !important;
       border-radius: 24px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08) !important;
       z-index: 12000;
       display: flex;
       flex-direction: column;
       transform: translateY(115%);
       transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
-      backdrop-filter: blur(24px) !important;
-      -webkit-backdrop-filter: blur(24px) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       pointer-events: none;
@@ -976,14 +977,15 @@
     /* AI PREDIKCIA - BETA OKNO (DEVELOPER MODE)                   */
     /* ============================================================ */
     .ai-dev-prediction-box {
-      background: #ffffff;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-      border-radius: 10px;
+      background: rgba(243, 232, 255, 0.7);
+      border: 1px solid rgba(192, 132, 252, 0.4);
+      box-shadow: 0 4px 14px rgba(147, 51, 234, 0.08);
+      border-radius: 12px;
       padding: 9px 11px;
       margin: 8px 0 10px 0;
       box-sizing: border-box;
       backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
     .ai-dev-header {
       display: flex;
@@ -991,7 +993,7 @@
       justify-content: space-between;
       margin-bottom: 7px;
       padding-bottom: 5px;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      border-bottom: 1px solid rgba(147, 51, 234, 0.15);
     }
     .ai-dev-title-wrap {
       display: flex;
@@ -1004,11 +1006,11 @@
     .ai-dev-title {
       font-size: 0.8rem;
       font-weight: 800;
-      color: #0284c7;
+      color: #3b0764;
       letter-spacing: 0.3px;
     }
     .ai-dev-pill-beta {
-      background: linear-gradient(135deg, #0284c7, #6366f1);
+      background: linear-gradient(135deg, #7c3aed, #9333ea);
       color: #ffffff;
       font-size: 0.62rem;
       font-weight: 800;
@@ -1019,11 +1021,11 @@
     .ai-dev-model-tag {
       font-size: 0.65rem;
       font-family: 'JetBrains Mono', monospace;
-      color: #475569;
-      background: rgba(15, 23, 42, 0.05);
+      color: #3b0764;
+      background: rgba(147, 51, 234, 0.08);
       padding: 1px 5px;
       border-radius: 4px;
-      border: 1px solid rgba(15, 23, 42, 0.1);
+      border: 1px solid rgba(147, 51, 234, 0.2);
     }
     .ai-dev-grid {
       display: grid;
@@ -1032,14 +1034,15 @@
       margin-bottom: 7px;
     }
     .ai-dev-card {
-      background: #f8fafc;
+      background: rgba(255, 255, 255, 0.9);
       border-radius: 8px;
       padding: 6px 8px;
-      border: 1px solid rgba(0, 0, 0, 0.06);
+      border: 1px solid rgba(147, 51, 234, 0.15);
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
+      box-shadow: 0 1px 4px rgba(88, 28, 135, 0.04);
     }
     .ai-dev-card-gps {
       border-left: 3px solid #0284c7;
@@ -1888,13 +1891,13 @@
       gap: 8px;
     }
     .spec-card {
-      background: #ffffff;
+      background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(147, 51, 234, 0.14);
       border-radius: 12px;
       padding: 8px 10px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 2px 8px rgba(88, 28, 135, 0.05);
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
     .spec-card-label {
@@ -1991,13 +1994,13 @@
       max-width: 85vw !important;
     }
     .leaflet-popup-content-wrapper {
-      background: rgba(255, 255, 255, 0.85) !important;
-      backdrop-filter: blur(24px) !important;
-      -webkit-backdrop-filter: blur(24px) !important;
+      background: rgba(246, 243, 252, 0.88) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
       color: #0f172a !important;
       border-radius: 16px !important;
-      border: 1px solid rgba(255, 255, 255, 0.9) !important;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
+      border: 1px solid rgba(168, 85, 247, 0.22) !important;
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08) !important;
       padding: 4px !important;
       pointer-events: auto !important;
       max-width: 85vw !important;
@@ -2007,11 +2010,11 @@
       box-sizing: border-box !important;
     }
     .leaflet-popup-tip {
-      background: rgba(255, 255, 255, 0.85) !important;
-      backdrop-filter: blur(24px) !important;
-      -webkit-backdrop-filter: blur(24px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.9) !important;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+      background: rgba(246, 243, 252, 0.88) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border: 1px solid rgba(168, 85, 247, 0.22) !important;
+      box-shadow: 0 4px 10px rgba(88, 28, 135, 0.05) !important;
     }
     .leaflet-container a.leaflet-popup-close-button {
       top: 12px !important;
@@ -3313,16 +3316,17 @@
     .nav-input-box {
       display: flex;
       align-items: center;
-      background: rgba(30, 41, 59, 0.45);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(147, 51, 234, 0.18);
       border-radius: 12px;
       padding: 10px 12px;
       gap: 10px;
-      transition: border-color 0.2s, background 0.2s;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
     }
     .nav-input-box:focus-within {
-      border-color: rgba(56, 189, 248, 0.5);
-      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid #9333ea;
+      box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.15);
+      background: #ffffff;
     }
     .nav-input-icon {
       font-size: 0.95rem;
@@ -3332,7 +3336,7 @@
       flex: 1;
       background: transparent;
       border: none;
-      color: #ffffff;
+      color: #1e1b4b;
       font-size: 0.86rem;
       font-family: inherit;
       outline: none;
@@ -3344,7 +3348,7 @@
     .nav-clear-btn {
       background: transparent;
       border: none;
-      color: rgba(255, 255, 255, 0.5);
+      color: rgba(30, 27, 75, 0.5);
       font-size: 0.85rem;
       cursor: pointer;
       padding: 0 4px;
@@ -3354,9 +3358,9 @@
       color: #f87171;
     }
     .nav-swap-btn {
-      background: rgba(30, 41, 59, 0.45);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: #38bdf8;
+      background: rgba(243, 232, 255, 0.8);
+      border: 1px solid rgba(147, 51, 234, 0.25);
+      color: #7c3aed;
       border-radius: 10px;
       padding: 4px 10px;
       font-size: 0.76rem;
@@ -3365,10 +3369,10 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s, color 0.2s;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
     }
     .nav-swap-btn:hover {
-      background: rgba(14, 165, 233, 0.2);
+      background: #9333ea;
       color: #ffffff;
     }
     .nav-autocomplete-dropdown {
@@ -3378,12 +3382,12 @@
       right: 0;
       max-height: 190px;
       overflow-y: auto;
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(168, 85, 247, 0.22);
       border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.15);
       z-index: 1200;
       display: none;
       flex-direction: column;
@@ -3392,23 +3396,23 @@
       padding: 9px 12px;
       cursor: pointer;
       font-size: 0.80rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid rgba(147, 51, 234, 0.08);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      color: #f8fafc;
+      color: #1e1b4b;
       transition: background 0.15s;
     }
     .nav-dropdown-item:last-child {
       border-bottom: none;
     }
     .nav-dropdown-item:hover {
-      background: rgba(56, 189, 248, 0.15);
-      color: #38bdf8;
+      background: rgba(243, 232, 255, 0.7);
+      color: #7c3aed;
     }
     .nav-plan-btn {
       flex: 1;
-      background: #0ea5e9;
+      background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
       color: #ffffff;
       border: none;
       border-radius: 12px;
@@ -3416,15 +3420,16 @@
       font-size: 0.88rem;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 2px 10px rgba(14, 165, 233, 0.25);
-      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
     }
     .nav-plan-btn:hover {
-      background: #0284c7;
+      background: linear-gradient(135deg, #6d28d9 0%, #7e22ce 100%);
+      box-shadow: 0 6px 18px rgba(124, 58, 237, 0.45);
     }
     .nav-plan-btn:active {
       transform: scale(0.98);
@@ -4449,14 +4454,14 @@
       width: 42px;
       height: 42px;
       border-radius: 14px;
-      background: rgba(255, 255, 255, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.9);
+      background: rgba(246, 243, 252, 0.88);
+      border: 1px solid rgba(168, 85, 247, 0.22);
       color: #059669;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       cursor: pointer;
       z-index: 10040;
       transition: transform 0.15s, background-color 0.2s, box-shadow 0.2s;
@@ -4488,20 +4493,22 @@
       width: 42px;
       height: 42px;
       border-radius: 14px;
-      background: rgba(255, 255, 255, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      color: #0284c7;
+      background: rgba(246, 243, 252, 0.88);
+      border: 1px solid rgba(168, 85, 247, 0.22);
+      color: #7c3aed;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       cursor: pointer;
       z-index: 10040;
-      transition: transform 0.15s, background-color 0.2s;
+      transition: transform 0.15s, background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
     .mobile-menu-btn:hover {
       background: #ffffff;
+      color: #9333ea;
+      box-shadow: 0 4px 14px rgba(147, 51, 234, 0.16);
     }
     .mobile-menu-btn:active {
       transform: scale(0.92);
@@ -4661,14 +4668,14 @@
         width: 42px;
         height: 42px;
         border-radius: 14px;
-        background: rgba(255, 255, 255, 0.85);
-        border: 1px solid rgba(255, 255, 255, 0.9);
-        color: #0284c7;
+        background: rgba(246, 243, 252, 0.88);
+        border: 1px solid rgba(168, 85, 247, 0.22);
+        color: #7c3aed;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
+        box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         cursor: pointer;
         z-index: 10040;
         transition: transform 0.15s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
@@ -4707,11 +4714,11 @@
         max-width: calc(100vw - 74px) !important;
         padding: 10px 14px;
         border-radius: 16px;
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(255, 255, 255, 0.9);
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        background: rgba(246, 243, 252, 0.88);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(168, 85, 247, 0.22);
+        box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
         color: #0f172a;
         z-index: 1000;
         display: flex;
@@ -4764,15 +4771,15 @@
         border-right: none;
         border-top: none;
         border-bottom: none;
-        border-left: 1px solid rgba(255, 255, 255, 0.9);
-        background: rgba(255, 255, 255, 0.85) !important;
-        backdrop-filter: blur(24px) !important;
-        -webkit-backdrop-filter: blur(24px) !important;
+        border-left: 1px solid rgba(168, 85, 247, 0.22);
+        background: rgba(246, 243, 252, 0.88) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
         padding: 18px 18px 40px 18px;
         z-index: 10050;
         transform: translateX(105%);
         transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
-        box-shadow: -4px 0 24px 0 rgba(0, 0, 0, 0.08);
+        box-shadow: -4px 0 24px 0 rgba(88, 28, 135, 0.08);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         pointer-events: none;
@@ -4838,17 +4845,17 @@
       }
       .leaflet-popup-content-wrapper {
         border-radius: 20px 20px 14px 14px !important;
-        border-left: 1px solid rgba(255, 255, 255, 0.9) !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.9) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.9) !important;
-        border-top: 1.5px solid rgba(255, 255, 255, 0.95) !important;
+        border-left: 1px solid rgba(168, 85, 247, 0.22) !important;
+        border-right: 1px solid rgba(168, 85, 247, 0.22) !important;
+        border-bottom: 1px solid rgba(168, 85, 247, 0.22) !important;
+        border-top: 1.5px solid rgba(168, 85, 247, 0.22) !important;
         max-height: 70dvh !important;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
-        background: rgba(255, 255, 255, 0.85) !important;
-        backdrop-filter: blur(24px) !important;
-        -webkit-backdrop-filter: blur(24px) !important;
+        box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08) !important;
+        background: rgba(246, 243, 252, 0.88) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
         padding: 8px 16px 16px 16px !important;
         animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
         pointer-events: auto !important;
@@ -4879,8 +4886,8 @@
         padding: 4px !important;
         width: 30px !important;
         height: 30px !important;
-        background: rgba(255, 255, 255, 0.85) !important;
-        border: 1px solid rgba(0, 0, 0, 0.08) !important;
+        background: rgba(246, 243, 252, 0.88) !important;
+        border: 1px solid rgba(168, 85, 247, 0.22) !important;
         border-radius: 50% !important;
         color: #0f172a !important;
         display: flex !important;
@@ -4915,14 +4922,14 @@
         border-radius: 24px 24px 0 0 !important;
         border-left: none !important;
         border-right: none !important;
-        border-top: 1.5px solid rgba(255, 255, 255, 0.95) !important;
-        background: rgba(255, 255, 255, 0.85) !important;
-        backdrop-filter: blur(24px) !important;
-        -webkit-backdrop-filter: blur(24px) !important;
+        border-top: 1.5px solid rgba(168, 85, 247, 0.22) !important;
+        background: rgba(246, 243, 252, 0.88) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
         transform: translateY(115%) !important;
         transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease !important;
         z-index: 12000 !important;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
+        box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08) !important;
         color: #0f172a !important;
         padding-bottom: calc(20px + max(10px, env(safe-area-inset-bottom, 0px))) !important;
         pointer-events: none !important;
@@ -4997,10 +5004,10 @@
       top: 12px !important;
       left: 12px !important;
       z-index: 10040 !important;
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.9);
+      background: rgba(246, 243, 252, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(168, 85, 247, 0.22);
       border-radius: 14px;
       padding: 7px 14px;
       display: flex;
@@ -5009,7 +5016,7 @@
       font-size: 0.84rem;
       font-weight: 700;
       color: #0f172a;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
       user-select: none;
       transition: transform 0.15s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
       max-width: calc(100vw - 70px) !important;
@@ -5019,11 +5026,12 @@
     .map-live-pill:hover {
       background: #ffffff;
       transform: translateY(-1px);
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.14);
     }
     .map-live-pill .map-count-badge {
-      background: rgba(2, 132, 199, 0.12);
-      border: 1px solid rgba(2, 132, 199, 0.3);
-      color: #0284c7;
+      background: rgba(147, 51, 234, 0.12);
+      border: 1px solid rgba(147, 51, 234, 0.25);
+      color: #7c3aed;
       border-radius: 8px;
       padding: 2px 8px;
       font-size: 0.72rem;
@@ -5095,8 +5103,8 @@
 
     .search-cancel-btn {
       display: none;
-      background: rgba(255, 255, 255, 0.85);
-      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: rgba(246, 243, 252, 0.88);
+      border: 1px solid rgba(168, 85, 247, 0.22);
       color: #475569;
       font-size: 0.8rem;
       font-weight: 600;
@@ -5121,10 +5129,10 @@
       width: 100% !important;
       max-width: 100vw !important;
       height: calc(60px + max(10px, env(safe-area-inset-bottom, 0px))) !important;
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border-top: 1px solid rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.9) !important;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(147, 51, 234, 0.2) !important;
       border-bottom: none;
       border-left: none;
       border-right: none;
@@ -5132,7 +5140,7 @@
       display: flex;
       align-items: flex-start;
       padding: 6px 12px max(10px, env(safe-area-inset-bottom, 0px)) 12px !important;
-      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 -4px 24px rgba(88, 28, 135, 0.08);
       z-index: 10035 !important;
       margin: 0 !important;
       transform: none !important;
@@ -5148,9 +5156,9 @@
       width: calc((100% - 24px) / 4);
       height: 48px;
       background: #ffffff;
-      border: 1px solid rgba(0, 0, 0, 0.06);
+      border: 1px solid rgba(147, 51, 234, 0.2);
       border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 2px 10px rgba(124, 58, 237, 0.12);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
       pointer-events: none;
       z-index: 1;
@@ -5182,7 +5190,7 @@
       color: #0f172a;
     }
     .nav-tab.active {
-      color: #0284c7;
+      color: #7c3aed;
     }
     .nav-tab-icon {
       font-size: 1.25rem;
@@ -5191,6 +5199,7 @@
     }
     .nav-tab.active .nav-tab-icon {
       transform: translateY(-1px);
+      color: #7c3aed;
     }
     .nav-tab-label {
       font-size: 0.68rem;
@@ -5201,7 +5210,7 @@
       transition: color 0.3s ease;
     }
     .nav-tab.active .nav-tab-label {
-      color: #0f172a;
+      color: #581c87;
       font-weight: 700;
     }
 
@@ -5214,7 +5223,7 @@
       bottom: calc(60px + env(safe-area-inset-bottom, 0px));
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      background: #f8fafc;
+      background: #f6f3fc;
       color: #0f172a;
       z-index: 500;
       padding: 18px 16px 24px 16px;
@@ -5375,8 +5384,10 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-left: 3px solid #0ea5e9;
-      padding-left: 10px;
+      border-left: 3px solid #9333ea;
+      background: linear-gradient(90deg, rgba(238, 233, 254, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
+      padding: 6px 12px;
+      border-radius: 8px;
       margin-bottom: 10px;
     }
     .garage-group-title {
@@ -5393,6 +5404,8 @@
       font-weight: 700;
       padding: 2px 8px;
       border-radius: 6px;
+      background: rgba(147, 51, 234, 0.12);
+      color: #7c3aed;
     }
 
     /* Hlavné bloky Garáže: Aktívne v premávke / Odstavené v garáži */
@@ -5406,20 +5419,20 @@
       padding: 13px 18px;
       border-radius: 16px;
       margin-bottom: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(168, 85, 247, 0.22);
+      background: rgba(246, 243, 252, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
     .garage-state-banner.banner-active {
-      border-left: 5px solid #22c55e;
-      background: linear-gradient(90deg, rgba(34, 197, 94, 0.12), rgba(255, 255, 255, 0.85));
+      border-left: 5px solid #9333ea;
+      background: linear-gradient(90deg, rgba(238, 233, 254, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
     }
     .garage-state-banner.banner-depot {
       border-left: 5px solid #64748b;
-      background: linear-gradient(90deg, rgba(100, 116, 139, 0.12), rgba(255, 255, 255, 0.85));
+      background: linear-gradient(90deg, rgba(241, 245, 249, 0.9), rgba(255, 255, 255, 0.5));
     }
     .garage-state-title {
       font-size: 1.15rem;
@@ -5436,9 +5449,9 @@
       font-weight: 700;
       padding: 4px 12px;
       border-radius: 20px;
-      background: rgba(0, 0, 0, 0.06);
-      color: #475569;
-      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: rgba(147, 51, 234, 0.1);
+      color: #581c87;
+      border: 1px solid rgba(147, 51, 234, 0.18);
     }
 
     .garage-cards-grid {
@@ -5451,11 +5464,11 @@
     .garage-vehicle-card,
     .garage-vehicle-card.apple-glass {
       background: #ffffff !important;
-      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      border: 1px solid rgba(147, 51, 234, 0.14) !important;
       border-radius: 16px;
       padding: 13px 15px;
       cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06) !important;
+      box-shadow: 0 2px 10px rgba(88, 28, 135, 0.05) !important;
       color: #0f172a !important;
       transition: transform 0.15s, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
       content-visibility: auto;
@@ -5464,9 +5477,9 @@
     .garage-vehicle-card:hover,
     .garage-vehicle-card.apple-glass:hover {
       background: #ffffff !important;
-      border-color: rgba(2, 132, 199, 0.4) !important;
+      border-color: rgba(147, 51, 234, 0.4) !important;
       transform: translateY(-2px);
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1) !important;
+      box-shadow: 0 4px 14px rgba(147, 51, 234, 0.16) !important;
     }
     .garage-vehicle-card:active {
       transform: scale(0.98);
@@ -5475,18 +5488,19 @@
     /* Karta neaktívneho / odstaveného vozidla v depe */
     .garage-vehicle-card.inactive,
     .garage-vehicle-card.inactive.apple-glass {
-      background: #f1f5f9 !important;
-      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      background: rgba(248, 246, 252, 0.85) !important;
+      border: 1px solid rgba(147, 51, 234, 0.08) !important;
       opacity: 0.92;
       color: #475569 !important;
       box-shadow: none !important;
     }
     .garage-vehicle-card.inactive:hover,
     .garage-vehicle-card.inactive.apple-glass:hover {
-      background: #e2e8f0 !important;
-      border-color: rgba(2, 132, 199, 0.35) !important;
+      background: #ffffff !important;
+      border-color: rgba(147, 51, 234, 0.3) !important;
       opacity: 1;
       transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(147, 51, 234, 0.12) !important;
     }
     .g-line-badge.line-depot {
       background: #e2e8f0;
@@ -5602,13 +5616,13 @@
 
     /* Plánovač trás vo vlastnom view - Apple VisionOS Card (20px radius) */
     .planner-card {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.9);
+      background: rgba(246, 243, 252, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(168, 85, 247, 0.22);
       border-radius: 20px;
       padding: 20px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
       max-width: 650px;
       margin: 0 auto;
       color: #0f172a;
@@ -5968,14 +5982,14 @@
       width: 44px;
       height: 44px;
       border-radius: 14px;
-      background: rgba(255, 255, 255, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.9);
-      color: #0f172a;
+      background: rgba(246, 243, 252, 0.88);
+      border: 1px solid rgba(168, 85, 247, 0.22);
+      color: #7c3aed;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 8px 24px -4px rgba(88, 28, 135, 0.08);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       cursor: pointer;
       z-index: 10010;
       transition: transform 0.15s, background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
@@ -5985,8 +5999,9 @@
     }
     .locate-me-btn:hover {
       background: #ffffff;
-      color: #0284c7;
-      border-color: rgba(2, 132, 199, 0.4);
+      color: #9333ea;
+      border-color: rgba(147, 51, 234, 0.4);
+      box-shadow: 0 4px 14px rgba(147, 51, 234, 0.16);
       transform: translateY(-1px);
     }
     .locate-me-btn:active {
@@ -6382,6 +6397,26 @@
       color: #ffffff !important;
       box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
     }
+    body.dark-mode .line-chip {
+      background: rgba(28, 14, 52, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .line-chip:hover {
+      background: rgba(42, 20, 75, 0.9) !important;
+      border-color: #a855f7 !important;
+      color: #ffffff !important;
+    }
+    body.dark-mode .line-chip.active {
+      background: rgba(168, 85, 247, 0.25) !important;
+      border-color: #a855f7 !important;
+      color: #c084fc !important;
+    }
+    body.dark-mode .line-chip.inactive {
+      background: rgba(15, 23, 42, 0.3) !important;
+      opacity: 0.4 !important;
+      color: #94a3b8 !important;
+    }
 
     /* Plánovač trasy */
     body.dark-mode .planner-card,
@@ -6428,6 +6463,36 @@
     body.dark-mode .override-select:focus {
       border-color: #a855f7 !important;
       box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
+    }
+    body.dark-mode .nav-input-box {
+      background: rgba(28, 14, 52, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    }
+    body.dark-mode .nav-input-box:focus-within {
+      border-color: #a855f7 !important;
+      box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
+      background: rgba(28, 14, 52, 0.85) !important;
+    }
+    body.dark-mode .nav-input {
+      color: #ffffff !important;
+    }
+    body.dark-mode .nav-input::placeholder {
+      color: #94a3b8 !important;
+    }
+    body.dark-mode .nav-clear-btn {
+      color: rgba(255, 255, 255, 0.5) !important;
+    }
+    body.dark-mode .nav-autocomplete-dropdown {
+      background: rgba(15, 23, 42, 0.95) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    body.dark-mode .nav-dropdown-item {
+      color: #f8fafc !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+    body.dark-mode .nav-dropdown-item:hover {
+      background: rgba(168, 85, 247, 0.15) !important;
+      color: #c084fc !important;
     }
 
     /* Bottom Sheet História vozidla (Ultra-tmavý fialový Liquid Glass) */
