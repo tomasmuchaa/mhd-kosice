@@ -5701,34 +5701,45 @@
     }
 
     /* ========================================================
-       PREPÍNAČ REŽIMU VÝKONU (LITE MODE V MENU)
+       ZJEDNOTENÉ OVLÁDACIE PRVKY & PREPÍNAČE (SETTINGS & SWITCHES)
        ======================================================== */
+    .setting-item-section,
     .perf-selector-section {
       border-top: 1px solid rgba(0, 0, 0, 0.08);
-      padding-top: 10px;
-      margin-top: 8px;
-      margin-bottom: 8px;
+      padding-top: 11px;
+      margin-top: 10px;
       transition: border-color 0.3s ease;
     }
+    body.dark-mode .setting-item-section,
     body.dark-mode .perf-selector-section {
       border-top-color: rgba(255, 255, 255, 0.08) !important;
     }
+    .setting-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .setting-status-row,
     .perf-status-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 6px;
+      margin-top: 5px;
       gap: 8px;
     }
+    .setting-status-desc,
     .perf-status-desc {
       font-size: 0.68rem;
       color: #64748b;
       line-height: 1.35;
       flex: 1;
     }
+    body.dark-mode .setting-status-desc,
     body.dark-mode .perf-status-desc {
       color: #94a3b8;
     }
+    .setting-status-badge,
     .perf-status-badge {
       font-size: 0.70rem;
       font-weight: 700;
@@ -5740,16 +5751,19 @@
       white-space: nowrap;
       transition: all 0.2s ease;
     }
+    body.dark-mode .setting-status-badge,
     body.dark-mode .perf-status-badge {
       background: rgba(56, 189, 248, 0.18);
       color: #38bdf8;
       border-color: rgba(56, 189, 248, 0.35);
     }
+    .setting-status-badge.off,
     .perf-status-badge.off {
       background: rgba(100, 116, 139, 0.15);
       color: #64748b;
       border-color: rgba(100, 116, 139, 0.25);
     }
+    body.dark-mode .setting-status-badge.off,
     body.dark-mode .perf-status-badge.off {
       background: rgba(100, 116, 139, 0.2);
       color: #94a3b8;
@@ -5757,34 +5771,49 @@
     }
 
     /* Moderný prepínač (iOS Toggle Switch) */
-    .modern-toggle-switch {
+    .modern-toggle-switch,
+    .toggle-switch {
       position: relative;
       display: inline-block;
       width: 44px;
       height: 24px;
       flex-shrink: 0;
       cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    .modern-toggle-switch input {
+    .modern-toggle-switch input,
+    .toggle-switch input {
       opacity: 0;
       width: 0;
       height: 0;
       position: absolute;
+      margin: 0;
+      pointer-events: none;
     }
-    .modern-toggle-switch .toggle-slider {
+    .modern-toggle-switch .toggle-slider,
+    .modern-toggle-switch .slider,
+    .toggle-switch .toggle-slider,
+    .toggle-switch .slider {
       position: absolute;
       cursor: pointer;
       inset: 0;
       background-color: rgba(100, 116, 139, 0.3);
-      transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       border-radius: 24px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(0, 0, 0, 0.12);
     }
-    body.dark-mode .modern-toggle-switch .toggle-slider {
+    body.dark-mode .modern-toggle-switch .toggle-slider,
+    body.dark-mode .modern-toggle-switch .slider,
+    body.dark-mode .toggle-switch .toggle-slider,
+    body.dark-mode .toggle-switch .slider {
       background-color: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.12);
     }
-    .modern-toggle-switch .toggle-slider:before {
+    .modern-toggle-switch .toggle-slider:before,
+    .modern-toggle-switch .slider:before,
+    .toggle-switch .toggle-slider:before,
+    .toggle-switch .slider:before {
       position: absolute;
       content: "";
       height: 18px;
@@ -5792,19 +5821,30 @@
       left: 2px;
       bottom: 2px;
       background-color: #ffffff;
-      transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, box-shadow 0.2s ease;
       border-radius: 50%;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
     }
-    .modern-toggle-switch input:checked + .toggle-slider {
-      background-color: #0284c7;
-      border-color: #0284c7;
+    .modern-toggle-switch input:checked + .toggle-slider,
+    .modern-toggle-switch input:checked + .slider,
+    .toggle-switch input:checked + .toggle-slider,
+    .toggle-switch input:checked + .slider {
+      background: linear-gradient(135deg, #0284c7 0%, #7c3aed 100%) !important;
+      border-color: rgba(124, 58, 237, 0.4) !important;
+      box-shadow: 0 2px 10px rgba(124, 58, 237, 0.3) !important;
     }
-    body.dark-mode .modern-toggle-switch input:checked + .toggle-slider {
-      background-color: #38bdf8;
-      border-color: #38bdf8;
+    body.dark-mode .modern-toggle-switch input:checked + .toggle-slider,
+    body.dark-mode .modern-toggle-switch input:checked + .slider,
+    body.dark-mode .toggle-switch input:checked + .toggle-slider,
+    body.dark-mode .toggle-switch input:checked + .slider {
+      background: linear-gradient(135deg, #38bdf8 0%, #a855f7 100%) !important;
+      border-color: rgba(168, 85, 247, 0.5) !important;
+      box-shadow: 0 2px 12px rgba(168, 85, 247, 0.4) !important;
     }
-    .modern-toggle-switch input:checked + .toggle-slider:before {
+    .modern-toggle-switch input:checked + .toggle-slider:before,
+    .modern-toggle-switch input:checked + .slider:before,
+    .toggle-switch input:checked + .toggle-slider:before,
+    .toggle-switch input:checked + .slider:before {
       transform: translateX(20px);
     }
 
@@ -7567,7 +7607,7 @@
 
     <!-- Režim vysokého výkonu (Lite Mode) - priamo pod motívom, okamžite viditeľný bez rolovania -->
     <div class="perf-selector-section">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="setting-item-header">
         <div class="panel-section-title" style="margin-bottom: 0;">
           <span>⚡</span>
           <span>Režim výkonu (Lite Mode)</span>
@@ -7632,56 +7672,62 @@
     </div>
 
     <!-- Zastávky MHD vrstva -->
-    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="setting-item-section">
+      <div class="setting-item-header">
         <div class="panel-section-title" style="margin-bottom: 0;">
           <span>🚏</span>
           <span>Zastávky MHD</span>
         </div>
-        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.74rem; color: #cbd5e1;">
-          <input type="checkbox" id="stops-toggle" checked onchange="toggleStopsLayer(this.checked)" style="accent-color: #0ea5e9; cursor: pointer;" />
-          <span id="stops-toggle-count">Zobrazené (--)</span>
+        <label class="modern-toggle-switch" title="Prepnúť zobrazenie zastávok MHD">
+          <input type="checkbox" id="stops-toggle" checked onchange="toggleStopsLayer(this.checked)" />
+          <span class="toggle-slider"></span>
         </label>
+      </div>
+      <div class="setting-status-row">
+        <span class="setting-status-desc">Virtuálne odchodové tabule a smart zoom úroveň</span>
+        <span id="stops-toggle-count" class="setting-status-badge">Zobrazené (--)</span>
       </div>
     </div>
 
     <!-- Tepelná mapa meškaní (Delay Heatmap) vrstva -->
-    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="setting-item-section">
+      <div class="setting-item-header">
         <div class="panel-section-title" style="margin-bottom: 0;">
           <span>🔥</span>
           <span>Tepelná mapa meškaní</span>
         </div>
-        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.74rem; color: #cbd5e1;">
-          <input type="checkbox" id="heatmap-toggle" onchange="toggleDelayHeatmap(this.checked)" style="accent-color: #ef4444; cursor: pointer;" />
-          <span id="heatmap-toggle-label">Vypnutá</span>
+        <label class="modern-toggle-switch" title="Prepnúť tepelnú mapu meškaní">
+          <input type="checkbox" id="heatmap-toggle" onchange="toggleDelayHeatmap(this.checked)" />
+          <span class="toggle-slider"></span>
         </label>
       </div>
-      <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 4px;">
-        Zobrazuje reálne ohniská a križovatky, kde meškania vznikajú a narastajú, s postupným 25-minútovým chladnutím.
+      <div class="setting-status-row">
+        <span class="setting-status-desc">Ohniská meškaní s 25-minútovým chladnutím</span>
+        <span id="heatmap-toggle-label" class="setting-status-badge off">Vypnutá</span>
       </div>
     </div>
 
     <!-- Živá predikcia polohy (+1 min) vrstva -->
-    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="setting-item-section">
+      <div class="setting-item-header">
         <div class="panel-section-title" style="margin-bottom: 0;">
           <span>⚡</span>
           <span>Živá predikcia polohy (+1 min)</span>
         </div>
-        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.74rem; color: #cbd5e1;">
-          <input type="checkbox" id="live-prediction-toggle" onchange="toggleLivePrediction(this.checked)" style="accent-color: #38bdf8; cursor: pointer;" />
-          <span id="live-prediction-toggle-label">Vypnutá</span>
+        <label class="modern-toggle-switch" title="Prepnúť živú predikciu polohy">
+          <input type="checkbox" id="live-prediction-toggle" onchange="toggleLivePrediction(this.checked)" />
+          <span class="toggle-slider"></span>
         </label>
       </div>
-      <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 4px;">
-        Kompenzuje ~1 min oneskorenie GPS signálu a predpovedá pohyb vpred
+      <div class="setting-status-row">
+        <span class="setting-status-desc">Kompenzuje ~1 min oneskorenie GPS predpoveďou</span>
+        <span id="live-prediction-toggle-label" class="setting-status-badge off">Vypnutá</span>
       </div>
     </div>
 
     <!-- Režim vysokého výkonu (Lite Mode) - sekundárny prepínač vo vrstvách -->
-    <div style="border-top: 1px solid rgba(0, 0, 0, 0.08); padding-top: 10px; margin-top: 10px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="setting-item-section">
+      <div class="setting-item-header">
         <div class="panel-section-title" style="margin-bottom: 0;">
           <span>⚡</span>
           <span>Režim výkonu (Lite Mode)</span>
@@ -7691,26 +7737,27 @@
           <span class="toggle-slider"></span>
         </label>
       </div>
-      <div class="perf-status-row">
+      <div class="setting-status-row">
         <span class="perf-status-desc">Vypína náročný blur a tiene pre 60 FPS na mobiloch</span>
-        <span id="lite-mode-toggle-label-layers" class="lite-mode-toggle-label perf-status-badge">Zapnutý</span>
+        <span id="lite-mode-toggle-label-layers" class="lite-mode-toggle-label setting-status-badge">Zapnutý</span>
       </div>
     </div>
 
     <!-- Neustále sledovať moju polohu (Live User Location Tracking) -->
-    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; margin-top: 10px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="setting-item-section">
+      <div class="setting-item-header">
         <div class="panel-section-title" style="margin-bottom: 0;">
           <span>📍</span>
           <span>Neustále sledovať moju polohu</span>
         </div>
-        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.74rem; color: #cbd5e1;">
-          <input type="checkbox" id="auto-track-location-toggle" onchange="toggleAutoTrackLocation(this.checked)" style="accent-color: #38bdf8; cursor: pointer;" />
-          <span id="auto-track-location-label">Vypnuté</span>
+        <label class="modern-toggle-switch" title="Prepnúť automatické sledovanie polohy">
+          <input type="checkbox" id="auto-track-location-toggle" onchange="toggleAutoTrackLocation(this.checked)" />
+          <span class="toggle-slider"></span>
         </label>
       </div>
-      <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 4px;">
-        Automaticky aktualizuje polohu bez nutnosti klikať na tlačidlo (vyššia spotreba batérie)
+      <div class="setting-status-row">
+        <span class="setting-status-desc">Automatická GPS aktualizácia bez klikania</span>
+        <span id="auto-track-location-label" class="setting-status-badge off">Vypnuté</span>
       </div>
     </div>
     <!-- Konfigurácia API servera (užitočné pre natívnu appku na mobile) -->
@@ -9890,7 +9937,11 @@
       const label = document.getElementById('auto-track-location-label');
 
       if (toggle) toggle.checked = isAutoTrackLocationActive;
-      if (label) label.innerText = isAutoTrackLocationActive ? 'Zapnuté' : 'Vypnuté';
+      if (label) {
+        label.innerText = isAutoTrackLocationActive ? 'Zapnuté' : 'Vypnuté';
+        if (isAutoTrackLocationActive) label.classList.remove('off');
+        else label.classList.add('off');
+      }
 
       // a) Ak je v nastaveniach autoTrackLocation zapnuté (true):
       if (isAutoTrackLocationActive) {
@@ -9898,7 +9949,10 @@
           showMapToast('Váš prehliadač nepodporuje geolokáciu.', 'error');
           isAutoTrackLocationActive = false;
           if (toggle) toggle.checked = false;
-          if (label) label.innerText = 'Vypnuté';
+          if (label) {
+            label.innerText = 'Vypnuté';
+            label.classList.add('off');
+          }
           try { localStorage.setItem('autoTrackLocation', 'false'); } catch (e) {}
           updateLocateMeBtnState();
           return;
@@ -9999,7 +10053,11 @@
       const toggle = document.getElementById('auto-track-location-toggle');
       if (toggle) toggle.checked = isAutoTrackLocationActive;
       const label = document.getElementById('auto-track-location-label');
-      if (label) label.innerText = isAutoTrackLocationActive ? 'Zapnuté' : 'Vypnuté';
+      if (label) {
+        label.innerText = isAutoTrackLocationActive ? 'Zapnuté' : 'Vypnuté';
+        if (isAutoTrackLocationActive) label.classList.remove('off');
+        else label.classList.add('off');
+      }
 
       if (isAutoTrackLocationActive) {
         updateLocationTracking();
@@ -15171,7 +15229,11 @@
       const toggle = document.getElementById('live-prediction-toggle');
       if (toggle) toggle.checked = isLivePredictionActive;
       const label = document.getElementById('live-prediction-toggle-label');
-      if (label) label.innerText = isLivePredictionActive ? 'Zapnutá' : 'Vypnutá';
+      if (label) {
+        label.innerText = isLivePredictionActive ? 'Zapnutá' : 'Vypnutá';
+        if (isLivePredictionActive) label.classList.remove('off');
+        else label.classList.add('off');
+      }
     }
 
     /**
@@ -15186,7 +15248,11 @@
       const toggle = document.getElementById('live-prediction-toggle');
       if (toggle) toggle.checked = isLivePredictionActive;
       const label = document.getElementById('live-prediction-toggle-label');
-      if (label) label.innerText = isLivePredictionActive ? 'Zapnutá' : 'Vypnutá';
+      if (label) {
+        label.innerText = isLivePredictionActive ? 'Zapnutá' : 'Vypnutá';
+        if (isLivePredictionActive) label.classList.remove('off');
+        else label.classList.add('off');
+      }
 
       // Okamžitý prepočet a plynulá aktualizácia všetkých aktívnych vozidiel na mape
       recalculateAllVehiclePositions();
@@ -16373,7 +16439,10 @@
 
       if (!isEnabled) {
         if (map.hasLayer(stopsLayer)) map.removeLayer(stopsLayer);
-        if (countElem) countElem.innerText = 'Vypnuté';
+        if (countElem) {
+          countElem.innerText = 'Vypnuté';
+          countElem.classList.add('off');
+        }
         currentStopsZoomMode = null;
         return;
       }
@@ -16385,7 +16454,10 @@
         if (map.hasLayer(stopsLayer)) {
           map.removeLayer(stopsLayer);
         }
-        if (countElem) countElem.innerText = `Skryté (Zoom ${currentZoom} ≤ 12)`;
+        if (countElem) {
+          countElem.innerText = `Skryté (Zoom ${currentZoom} ≤ 12)`;
+          countElem.classList.add('off');
+        }
         currentStopsZoomMode = 'hidden';
         return;
       }
@@ -16396,6 +16468,7 @@
 
       if (countElem) {
         countElem.innerText = `Zobrazené (${allStopsList.length})`;
+        countElem.classList.remove('off');
       }
 
       if (currentStopsZoomMode !== targetMode) {
@@ -17740,7 +17813,11 @@
       const toggle = document.getElementById('heatmap-toggle');
       if (toggle) toggle.checked = show;
       const label = document.getElementById('heatmap-toggle-label');
-      if (label) label.innerText = show ? 'Zapnutá' : 'Vypnutá';
+      if (label) {
+        label.innerText = show ? 'Zapnutá' : 'Vypnutá';
+        if (show) label.classList.remove('off');
+        else label.classList.add('off');
+      }
 
       if (show) {
         updateDelayHeatmap(true);
