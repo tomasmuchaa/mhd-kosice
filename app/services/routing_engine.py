@@ -1666,9 +1666,9 @@ class RoutingEngine:
 
             step_zero_segment = {
                 "type": "walk",
-                "color": "#10b981",
-                "dash_array": "4, 8",
-                "weight": 4,
+                "color": "#22c55e",
+                "dash_array": "3, 6",
+                "weight": 3,
                 "coords": walk_coords,
                 "points_count": len(walk_coords),
                 "label": f"🚶 Peší presun z polohy na zastávku {nearest_canonical} ({walk_to_first_min} min)"
@@ -1874,9 +1874,9 @@ class RoutingEngine:
 
                 map_segments.append({
                     "type": "walk",
-                    "color": "#10b981",
-                    "dash_array": "4, 8",
-                    "weight": 4,
+                    "color": "#22c55e",
+                    "dash_array": "3, 6",
+                    "weight": 3,
                     "coords": coords,
                     "points_count": len(coords),
                     "label": f"🚶 Pešo {w_min} min ({dist_m:.0f} m)"
@@ -2001,8 +2001,8 @@ class RoutingEngine:
                 map_segments.append({
                     "type": "transit",
                     "line": line,
-                    "color": "#0284c7",
-                    "weight": 6,
+                    "color": "#d946ef",
+                    "weight": 4.5,
                     "coords": polyline_coords,
                     "points_count": len(polyline_coords),
                     "label": f"🚌 Linka {line} ({ride_min} min)"

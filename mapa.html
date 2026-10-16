@@ -3299,6 +3299,64 @@
       filter: drop-shadow(0 0 8px rgba(52, 211, 153, 1));
     }
 
+    /* ========================================================
+       NEON ROUTE GLOW & PULSE EFEKT (PLÁNOVAČ TRÁS & PRESTUPY)
+       ======================================================== */
+    @keyframes neonGlowPulse {
+      0%, 100% {
+        opacity: 0.42;
+        filter: drop-shadow(0 0 6px rgba(217, 70, 239, 0.75));
+      }
+      50% {
+        opacity: 0.68;
+        filter: drop-shadow(0 0 12px rgba(217, 70, 239, 0.95)) drop-shadow(0 0 20px rgba(168, 85, 247, 0.6));
+      }
+    }
+
+    @keyframes neonGlowPulseWalk {
+      0%, 100% {
+        opacity: 0.35;
+        filter: drop-shadow(0 0 5px rgba(34, 197, 94, 0.7));
+      }
+      50% {
+        opacity: 0.58;
+        filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.9)) drop-shadow(0 0 16px rgba(74, 222, 128, 0.5));
+      }
+    }
+
+    .neon-glow-transit {
+      pointer-events: none !important;
+      animation: neonGlowPulse 2.6s ease-in-out infinite;
+      transition: stroke-width 0.2s ease, opacity 0.2s ease;
+    }
+
+    .neon-core-transit {
+      cursor: pointer;
+      filter: drop-shadow(0 0 4px rgba(243, 232, 255, 0.85));
+      transition: stroke-width 0.2s ease, stroke 0.2s ease;
+    }
+
+    .neon-glow-walk {
+      pointer-events: none !important;
+      animation: neonGlowPulseWalk 2.6s ease-in-out infinite;
+      transition: stroke-width 0.2s ease, opacity 0.2s ease;
+    }
+
+    .neon-core-walk {
+      cursor: pointer;
+      filter: drop-shadow(0 0 4px rgba(240, 253, 244, 0.85));
+      transition: stroke-width 0.2s ease, stroke 0.2s ease;
+    }
+
+    /* V režime Lite Mode vypneme náročné filtre a animácie pre 60 FPS na mobiloch */
+    body.lite-mode .neon-glow-transit,
+    body.lite-mode .neon-core-transit,
+    body.lite-mode .neon-glow-walk,
+    body.lite-mode .neon-core-walk {
+      animation: none !important;
+      filter: none !important;
+    }
+
     /* ==========================================
        ŠTÝLY PRE VYHĽADÁVAČ TRÁS (JOURNEY PLANNER)
        ========================================== */
@@ -8260,6 +8318,8 @@
     const KOSICE_CENTER = [48.7164, 21.2611];
     // Hardvérovo akcelerovaný Canvas Renderer pre Leaflet
     const canvasRenderer = L.canvas({ padding: 0.5 });
+    // Dedikovaný SVG Renderer pre neónové trasy plánovača (podpora CSS filtrov a pulzujúcich animácií)
+    const journeySvgRenderer = L.svg({ padding: 0.5 });
     const map = L.map('map', {
       zoomControl: true,
       preferCanvas: true, // Hardvérovo akcelerované plátno pre vektory a zastávky
@@ -16195,15 +16255,30 @@
 
           if (!fromCoords || !toCoords) return;
 
-          // Tenká zelená bodkovaná čiara (Polyline na plátne Canvas)
-          const polyline = L.polyline([fromCoords, toCoords], {
-            renderer: canvasRenderer,
-            color: '#10b981',         // Svieža smaragdovo zelená
-            weight: 2.8,              // Tenká čiara
-            dashArray: '3, 6',        // Bodkovaná čiara
-            opacity: 0.85,
+          // 1. Spodná vrstva - Žiara (Outer Glow)
+          const glowPolyline = L.polyline([fromCoords, toCoords], {
+            renderer: journeySvgRenderer,
+            color: '#22c55e',
+            weight: 8,
+            dashArray: '3, 6',
+            opacity: 0.35,
             lineCap: 'round',
             lineJoin: 'round',
+            className: 'neon-glow-walk',
+            interactive: false
+          });
+          walkingTransfersLayer.addLayer(glowPolyline);
+
+          // 2. Vrchná vrstva - Jadro (Inner Core)
+          const polyline = L.polyline([fromCoords, toCoords], {
+            renderer: journeySvgRenderer,
+            color: '#f0fdf4',
+            weight: 3,
+            dashArray: '3, 6',
+            opacity: 0.95,
+            lineCap: 'round',
+            lineJoin: 'round',
+            className: 'neon-core-walk',
             interactive: true
           });
 
@@ -16220,10 +16295,12 @@
 
           // Interaktivita - zvýraznenie pri prejdení myšou
           polyline.on('mouseover', function () {
-            this.setStyle({ color: '#34d399', weight: 4.5, opacity: 1.0 });
+            this.setStyle({ color: '#ffffff', weight: 4.5, opacity: 1.0 });
+            glowPolyline.setStyle({ weight: 11, opacity: 0.55 });
           });
           polyline.on('mouseout', function () {
-            this.setStyle({ color: '#10b981', weight: 2.8, opacity: 0.85 });
+            this.setStyle({ color: '#f0fdf4', weight: 3, opacity: 0.95 });
+            glowPolyline.setStyle({ weight: 8, opacity: 0.35 });
           });
 
           // Kliknutie na spojku otvorí detail prestupu
@@ -19434,9 +19511,9 @@
             segments.push({
               type: st.type === 'walk' ? 'walk' : 'transit',
               line: st.line,
-              color: st.type === 'walk' ? '#10b981' : '#0284c7',
-              weight: st.type === 'walk' ? 4.5 : 6,
-              dashArray: st.type === 'walk' ? '4, 8' : undefined,
+              color: st.type === 'walk' ? '#22c55e' : '#d946ef',
+              weight: st.type === 'walk' ? 3 : 4.5,
+              dashArray: st.type === 'walk' ? '3, 6' : undefined,
               coords: stepPts,
               label: st.type === 'walk' ? `🚶 Pešo ${st.duration_minutes || ''} min` : `🚌 Linka ${st.line} (${st.duration_minutes || ''} min)`
             });
@@ -19465,40 +19542,67 @@
         if (detailedCoords.length < 2) return;
 
         const isWalk = seg.type === 'walk';
-        const polyline = L.polyline(detailedCoords, {
-          renderer: canvasRenderer,
-          color: isWalk ? '#10b981' : (seg.color || '#0284c7'),   // Zelená bodkovaná pre pešo, hrubá modrá pre MHD
-          weight: isWalk ? 4.5 : 6,
-          dashArray: isWalk ? '4, 8' : undefined,
-          opacity: 0.92,
+
+        // A. Žiara (Spodná vrstva / Outer Glow)
+        const glowPolyline = L.polyline(detailedCoords, {
+          renderer: journeySvgRenderer,
+          color: isWalk ? '#22c55e' : '#d946ef',
+          weight: isWalk ? 8 : 12,
+          dashArray: isWalk ? '3, 6' : undefined,
+          opacity: isWalk ? 0.35 : 0.45,
           lineCap: 'round',
           lineJoin: 'round',
-          smoothFactor: 1.0
+          smoothFactor: 1.0,
+          className: isWalk ? 'neon-glow-walk' : 'neon-glow-transit',
+          interactive: false
+        });
+
+        // B. Jadro (Vrchná vrstva / Inner Core)
+        const corePolyline = L.polyline(detailedCoords, {
+          renderer: journeySvgRenderer,
+          color: isWalk ? '#f0fdf4' : '#f3e8ff',
+          weight: isWalk ? 3 : 4.5,
+          dashArray: isWalk ? '3, 6' : undefined,
+          opacity: isWalk ? 0.95 : 0.98,
+          lineCap: 'round',
+          lineJoin: 'round',
+          smoothFactor: 1.0,
+          className: isWalk ? 'neon-core-walk' : 'neon-core-transit',
+          interactive: true
         });
 
         if (seg.label) {
-          polyline.bindTooltip(seg.label, {
+          corePolyline.bindTooltip(seg.label, {
             direction: 'center',
             permanent: false,
             className: isWalk ? 'walk-time-label' : 'stop-tooltip'
           });
         }
 
-        polyline.on('mouseover', function () {
-          this.setStyle({ weight: isWalk ? 6.5 : 8.5 });
+        corePolyline.on('mouseover', function () {
+          this.setStyle({ weight: isWalk ? 4.5 : 6.5, color: '#ffffff' });
+          if (glowPolyline) {
+            glowPolyline.setStyle({ weight: isWalk ? 11 : 16, opacity: isWalk ? 0.55 : 0.65 });
+          }
         });
-        polyline.on('mouseout', function () {
-          this.setStyle({ weight: isWalk ? 4.5 : 6.5 });
+        corePolyline.on('mouseout', function () {
+          this.setStyle({ weight: isWalk ? 3 : 4.5, color: isWalk ? '#f0fdf4' : '#f3e8ff' });
+          if (glowPolyline) {
+            glowPolyline.setStyle({ weight: isWalk ? 8 : 12, opacity: isWalk ? 0.35 : 0.45 });
+          }
         });
 
-        journeyLayer.addLayer(polyline);
+        // Pridanie oboch vrstiev do journeyLayer (spodná žiara prvá, vrchné jadro na nej)
+        journeyLayer.addLayer(glowPolyline);
+        journeyLayer.addLayer(corePolyline);
 
         // Registrácia segmentu pre dynamické odkrajovanie v živej navigácii
         activeJourneyPolylines.push({
           index: activeJourneyPolylines.length,
           type: seg.type,
           line: seg.line,
-          polyline: polyline,
+          polyline: corePolyline,
+          glowPolyline: glowPolyline,
           originalCoords: detailedCoords.map(pt => [pt[0], pt[1]]),
           coords: detailedCoords.map(pt => [pt[0], pt[1]]),
           isCompleted: false
@@ -20072,7 +20176,8 @@
       }
 
       seg.coords = newCoords;
-      seg.polyline.setLatLngs(newCoords);
+      if (seg.polyline) seg.polyline.setLatLngs(newCoords);
+      if (seg.glowPolyline) seg.glowPolyline.setLatLngs(newCoords);
     }
 
     function updateLiveNavPosition(userLat, userLng) {
@@ -20093,7 +20198,8 @@
       if (distToEnd <= 25) {
         currentSeg.isCompleted = true;
         currentSeg.coords = [];
-        currentSeg.polyline.setLatLngs([]);
+        if (currentSeg.polyline) currentSeg.polyline.setLatLngs([]);
+        if (currentSeg.glowPolyline) currentSeg.glowPolyline.setLatLngs([]);
 
         // Posun na ďalší krok v itinerári HUD
         if (typeof liveNavCurrentStepIdx === 'number' && liveNavCurrentStepIdx < liveNavTotalSteps - 1) {
@@ -20198,6 +20304,9 @@
         if (s.polyline) {
           s.polyline.setLatLngs(s.originalCoords);
         }
+        if (s.glowPolyline) {
+          s.glowPolyline.setLatLngs(s.originalCoords);
+        }
       });
 
       if (currentPlannedJourney) {
@@ -20219,6 +20328,7 @@
             s.isCompleted = false;
             s.coords = s.originalCoords.slice();
             if (s.polyline) s.polyline.setLatLngs(s.originalCoords);
+            if (s.glowPolyline) s.glowPolyline.setLatLngs(s.originalCoords);
           }
         });
       }
