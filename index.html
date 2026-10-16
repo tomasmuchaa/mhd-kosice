@@ -14704,6 +14704,12 @@
           if (latLngs.length > 0) {
             tripRoutesCache.set(numTripId, latLngs);
             tripRoutesCache.set(tripId, latLngs);
+            if (typeof buildAndCacheRoute1D === 'function') {
+              buildAndCacheRoute1D(tripId, latLngs, Array.isArray(data.tripStops) ? data.tripStops : []);
+            }
+            if (typeof onTripRoute1DLoaded === 'function') {
+              onTripRoute1DLoaded(tripId);
+            }
             return latLngs;
           }
         } catch (err) {
@@ -15143,110 +15149,907 @@
     }
 
     // ========================================================
-    // ŽIVÁ PREDIKCIA POLOHY VOZIDIEL (+1 MINÚTA / +60 SEKÚND)
+    // POKROČILÝ 1D ROUTE-CONSTRAINED DEAD RECKONING ENGINE (+1 MIN)
     // ========================================================
 
     let isLivePredictionActive = false;
-    const STOP_DWELL_SECONDS = 20.0; // Priemerný čas státia vozidla na zastávke (sekúnd)
-    const PREDICTION_HORIZON_SECONDS = 60.0; // Predikčný horizont (+1 minúta)
+    const STOP_DWELL_SECONDS = 20.0;         // Čas státia vozidla na zastávke (20 sekúnd)
+    const PREDICTION_HORIZON_SECONDS = 60.0; // Predikčný horizont (+60 sekúnd)
+    const DEFAULT_URBAN_SPEED_MPS = 7.5;     // Predvolená mestská rýchlosť (27 km/h)
+    const MIN_EMA_SPEED_MPS = 2.5;           // Minimálna orezaná EMA rýchlosť (9 km/h)
+    const MAX_EMA_SPEED_MPS = 14.0;          // Maximálna orezaná EMA rýchlosť (50.4 km/h)
+    const CREEP_SPEED_MPS = 0.8;             // Plazivá rýchlosť pri čakaní na dobehnutie reálnou časovou osou
+    const MAX_CATCHUP_SPEED_MPS = 15.0;      // Maximálna rýchlosť pri mäkkom dobiehaní (Alpha-Beta Catch-Up)
 
-    // História telemetrických meraní: vehicle_id -> { lat, lng, time, speedMs, cruisingSpeedMs, lastShiftMeters, prevLat, prevLng, tripId, isOnStop, stopSince }
-    const vehicleTelemetryHistory = new Map();
+    // 1. STRIKTNÉ ODDELENIE RAW TELEMETRY vs. VISUAL STATE:
+    // a) rawState: aktualizuje sa VÝLUČNE zo surových GPS dát zo servera (nikdy nie z markera!)
+    const vehicleRawStates = new Map();
+    const vehicleTelemetryHistory = vehicleRawStates; // Alias pre spätnú kompatibilitu čistenia
+    // b) visualState: riadi čisto pohyb ikony v requestAnimationFrame po 1D krivke trasy
+    const vehicleVisualStates = new Map();
 
-    // Cache pre kumulatívne vzdialenosti trás a pozície zastávok pozdĺž trasy
-    const tripCumDistsCache = new Map();
-    const tripStopPositionsCache = new Map();
+    // Cache pre 1D parametrizované trasy: tripId -> [{ lat, lng, cumDistM }, ...]
+    const tripRoute1DCache = new Map();
+    // Cache pre 1D projekcie zastávok: tripId -> [{ stopId, stopName, lat, lng, distM, order }, ...]
+    const tripStops1DCache = new Map();
+
+    let deadReckoningAnimFrameId = null;
+    let lastDeadReckoningFrameTime = null;
 
     /**
-     * Vypočíta a nacachuje kumulatívne vzdialenosti (v metroch) pozdĺž bodov trasy spoju.
+     * Pomocná funkcia: Pre ľubovoľnú vzdialenosť distM (v metroch) na 1D trase
+     * vráti presne interpolované [lat, lng] priamo na krivke cesty (žiadne rezanie zákrut).
      */
-    function getTripCumDists(tripId, routePoints) {
-      if (!routePoints || routePoints.length < 2) return null;
-      const numTripId = Number(tripId);
-      if (tripCumDistsCache.has(numTripId)) return tripCumDistsCache.get(numTripId);
-      if (tripCumDistsCache.has(tripId)) return tripCumDistsCache.get(tripId);
-
-      const cumDists = [0.0];
-      for (let i = 0; i < routePoints.length - 1; i++) {
-        cumDists.push(cumDists[i] + getDistanceMeters(routePoints[i], routePoints[i + 1]));
+    function getLatLngAtDistance(route1D, distM) {
+      if (!route1D || route1D.length === 0) return [0, 0];
+      if (route1D.length === 1 || distM <= 0) {
+        return [route1D[0].lat, route1D[0].lng];
       }
 
-      tripCumDistsCache.set(numTripId, cumDists);
-      tripCumDistsCache.set(tripId, cumDists);
-      return cumDists;
-    }
-
-    /**
-     * Zistí pozície všetkých zastávok na trase spoju v metroch od začiatku trasy.
-     */
-    function getTripStopPositions(tripId, routePoints, cumDists) {
-      if (!tripId || !routePoints || routePoints.length < 2 || !cumDists) return [];
-      const numTripId = Number(tripId);
-      if (tripStopPositionsCache.has(numTripId)) return tripStopPositionsCache.get(numTripId);
-      if (tripStopPositionsCache.has(tripId)) return tripStopPositionsCache.get(tripId);
-
-      const stops = tripItineraryCache.get(numTripId) || tripItineraryCache.get(tripId);
-      if (!stops || stops.length === 0) return [];
-
-      const stopPositions = [];
-      for (let i = 0; i < stops.length; i++) {
-        const s = stops[i];
-        const sLat = Number(s.latitude !== undefined ? s.latitude : s.lat);
-        const sLng = Number(s.longitude !== undefined ? s.longitude : (s.lng !== undefined ? s.lng : s.lon));
-        if (isNaN(sLat) || isNaN(sLng)) continue;
-
-        const sMatch = findBestRouteMatch([sLat, sLng], routePoints, 0, null);
-        if (sMatch && sMatch.distance <= 150.0) {
-          const seg = sMatch.segmentIndex;
-          const sPos = cumDists[seg] + sMatch.t * (cumDists[seg + 1] - cumDists[seg]);
-          stopPositions.push({
-            stop: s,
-            pos: sPos,
-            order: Number(s.stopOrder !== undefined ? s.stopOrder : i + 1)
-          });
-        }
-      }
-
-      stopPositions.sort((a, b) => a.pos - b.pos);
-
-      tripStopPositionsCache.set(numTripId, stopPositions);
-      tripStopPositionsCache.set(tripId, stopPositions);
-      return stopPositions;
-    }
-
-    /**
-     * Vráti súradnice [lat, lng] na polyline trasy v danej vzdialenosti v metroch od začiatku trasy.
-     */
-    function getPointAlongRouteAtDistance(routePoints, cumDists, targetDist) {
-      if (!routePoints || routePoints.length === 0) return [0, 0];
-      if (routePoints.length === 1 || targetDist <= 0) return [routePoints[0][0], routePoints[0][1]];
-
-      const totalLen = cumDists[cumDists.length - 1];
-      if (targetDist >= totalLen) {
-        const last = routePoints[routePoints.length - 1];
-        return [last[0], last[1]];
+      const totalLen = route1D[route1D.length - 1].cumDistM;
+      if (distM >= totalLen) {
+        const last = route1D[route1D.length - 1];
+        return [last.lat, last.lng];
       }
 
       let low = 0;
-      let high = cumDists.length - 1;
+      let high = route1D.length - 1;
       while (low <= high) {
         const mid = (low + high) >> 1;
-        if (cumDists[mid] <= targetDist) {
+        if (route1D[mid].cumDistM <= distM) {
           low = mid + 1;
         } else {
           high = mid - 1;
         }
       }
-      const segIdx = Math.min(routePoints.length - 2, Math.max(0, high));
-      const pA = routePoints[segIdx];
-      const pB = routePoints[segIdx + 1];
-      const segDist = cumDists[segIdx + 1] - cumDists[segIdx];
-      const frac = segDist > 0.0001 ? (targetDist - cumDists[segIdx]) / segDist : 0;
+
+      const segIdx = Math.min(route1D.length - 2, Math.max(0, high));
+      const pA = route1D[segIdx];
+      const pB = route1D[segIdx + 1];
+      const segDist = pB.cumDistM - pA.cumDistM;
+      const frac = segDist > 0.0001 ? (distM - pA.cumDistM) / segDist : 0;
 
       return [
-        pA[0] + frac * (pB[0] - pA[0]),
-        pA[1] + frac * (pB[1] - pA[1])
+        pA.lat + frac * (pB.lat - pA.lat),
+        pA.lng + frac * (pB.lng - pA.lng)
       ];
+    }
+
+    /**
+     * Kolmá projekcia (Snap-to-Polyline) bodu [lat, lng] na 1D krivku route1D.
+     * Vráti { distM, perpDistM, segmentIndex, lat, lng } kde distM je kumulatívny meter od začiatku trasy.
+     */
+    function snapLatLngToRoute1D(lat, lng, route1D, hintDistM = null, forwardBias = false) {
+      if (!route1D || route1D.length < 2) return null;
+      const pt = [Number(lat), Number(lng)];
+      if (isNaN(pt[0]) || isNaN(pt[1])) return null;
+
+      let bestSegIdx = -1;
+      let bestRes = null;
+      let minPerpDist = Infinity;
+
+      // Ak máme orientačnú pozíciu na trase, najprv hľadáme v lokálnom okne (ochrana pred slučkami trasy)
+      if (typeof hintDistM === 'number' && !isNaN(hintDistM)) {
+        const winMin = forwardBias ? Math.max(0, hintDistM - 30.0) : Math.max(0, hintDistM - 80.0);
+        const winMax = hintDistM + 950.0;
+        for (let i = 0; i < route1D.length - 1; i++) {
+          const pA = route1D[i];
+          const pB = route1D[i + 1];
+          if (pB.cumDistM < winMin || pA.cumDistM > winMax) continue;
+          const res = projectPointToSegment(pt, [pA.lat, pA.lng], [pB.lat, pB.lng]);
+          if (res.distance < minPerpDist) {
+            minPerpDist = res.distance;
+            bestRes = res;
+            bestSegIdx = i;
+          }
+        }
+      }
+
+      // Ak sme v okne nenašli blízku zhodu (<= 95m), prehľadáme celú trasu
+      if (minPerpDist > 95.0) {
+        minPerpDist = Infinity;
+        bestSegIdx = -1;
+        bestRes = null;
+        for (let i = 0; i < route1D.length - 1; i++) {
+          const pA = route1D[i];
+          const pB = route1D[i + 1];
+          const res = projectPointToSegment(pt, [pA.lat, pA.lng], [pB.lat, pB.lng]);
+          if (res.distance < minPerpDist) {
+            minPerpDist = res.distance;
+            bestRes = res;
+            bestSegIdx = i;
+          }
+        }
+      }
+
+      if (bestSegIdx < 0 || !bestRes) return null;
+      const pA = route1D[bestSegIdx];
+      const pB = route1D[bestSegIdx + 1];
+      const distM = pA.cumDistM + bestRes.t * (pB.cumDistM - pA.cumDistM);
+
+      return {
+        distM: distM,
+        perpDistM: bestRes.distance,
+        segmentIndex: bestSegIdx,
+        lat: bestRes.point[0],
+        lng: bestRes.point[1]
+      };
+    }
+
+    /**
+     * Prevedie načítanú trasu (modelRoutePoints alebo tripStops) na 1D krivku
+     * route1D = [{ lat, lng, cumDistM }, ...] a naprojektuje zastávky stops1D.
+     */
+    function buildAndCacheRoute1D(tripId, routePoints, tripStops) {
+      if (!tripId || !routePoints || routePoints.length < 2) return null;
+      const numTripId = Number(tripId);
+      const strTripId = String(tripId);
+
+      const route1D = [];
+      let cumDistM = 0.0;
+      for (let i = 0; i < routePoints.length; i++) {
+        const rPt = routePoints[i];
+        const lat = Number(Array.isArray(rPt) ? rPt[0] : (rPt.latitude !== undefined ? rPt.latitude : rPt.lat));
+        const lng = Number(Array.isArray(rPt) ? rPt[1] : (rPt.longitude !== undefined ? rPt.longitude : (rPt.lng !== undefined ? rPt.lng : rPt.lon)));
+        if (isNaN(lat) || isNaN(lng)) continue;
+
+        if (route1D.length > 0) {
+          const prev = route1D[route1D.length - 1];
+          const segD = getDistanceMeters([prev.lat, prev.lng], [lat, lng]);
+          if (segD < 0.05 && i < routePoints.length - 1) continue;
+          cumDistM += segD;
+        }
+        route1D.push({ lat: lat, lng: lng, cumDistM: cumDistM });
+      }
+
+      if (route1D.length < 2) return null;
+
+      tripRoute1DCache.set(numTripId, route1D);
+      tripRoute1DCache.set(strTripId, route1D);
+
+      const stopsRaw = (Array.isArray(tripStops) && tripStops.length > 0)
+        ? tripStops
+        : (tripItineraryCache.get(numTripId) || tripItineraryCache.get(strTripId) || []);
+
+      if (stopsRaw && stopsRaw.length > 0) {
+        const stops1D = [];
+        let hintM = 0.0;
+        for (let i = 0; i < stopsRaw.length; i++) {
+          const s = stopsRaw[i];
+          const sLat = Number(s.latitude !== undefined ? s.latitude : s.lat);
+          const sLng = Number(s.longitude !== undefined ? s.longitude : (s.lng !== undefined ? s.lng : s.lon));
+          if (isNaN(sLat) || isNaN(sLng)) continue;
+
+          const snap = snapLatLngToRoute1D(sLat, sLng, route1D, hintM, true);
+          if (snap && snap.perpDistM <= 180.0) {
+            hintM = Math.max(hintM, snap.distM);
+            stops1D.push({
+              stopId: s.stop_id || s.id || `stop_${i + 1}`,
+              stopName: s.name || s.stop_name || '',
+              lat: sLat,
+              lng: sLng,
+              distM: snap.distM,
+              order: Number(s.stopOrder !== undefined ? s.stopOrder : i + 1)
+            });
+          }
+        }
+        stops1D.sort((a, b) => a.distM - b.distM);
+        tripStops1DCache.set(numTripId, stops1D);
+        tripStops1DCache.set(strTripId, stops1D);
+      }
+
+      return route1D;
+    }
+
+    /**
+     * Získa z cache alebo zostaví 1D krivku route1D pre daný tripId.
+     * Ak detailná polyline ešte nie je stiahnutá, použije dočasnú 1D spojnicu zastávok (tripStops).
+     */
+    function getOrBuildRoute1D(tripId) {
+      if (!tripId) return null;
+      const numTripId = Number(tripId);
+      const strTripId = String(tripId);
+
+      if (tripRoute1DCache.has(numTripId)) return tripRoute1DCache.get(numTripId);
+      if (tripRoute1DCache.has(strTripId)) return tripRoute1DCache.get(strTripId);
+
+      const routePoints = tripRoutesCache.get(numTripId) || tripRoutesCache.get(strTripId);
+      if (routePoints && routePoints.length >= 2) {
+        return buildAndCacheRoute1D(tripId, routePoints, null);
+      }
+
+      // Dočasný 1D fallback po spojniciach zastávok, kým sa dotiahne plný /api/v1/trip/{tripId}
+      const stops = tripItineraryCache.get(numTripId) || tripItineraryCache.get(strTripId);
+      if (stops && stops.length >= 2) {
+        const stopCoords = [];
+        let cumM = 0.0;
+        for (let i = 0; i < stops.length; i++) {
+          const sLat = Number(stops[i].latitude !== undefined ? stops[i].latitude : stops[i].lat);
+          const sLng = Number(stops[i].longitude !== undefined ? stops[i].longitude : (stops[i].lng !== undefined ? stops[i].lng : stops[i].lon));
+          if (isNaN(sLat) || isNaN(sLng)) continue;
+          if (stopCoords.length > 0) {
+            const prev = stopCoords[stopCoords.length - 1];
+            cumM += getDistanceMeters([prev.lat, prev.lng], [sLat, sLng]);
+          }
+          stopCoords.push({ lat: sLat, lng: sLng, cumDistM: cumM });
+        }
+        if (stopCoords.length >= 2) return stopCoords;
+      }
+
+      return null;
+    }
+
+    /**
+     * Získa z cache 1D pozície zastávok pre daný tripId.
+     */
+    function getOrBuildStops1D(tripId, route1D) {
+      if (!tripId) return [];
+      const numTripId = Number(tripId);
+      const strTripId = String(tripId);
+      if (tripStops1DCache.has(numTripId)) return tripStops1DCache.get(numTripId);
+      if (tripStops1DCache.has(strTripId)) return tripStops1DCache.get(strTripId);
+
+      const stopsRaw = tripItineraryCache.get(numTripId) || tripItineraryCache.get(strTripId);
+      if (stopsRaw && stopsRaw.length > 0 && route1D && route1D.length >= 2) {
+        const pts = route1D.map(p => [p.lat, p.lng]);
+        buildAndCacheRoute1D(tripId, pts, stopsRaw);
+        return tripStops1DCache.get(numTripId) || [];
+      }
+      return [];
+    }
+
+    /**
+     * Volá sa okamžite po asynchrónnom dotiahnutí /api/v1/trip/{tripId} na pozadí.
+     * Plynulo napojí všetky vozidlá na danom spoji na novú 1D uličnú krivku bez skoku.
+     */
+    function onTripRoute1DLoaded(tripId) {
+      if (!tripId) return;
+      const strTripId = String(tripId);
+      const route1D = getOrBuildRoute1D(tripId);
+      if (!route1D || route1D.length < 2) return;
+
+      vehicleRawStates.forEach((rawState, vehId) => {
+        if (String(rawState.tripId || '') !== strTripId) return;
+        const snapRaw = snapLatLngToRoute1D(rawState.lat, rawState.lng, route1D, rawState.sRaw, true);
+        if (snapRaw && snapRaw.perpDistM <= 180.0) {
+          rawState.sRaw = snapRaw.distM;
+        }
+        if (isLivePredictionActive) {
+          updateVisualStateFromRaw(vehId, false);
+        }
+      });
+    }
+
+    /**
+     * Asynchrónne dotiahne chýbajúce polyline trasy (/api/v1/trip/{trip_id}) pre aktívne vozidlá vo výreze mapy.
+     */
+    function prefetchViewportTripRoutes() {
+      const rawList = (vehiclesCache && vehiclesCache.length > 0) ? vehiclesCache : latestVehiclesList;
+      if (!rawList || rawList.length === 0) return;
+
+      const mapBounds = (typeof map !== 'undefined' && map && map.getBounds) ? map.getBounds() : null;
+      rawList.forEach(v => {
+        if (!v || !v.trip_id) return;
+        const numTrip = Number(v.trip_id);
+        if (tripRoute1DCache.has(numTrip) || tripRoute1DCache.has(v.trip_id)) return;
+
+        const isVis = (latestVisibleVehicleIds && latestVisibleVehicleIds.has(v.vehicle_id)) ||
+                      (followingVehicleId !== null && String(followingVehicleId) === String(v.vehicle_id)) ||
+                      (mapBounds && mapBounds.isValid && mapBounds.isValid() && v.latitude && v.longitude && mapBounds.contains([v.latitude, v.longitude]));
+        if (isVis) {
+          getOrFetchTripRoute(v.trip_id);
+        }
+      });
+    }
+
+    /**
+     * Vypočíta cieľovú predikovanú pozíciu s_target na 1D trase:
+     * s_raw + (60s + vek_signálu_max_30s) * smoothedSpeedMps - 20s za každú zastávku na trase.
+     */
+    function computeTargetDist1D(rawState, route1D, stops1D, nowMs) {
+      if (!rawState || !route1D || route1D.length < 2) return null;
+
+      if (typeof rawState.sRaw !== 'number' || isNaN(rawState.sRaw)) {
+        const snap = snapLatLngToRoute1D(rawState.lat, rawState.lng, route1D, null, false);
+        if (!snap || snap.perpDistM > 180.0) return null;
+        rawState.sRaw = snap.distM;
+      }
+
+      const sRaw = rawState.sRaw;
+      if (rawState.isStoppedRaw) {
+        return sRaw;
+      }
+
+      const rawAgeSec = (nowMs - rawState.timestamp) / 1000.0;
+      const signalAgeSec = Math.max(0.0, Math.min(30.0, isNaN(rawAgeSec) ? 2.0 : rawAgeSec));
+      const totalHorizonSec = PREDICTION_HORIZON_SECONDS + signalAgeSec;
+      const speedMps = Math.max(MIN_EMA_SPEED_MPS, Math.min(MAX_EMA_SPEED_MPS, rawState.smoothedSpeedMps || DEFAULT_URBAN_SPEED_MPS));
+
+      let currS = sRaw;
+      let timeBudget = totalHorizonSec;
+
+      // Ak vozidlo v surových dátach práve stojí na zastávke, odpočítame polovicu zostávajúceho dwell time
+      if (rawState.isOnStopRaw) {
+        const remStopWait = Math.max(0.0, (STOP_DWELL_SECONDS * 0.5) - signalAgeSec);
+        timeBudget = Math.max(0.0, timeBudget - remStopWait);
+      }
+
+      const theoreticalReachM = sRaw + timeBudget * speedMps;
+
+      if (stops1D && stops1D.length > 0 && timeBudget > 0) {
+        for (let i = 0; i < stops1D.length; i++) {
+          const st = stops1D[i];
+          if (st.distM <= currS + 6.0) continue;
+          if (st.distM > theoreticalReachM) break;
+
+          const distToStop = st.distM - currS;
+          const driveTimeSec = distToStop / speedMps;
+
+          if (driveTimeSec >= timeBudget) {
+            currS += timeBudget * speedMps;
+            timeBudget = 0.0;
+            break;
+          }
+
+          // Vozidlo dorazilo na zastávku st
+          currS = st.distM;
+          timeBudget -= driveTimeSec;
+
+          // Odpočítame STOP_DWELL_SECONDS = 20s za zastávku
+          if (timeBudget <= STOP_DWELL_SECONDS) {
+            // Na konci horizontu vozidlo práve stojí na tejto zastávke
+            timeBudget = 0.0;
+            break;
+          } else {
+            timeBudget -= STOP_DWELL_SECONDS;
+          }
+        }
+      }
+
+      if (timeBudget > 0.0) {
+        currS += timeBudget * speedMps;
+      }
+
+      const maxRouteLen = route1D[route1D.length - 1].cumDistM;
+      return Math.min(maxRouteLen, Math.max(sRaw, currS));
+    }
+
+    /**
+     * Synchronizuje visualState zo surového rawState pri príchode telemetrie alebo načítaní trasy.
+     * Dodržiava Monotonic Guard (zákaz cúvania počas rovnakého trip_id).
+     */
+    function updateVisualStateFromRaw(vehicleId, isToggleTransition = false) {
+      const rawState = vehicleRawStates.get(vehicleId);
+      if (!rawState) return;
+
+      let vis = vehicleVisualStates.get(vehicleId);
+      if (!vis) {
+        vis = {
+          vehicleId: vehicleId,
+          tripId: rawState.tripId,
+          currentDistM: 0,
+          targetDistM: 0,
+          currentSpeedMps: DEFAULT_URBAN_SPEED_MPS,
+          dwellTimer: 0,
+          activeDwellStopId: null,
+          lastStoppedStopId: null,
+          stoppedStopsSet: new Set(),
+          lat: rawState.lat,
+          lng: rawState.lng,
+          usingRoute1D: false,
+          isInitialized: false,
+          fallbackOriginLat: rawState.lat,
+          fallbackOriginLng: rawState.lng,
+          transitionTimer: 0,
+          transitionDuration: 1.2,
+          transitionStartDistM: 0,
+          transitionEndDistM: 0
+        };
+        vehicleVisualStates.set(vehicleId, vis);
+      }
+
+      // Ak sa zmenil trip_id, resetujeme stav pre nový spoj
+      if (String(vis.tripId || '') !== String(rawState.tripId || '')) {
+        vis.tripId = rawState.tripId;
+        vis.isInitialized = false;
+        vis.usingRoute1D = false;
+        vis.dwellTimer = 0;
+        vis.activeDwellStopId = null;
+        vis.lastStoppedStopId = null;
+        vis.stoppedStopsSet.clear();
+        vis.transitionTimer = 0;
+      }
+
+      if (!isLivePredictionActive) {
+        vis.lat = rawState.lat;
+        vis.lng = rawState.lng;
+        vis.isInitialized = false;
+        vis.transitionTimer = 0;
+        return;
+      }
+
+      const nowMs = Date.now();
+      const route1D = getOrBuildRoute1D(rawState.tripId);
+
+      if (route1D && route1D.length >= 2) {
+        const stops1D = getOrBuildStops1D(rawState.tripId, route1D);
+        const sTarget = computeTargetDist1D(rawState, route1D, stops1D, nowMs);
+
+        if (sTarget !== null) {
+          if (!vis.isInitialized || !vis.usingRoute1D) {
+            const wasInitializedFallback = vis.isInitialized && !vis.usingRoute1D;
+            let startDistM = rawState.sRaw || 0;
+
+            if (wasInitializedFallback) {
+              const snapVis = snapLatLngToRoute1D(vis.lat, vis.lng, route1D, rawState.sRaw, true);
+              if (snapVis && snapVis.perpDistM <= 150.0) {
+                startDistM = Math.max(rawState.sRaw || 0, snapVis.distM);
+              }
+            }
+
+            vis.usingRoute1D = true;
+            vis.isInitialized = true;
+            vis.currentSpeedMps = rawState.isStoppedRaw ? 0 : (rawState.smoothedSpeedMps || DEFAULT_URBAN_SPEED_MPS);
+
+            if (isToggleTransition || (wasInitializedFallback && sTarget - startDistM > 20.0)) {
+              vis.currentDistM = startDistM;
+              vis.targetDistM = Math.max(startDistM, sTarget);
+              vis.transitionStartDistM = startDistM;
+              vis.transitionEndDistM = Math.max(startDistM, sTarget);
+              vis.transitionDuration = 1.2;
+              vis.transitionTimer = 1.2;
+            } else {
+              vis.currentDistM = Math.max(startDistM, sTarget);
+              vis.targetDistM = vis.currentDistM;
+              vis.transitionTimer = 0;
+            }
+
+            // Označíme zastávky pred štartovacou predikovanou pozíciou ako už prejdené
+            if (stops1D && stops1D.length > 0) {
+              stops1D.forEach(st => {
+                if (st.distM <= vis.targetDistM + 2.0) {
+                  vis.stoppedStopsSet.add(st.order);
+                }
+              });
+            }
+
+            const initPt = getLatLngAtDistance(route1D, vis.currentDistM);
+            vis.lat = initPt[0];
+            vis.lng = initPt[1];
+          } else {
+            // MONOTONIC GUARD (Zákaz cúvania počas toho istého trip_id):
+            // currentDistM nikdy neklesne; targetDistM sa len posúva dopredu alebo drží maximum
+            vis.targetDistM = Math.max(vis.currentDistM, sTarget);
+          }
+          return;
+        }
+      }
+
+      // FALLBACK (ak vozidlo ešte nemá načítanú 1D trasu):
+      if (rawState.tripId) {
+        getOrFetchTripRoute(rawState.tripId);
+      }
+
+      const hasVec = (rawState.unitVecLat !== 0 || rawState.unitVecLng !== 0);
+      const rawAgeSec = Math.max(0.0, Math.min(30.0, (nowMs - rawState.timestamp) / 1000.0));
+      const speedMps = rawState.smoothedSpeedMps || DEFAULT_URBAN_SPEED_MPS;
+
+      if (!vis.isInitialized) {
+        vis.fallbackOriginLat = rawState.lat;
+        vis.fallbackOriginLng = rawState.lng;
+        const reachM = (!rawState.isStoppedRaw && hasVec)
+          ? Math.min(600.0, (PREDICTION_HORIZON_SECONDS + rawAgeSec) * speedMps)
+          : 0.0;
+
+        vis.usingRoute1D = false;
+        vis.isInitialized = true;
+        vis.currentSpeedMps = (!rawState.isStoppedRaw && hasVec) ? speedMps : 0.0;
+
+        if (isToggleTransition && reachM > 0) {
+          vis.currentDistM = 0.0;
+          vis.targetDistM = reachM;
+          vis.transitionStartDistM = 0.0;
+          vis.transitionEndDistM = reachM;
+          vis.transitionDuration = 1.2;
+          vis.transitionTimer = 1.2;
+        } else {
+          vis.currentDistM = reachM;
+          vis.targetDistM = reachM;
+          vis.transitionTimer = 0;
+        }
+
+        vis.lat = vis.fallbackOriginLat + rawState.unitVecLat * vis.currentDistM;
+        vis.lng = vis.fallbackOriginLng + rawState.unitVecLng * vis.currentDistM;
+      } else if (!vis.usingRoute1D) {
+        const sRawRay = getDistanceMeters([vis.fallbackOriginLat, vis.fallbackOriginLng], [rawState.lat, rawState.lng]);
+        const sTargetRay = (!rawState.isStoppedRaw && hasVec)
+          ? sRawRay + Math.min(600.0, (PREDICTION_HORIZON_SECONDS + rawAgeSec) * speedMps)
+          : sRawRay;
+        // Monotonic Guard na 1D lúči
+        vis.targetDistM = Math.max(vis.currentDistM, sTargetRay);
+      }
+    }
+
+    /**
+     * Aktualizácia surovej telemetrie vozidla zo servera (Pillar 1, 2 & 4):
+     * - Aktualizuje VÝLUČNE rawState zo surových GPS dát (nikdy nie z markera!)
+     * - Deduplikuje identické GPS pakety (opravuje 10s polling bug)
+     * - Aplikuje EMA filter rýchlosti (0.65 * prev + 0.35 * v_raw, orezaný na 2.5 až 14.0 m/s)
+     */
+    function recordVehicleTelemetry(v) {
+      if (!v || !v.vehicle_id || !v.latitude || !v.longitude) return;
+      const id = v.vehicle_id;
+      const curLat = Number(v.latitude);
+      const curLng = Number(v.longitude);
+      if (isNaN(curLat) || isNaN(curLng)) return;
+
+      const nowMs = Date.now();
+      const commStr = String(v.last_communication || '');
+      const parsedCommMs = v.last_communication ? new Date(v.last_communication).getTime() : NaN;
+      const comm = (typeof formatLastCommunication === 'function') ? formatLastCommunication(v.last_communication) : null;
+      const isInDepotOrTerminal = !!(v.isDepot || v.is_in_depot || !v.trip_id || (comm && comm.isStale));
+
+      let rawState = vehicleRawStates.get(id);
+
+      if (!rawState) {
+        const commLagSec = !isNaN(parsedCommMs)
+          ? Math.max(0.0, Math.min(12.0, (nowMs - parsedCommMs) / 1000.0))
+          : 2.0;
+
+        let initialSRaw = null;
+        const route1D = getOrBuildRoute1D(v.trip_id);
+        if (route1D && route1D.length >= 2) {
+          const snap = snapLatLngToRoute1D(curLat, curLng, route1D, null, false);
+          if (snap && snap.perpDistM <= 180.0) {
+            initialSRaw = snap.distM;
+          }
+        }
+
+        rawState = {
+          vehicleId: id,
+          lat: curLat,
+          lng: curLng,
+          timestamp: nowMs - commLagSec * 1000.0,
+          lastMoveWallMs: nowMs,
+          lastCommStr: commStr,
+          lastParsedCommMs: !isNaN(parsedCommMs) ? parsedCommMs : nowMs,
+          prevLat: null,
+          prevLng: null,
+          prevTimestamp: null,
+          sRaw: initialSRaw,
+          prevSRaw: null,
+          smoothedSpeedMps: DEFAULT_URBAN_SPEED_MPS, // 7.5 m/s = 27 km/h
+          isStoppedRaw: isInDepotOrTerminal,
+          isOnStopRaw: !!v.is_on_stop,
+          tripId: v.trip_id,
+          unitVecLat: 0,
+          unitVecLng: 0,
+          vehicleObj: v
+        };
+        vehicleRawStates.set(id, rawState);
+        updateVisualStateFromRaw(id, false);
+        return;
+      }
+
+      rawState.vehicleObj = v;
+
+      // Kontrola zmeny trip_id
+      if (String(v.trip_id || '') !== String(rawState.tripId || '')) {
+        rawState.tripId = v.trip_id;
+        rawState.sRaw = null;
+        rawState.prevSRaw = null;
+      }
+
+      const rawShiftM = getDistanceMeters([rawState.lat, rawState.lng], [curLat, curLng]);
+      const commChanged = (commStr !== '' && commStr !== rawState.lastCommStr);
+      const positionMoved = (rawShiftM >= 2.0);
+
+      // 2. DEDUPLIKÁCIA GPS PAKETOV (Oprava 10s polling bugu):
+      if (!commChanged && !positionMoved) {
+        // Zo servera prišiel IDENTICKÝ paket ako pred 10 sekundami:
+        // NEVYHODNOCUJEME to ako zastavenie vozidla (posun < 3m) a neresetujeme predikciu!
+        if (isInDepotOrTerminal) {
+          rawState.isStoppedRaw = true;
+        }
+        updateVisualStateFromRaw(id, false);
+        return;
+      }
+
+      if (commChanged && !positionMoved) {
+        // Prišiel NOVÝ časový údaj last_communication, ale súradnice sa pohli o < 2m:
+        rawState.lastCommStr = commStr;
+        if (!isNaN(parsedCommMs)) rawState.lastParsedCommMs = parsedCommMs;
+        rawState.isOnStopRaw = !!v.is_on_stop;
+
+        const stationaryDurationSec = (nowMs - rawState.lastMoveWallMs) / 1000.0;
+        // Vozidlo označíme za reálne stojace iba ak je v depe/bez tripu alebo sa reálne nepohlo > 45 sekúnd
+        if (isInDepotOrTerminal || stationaryDurationSec > 45.0) {
+          rawState.isStoppedRaw = true;
+        }
+        updateVisualStateFromRaw(id, false);
+        return;
+      }
+
+      // Prišiel SKUTOČNE NOVÝ GPS BOD (posun >= 2.0 metra):
+      const dtCommSec = (commChanged && !isNaN(parsedCommMs) && rawState.lastParsedCommMs)
+        ? (parsedCommMs - rawState.lastParsedCommMs) / 1000.0
+        : 0.0;
+      const dtWallSec = (nowMs - rawState.lastMoveWallMs) / 1000.0;
+      const deltaTimeSec = (dtCommSec >= 1.0 && dtCommSec <= 180.0)
+        ? dtCommSec
+        : Math.max(1.0, Math.min(180.0, dtWallSec));
+
+      rawState.prevLat = rawState.lat;
+      rawState.prevLng = rawState.lng;
+      rawState.prevTimestamp = rawState.timestamp;
+      rawState.prevSRaw = rawState.sRaw;
+
+      const commLagSec = !isNaN(parsedCommMs)
+        ? Math.max(0.0, Math.min(12.0, (nowMs - parsedCommMs) / 1000.0))
+        : 2.0;
+
+      rawState.lat = curLat;
+      rawState.lng = curLng;
+      rawState.timestamp = nowMs - commLagSec * 1000.0;
+      rawState.lastMoveWallMs = nowMs;
+      rawState.lastCommStr = commStr;
+      if (!isNaN(parsedCommMs)) rawState.lastParsedCommMs = parsedCommMs;
+      rawState.isOnStopRaw = !!v.is_on_stop;
+      rawState.isStoppedRaw = isInDepotOrTerminal;
+
+      // Stabilizovaný jednotkový vektor zo surového rawState (nikdy nie z markera!)
+      rawState.unitVecLat = (curLat - rawState.prevLat) / rawShiftM;
+      rawState.unitVecLng = (curLng - rawState.prevLng) / rawShiftM;
+
+      let deltaDistM = rawShiftM;
+      const route1D = getOrBuildRoute1D(v.trip_id);
+      if (route1D && route1D.length >= 2) {
+        const snap = snapLatLngToRoute1D(curLat, curLng, route1D, rawState.prevSRaw, true);
+        if (snap && snap.perpDistM <= 180.0) {
+          rawState.sRaw = snap.distM;
+          if (typeof rawState.prevSRaw === 'number' && rawState.sRaw >= rawState.prevSRaw) {
+            const arcDelta = rawState.sRaw - rawState.prevSRaw;
+            if (arcDelta >= 1.5 && arcDelta <= rawShiftM * 2.5) {
+              deltaDistM = arcDelta;
+            }
+          }
+        }
+      }
+
+      // 4. EMA FILTER RÝCHLOSTI: smoothedSpeedMps = 0.65 * prev + 0.35 * v_raw (orezané na 2.5 až 14.0 m/s)
+      const vRaw = deltaDistM / deltaTimeSec;
+      if (vRaw >= 0.4 && vRaw <= 30.0) {
+        const prevSmoothed = rawState.smoothedSpeedMps || DEFAULT_URBAN_SPEED_MPS;
+        const emaSpeed = 0.65 * prevSmoothed + 0.35 * vRaw;
+        rawState.smoothedSpeedMps = Math.max(MIN_EMA_SPEED_MPS, Math.min(MAX_EMA_SPEED_MPS, emaSpeed));
+      }
+
+      updateVisualStateFromRaw(id, false);
+    }
+
+    /**
+     * Hlavná slučka 1D Route-Constrained Dead Reckoning Enginu (requestAnimationFrame):
+     * - Posúva visualState.currentDistM += currentSpeedMps * dt po 1D krivke trasy
+     * - Fyzikálny stavový automat na zastávkach (dobrzdenie < 12m, 20s Dwell Time, plynulá akcelerácia)
+     * - Monotonic Guard (zákaz cúvania) a Alpha-Beta Soft Catch-Up (0.8 m/s plazenie až 15 m/s dobiehanie)
+     */
+    function tickDeadReckoningEngine(nowPerf) {
+      if (!isLivePredictionActive) {
+        deadReckoningAnimFrameId = null;
+        lastDeadReckoningFrameTime = null;
+        return;
+      }
+
+      if (lastDeadReckoningFrameTime === null) {
+        lastDeadReckoningFrameTime = nowPerf;
+      }
+      const rawDt = (nowPerf - lastDeadReckoningFrameTime) / 1000.0;
+      lastDeadReckoningFrameTime = nowPerf;
+      const dt = Math.max(0.001, Math.min(0.1, rawDt));
+      const nowMs = Date.now();
+
+      if (currentAppView === 'map') {
+        vehicleVisualStates.forEach((vis, vehId) => {
+          if (!vis || !vis.isInitialized) return;
+          const marker = markers[vehId];
+          const isFollowed = (followingVehicleId !== null && String(followingVehicleId) === String(vehId));
+          if (!marker && !isFollowed) return;
+
+          const rawState = vehicleRawStates.get(vehId);
+          if (!rawState) return;
+
+          const route1D = getOrBuildRoute1D(rawState.tripId);
+          if (route1D && route1D.length >= 2 && !vis.usingRoute1D) {
+            updateVisualStateFromRaw(vehId, false);
+          }
+
+          // A. Plynulý nábeh pri prepnutí prepínača alebo dotiahnutí trasy
+          if (vis.transitionTimer > 0) {
+            vis.transitionTimer = Math.max(0.0, vis.transitionTimer - dt);
+            const dur = vis.transitionDuration || 1.2;
+            const prog = Math.min(1.0, Math.max(0.0, 1.0 - (vis.transitionTimer / dur)));
+            const easeOut = 1.0 - Math.pow(1.0 - prog, 3);
+            const nextDist = vis.transitionStartDistM + easeOut * (vis.transitionEndDistM - vis.transitionStartDistM);
+            vis.currentDistM = Math.max(vis.currentDistM, nextDist);
+          } else if (vis.usingRoute1D && route1D && route1D.length >= 2) {
+            // B. 1D Pohyb po trase so stavovým automatom zastávok a Monotonic Guardom
+            const stops1D = getOrBuildStops1D(rawState.tripId, route1D);
+            const sTargetNow = computeTargetDist1D(rawState, route1D, stops1D, nowMs);
+            if (sTargetNow !== null) {
+              vis.targetDistM = Math.max(vis.currentDistM, sTargetNow);
+            }
+
+            if (vis.dwellTimer > 0) {
+              // Vozidlo práve reálne stojí na zastávke počas 20s Dwell Time
+              vis.dwellTimer -= dt;
+              vis.currentSpeedMps = 0.0;
+              if (vis.dwellTimer <= 0) {
+                vis.dwellTimer = 0.0;
+                vis.lastStoppedStopId = vis.activeDwellStopId;
+                vis.activeDwellStopId = null;
+              }
+            } else if (rawState.isStoppedRaw) {
+              // Reálne odstavené vozidlo (depo / konečná / >45s bez pohybu) -> plynulé zastavenie
+              vis.currentSpeedMps = Math.max(0.0, vis.currentSpeedMps - 4.5 * dt);
+              const maxLen = route1D[route1D.length - 1].cumDistM;
+              vis.currentDistM = Math.min(maxLen, vis.currentDistM + vis.currentSpeedMps * dt);
+            } else {
+              // Kontrola priblíženia k najbližšej neodstátej zastávke (< 12 metrov)
+              let approachingStop = null;
+              if (stops1D && stops1D.length > 0) {
+                for (let i = 0; i < stops1D.length; i++) {
+                  const st = stops1D[i];
+                  if (vis.stoppedStopsSet.has(st.order)) continue;
+                  if (st.distM < vis.currentDistM - 1.5) {
+                    vis.stoppedStopsSet.add(st.order);
+                    continue;
+                  }
+                  const distToStop = st.distM - vis.currentDistM;
+                  if (distToStop >= 0.0 && distToStop < 12.0) {
+                    approachingStop = { stop: st, distToStop: distToStop };
+                  }
+                  break;
+                }
+              }
+
+              if (approachingStop) {
+                const stepMove = Math.max(1.0, vis.currentSpeedMps) * dt;
+                if (approachingStop.distToStop <= Math.max(0.5, stepMove)) {
+                  // Presné zastavenie na stĺpiku zastávky a spustenie 20s Dwell Time
+                  vis.currentDistM = Math.max(vis.currentDistM, approachingStop.stop.distM);
+                  vis.currentSpeedMps = 0.0;
+                  vis.dwellTimer = STOP_DWELL_SECONDS;
+                  vis.activeDwellStopId = approachingStop.stop.stopId;
+                  vis.stoppedStopsSet.add(approachingStop.stop.order);
+                } else {
+                  // Plynulé dobrzďovanie (< 12m pred zastávkou)
+                  const baseSpd = rawState.smoothedSpeedMps || DEFAULT_URBAN_SPEED_MPS;
+                  const decelSpd = Math.max(1.2, baseSpd * (approachingStop.distToStop / 12.0));
+                  vis.currentSpeedMps = Math.min(vis.currentSpeedMps, decelSpd);
+                  vis.currentDistM += Math.max(0.0, vis.currentSpeedMps) * dt;
+                }
+              } else {
+                // Plynulá jazda medzi zastávkami: Monotonic Guard + Alpha-Beta Soft Catch-Up
+                const effectiveTarget = (sTargetNow !== null) ? sTargetNow : vis.targetDistM;
+                const leadDiff = effectiveTarget - vis.currentDistM;
+                const baseSpeed = rawState.smoothedSpeedMps || DEFAULT_URBAN_SPEED_MPS;
+                let desiredSpeed = baseSpeed;
+
+                if (leadDiff < -8.0) {
+                  // Reálny autobus chytil červenú a mešká za predikciou ->
+                  // NIKDY necúvame! Spomalíme na minimálnu plazivú rýchlosť 0.8 m/s, kým nás reálna os nedobehne
+                  desiredSpeed = CREEP_SPEED_MPS;
+                } else if (leadDiff <= 0.0) {
+                  const blend = (leadDiff + 8.0) / 8.0;
+                  desiredSpeed = CREEP_SPEED_MPS + blend * (baseSpeed - CREEP_SPEED_MPS);
+                } else if (leadDiff > 15.0) {
+                  // Nový s_target je výrazne vpredu -> plynulo zvýšime rýchlosť (max do 15 m/s)
+                  desiredSpeed = Math.min(MAX_CATCHUP_SPEED_MPS, baseSpeed + leadDiff * 0.14);
+                }
+
+                // Fyzikálna akcelerácia / decelerácia (3.8 m/s^2)
+                const maxDeltaV = 3.8 * dt;
+                if (vis.currentSpeedMps < desiredSpeed) {
+                  vis.currentSpeedMps = Math.min(desiredSpeed, vis.currentSpeedMps + maxDeltaV);
+                } else {
+                  vis.currentSpeedMps = Math.max(desiredSpeed, vis.currentSpeedMps - maxDeltaV);
+                }
+
+                const maxLen = route1D[route1D.length - 1].cumDistM;
+                vis.currentDistM = Math.min(maxLen, vis.currentDistM + Math.max(0.0, vis.currentSpeedMps) * dt);
+              }
+            }
+          } else {
+            // C. Fallback 1D pohyb po stabilizovanom vektore zo surového rawState (kým sa načíta polyline)
+            const hasVec = (rawState.unitVecLat !== 0 || rawState.unitVecLng !== 0);
+            if (!rawState.isStoppedRaw && hasVec) {
+              const sRawRay = getDistanceMeters([vis.fallbackOriginLat, vis.fallbackOriginLng], [rawState.lat, rawState.lng]);
+              const rawAgeSec = Math.max(0.0, Math.min(30.0, (nowMs - rawState.timestamp) / 1000.0));
+              const baseSpd = rawState.smoothedSpeedMps || DEFAULT_URBAN_SPEED_MPS;
+              const sTargetRay = sRawRay + Math.min(600.0, (PREDICTION_HORIZON_SECONDS + rawAgeSec) * baseSpd);
+              const leadDiff = sTargetRay - vis.currentDistM;
+              const desiredSpeed = leadDiff < -8.0
+                ? CREEP_SPEED_MPS
+                : (leadDiff > 15.0 ? Math.min(MAX_CATCHUP_SPEED_MPS, baseSpd + leadDiff * 0.14) : baseSpd);
+              vis.currentSpeedMps = desiredSpeed;
+              vis.currentDistM += Math.max(0.0, vis.currentSpeedMps) * dt;
+            } else {
+              vis.currentSpeedMps = 0.0;
+            }
+          }
+
+          // Výpočet výsledného [lat, lng] na 1D krivke trasy
+          if (vis.usingRoute1D && route1D && route1D.length >= 2) {
+            const pt = getLatLngAtDistance(route1D, vis.currentDistM);
+            vis.lat = pt[0];
+            vis.lng = pt[1];
+          } else if (rawState.unitVecLat !== 0 || rawState.unitVecLng !== 0) {
+            vis.lat = vis.fallbackOriginLat + rawState.unitVecLat * vis.currentDistM;
+            vis.lng = vis.fallbackOriginLng + rawState.unitVecLng * vis.currentDistM;
+          } else {
+            vis.lat = rawState.lat;
+            vis.lng = rawState.lng;
+          }
+
+          if (marker && !isNaN(vis.lat) && !isNaN(vis.lng)) {
+            marker.setLatLng([vis.lat, vis.lng]);
+            marker._targetLatLng = [vis.lat, vis.lng];
+            if (isFollowed && typeof map !== 'undefined' && map) {
+              const targetCenter = (typeof getFollowCenterLatLng === 'function')
+                ? getFollowCenterLatLng(vis.lat, vis.lng)
+                : [vis.lat, vis.lng];
+              map.panTo(targetCenter, { animate: false });
+            }
+          }
+        });
+      }
+
+      deadReckoningAnimFrameId = requestAnimationFrame(tickDeadReckoningEngine);
+    }
+
+    function startDeadReckoningLoop() {
+      if (deadReckoningAnimFrameId !== null) return;
+      lastDeadReckoningFrameTime = performance.now();
+      deadReckoningAnimFrameId = requestAnimationFrame(tickDeadReckoningEngine);
+    }
+
+    function stopDeadReckoningLoop() {
+      if (deadReckoningAnimFrameId !== null) {
+        cancelAnimationFrame(deadReckoningAnimFrameId);
+        deadReckoningAnimFrameId = null;
+      }
+      lastDeadReckoningFrameTime = null;
+    }
+
+    /**
+     * Vráti aktuálnu predikovanú polohu vozidla [lat, lng] z visualState (alebo ju inicializuje).
+     */
+    function getPredictedVehicleLatLng(v) {
+      if (!v || !v.latitude || !v.longitude) return [0, 0];
+      const curLat = Number(v.latitude);
+      const curLng = Number(v.longitude);
+      if (isNaN(curLat) || isNaN(curLng)) return [0, 0];
+
+      if (!isLivePredictionActive) {
+        return [curLat, curLng];
+      }
+
+      const id = v.vehicle_id;
+      if (!vehicleRawStates.has(id)) {
+        recordVehicleTelemetry(v);
+      }
+
+      let vis = vehicleVisualStates.get(id);
+      if (!vis || !vis.isInitialized) {
+        updateVisualStateFromRaw(id, false);
+        vis = vehicleVisualStates.get(id);
+      }
+
+      if (vis && !isNaN(vis.lat) && !isNaN(vis.lng)) {
+        return [vis.lat, vis.lng];
+      }
+
+      return [curLat, curLng];
     }
 
     /**
@@ -15294,6 +16097,9 @@
         if (isLivePredictionActive) label.classList.remove('off');
         else label.classList.add('off');
       }
+      if (isLivePredictionActive) {
+        startDeadReckoningLoop();
+      }
     }
 
     /**
@@ -15314,307 +16120,77 @@
         else label.classList.add('off');
       }
 
-      // Okamžitý prepočet a plynulá aktualizácia všetkých aktívnych vozidiel na mape
       recalculateAllVehiclePositions();
     }
 
     /**
-     * Aktualizácia histórie telemetrie vozidla (ukladá polohu, čas a počíta rýchlosť a posun)
-     */
-    function recordVehicleTelemetry(v) {
-      if (!v || !v.vehicle_id || !v.latitude || !v.longitude) return;
-      const id = v.vehicle_id;
-      const curLat = Number(v.latitude);
-      const curLng = Number(v.longitude);
-      const now = Date.now();
-
-      const prev = vehicleTelemetryHistory.get(id);
-      let speedMs = null;
-      let lastShiftMeters = null;
-      let prevLat = null;
-      let prevLng = null;
-      let cruisingSpeedMs = (prev && prev.cruisingSpeedMs) ? prev.cruisingSpeedMs : null;
-
-      // Zistenie, či vozidlo stojí na zastávke
-      const isOnStop = !!(v.is_on_stop || (v.current_stop_name && v.last_stop_order && prev && prev.speedMs !== null && prev.speedMs < 0.83));
-      let stopSince = (prev && prev.stopSince) ? prev.stopSince : null;
-      if (isOnStop) {
-        if (!stopSince) stopSince = now;
-      } else {
-        stopSince = null;
-      }
-
-      if (prev && prev.lat !== undefined && prev.lng !== undefined) {
-        prevLat = prev.lat;
-        prevLng = prev.lng;
-        const dt = (now - prev.time) / 1000.0;
-        const dist = getDistanceMeters([prevLat, prevLng], [curLat, curLng]);
-        lastShiftMeters = dist;
-
-        if (dt >= 1.0 && dt <= 120.0) {
-          const rawSpeed = dist / dt;
-          if (typeof prev.speedMs === 'number' && prev.speedMs > 0) {
-            speedMs = 0.65 * rawSpeed + 0.35 * prev.speedMs;
-          } else {
-            speedMs = rawSpeed;
-          }
-          if (speedMs >= 2.0 && speedMs <= 20.0) {
-            cruisingSpeedMs = speedMs;
-          }
-        } else {
-          speedMs = prev.speedMs;
-        }
-      }
-
-      vehicleTelemetryHistory.set(id, {
-        lat: curLat,
-        lng: curLng,
-        time: now,
-        speedMs: speedMs,
-        cruisingSpeedMs: cruisingSpeedMs,
-        lastShiftMeters: lastShiftMeters,
-        prevLat: prevLat,
-        prevLng: prevLng,
-        tripId: v.trip_id,
-        isOnStop: isOnStop,
-        stopSince: stopSince
-      });
-    }
-
-    /**
-     * Vypočíta predikovanú polohu vozidla o +60 sekúnd dopredu.
-     * Zohľadňuje priemerné státie na zastávkach (Dwell Time: STOP_DWELL_SECONDS = 20s),
-     * znižuje čas čistej jazdy pri prechode cez zastávku, uzamyká polohu pri státí
-     * na zastávke a správne spracováva aktuálne stojace vozidlá (is_on_stop).
-     * @param {Object} v - Objekt vozidla z API
-     * @returns {Array<number>} [lat, lng]
-     */
-    function getPredictedVehicleLatLng(v) {
-      if (!v || !v.latitude || !v.longitude) return [0, 0];
-      const curLat = Number(v.latitude);
-      const curLng = Number(v.longitude);
-      if (isNaN(curLat) || isNaN(curLng)) return [0, 0];
-
-      if (!isLivePredictionActive) {
-        return [curLat, curLng];
-      }
-
-      // 1. STACIONÁRNE VOZIDLO / DEPO / KONEČNÁ / NEAKTÍVNE
-      const comm = (typeof formatLastCommunication === 'function') ? formatLastCommunication(v.last_communication) : null;
-      if (v.isDepot || (comm && comm.isStale)) {
-        return [curLat, curLng];
-      }
-
-      const hist = vehicleTelemetryHistory.get(v.vehicle_id);
-      const isOnStop = !!(v.is_on_stop || (hist && hist.isOnStop));
-
-      // Stojace vozidlo mimo zastávky (kolóna, križovatka, odstavené bez linky)
-      if (!isOnStop && hist) {
-        if (hist.lastShiftMeters !== null && hist.lastShiftMeters < 3.0 && hist.speedMs !== null && hist.speedMs < 0.83) {
-          return [curLat, curLng];
-        }
-      }
-
-      // 2. VÝPOČET RÝCHLOSTI VOZIDLA
-      let speedMs = 7.5; // Predvolená priemerná rýchlosť MHD v meste (~27 km/h)
-      if (hist && typeof hist.speedMs === 'number' && hist.speedMs >= 0.83) {
-        speedMs = Math.max(2.0, Math.min(18.0, hist.speedMs));
-      } else if (isOnStop && hist && typeof hist.cruisingSpeedMs === 'number' && hist.cruisingSpeedMs >= 2.0) {
-        speedMs = Math.max(2.0, Math.min(18.0, hist.cruisingSpeedMs));
-      }
-
-      // 3. VÝPOČET POČIATOČNÉHO ČASU A DWELL TIME PRE AKTUÁLNE STOJIACE VOZIDLO
-      let simTime = 0.0;
-      if (isOnStop) {
-        let elapsedDwell = 0.0;
-        if (hist && hist.stopSince) {
-          elapsedDwell = (Date.now() - hist.stopSince) / 1000.0;
-        } else {
-          elapsedDwell = STOP_DWELL_SECONDS / 2.0; // Odhad polovice státia (10s)
-        }
-        const remainingDwell = Math.max(0.0, STOP_DWELL_SECONDS - elapsedDwell);
-        if (remainingDwell >= PREDICTION_HORIZON_SECONDS) {
-          return [curLat, curLng];
-        }
-        simTime = remainingDwell;
-      }
-
-      // 4. EXTRAPOLÁCIA PO GEOMETRII TRASY SO ZASTÁVKAMI (DWELL TIME SIMULÁCIA)
-      const tripId = v.trip_id;
-      if (tripId) {
-        const numTripId = Number(tripId);
-        if (!tripRoutesCache.has(numTripId) && !tripRoutesCache.has(tripId)) {
-          getOrFetchTripRoute(tripId);
-        }
-
-        const routePoints = tripRoutesCache.get(numTripId) || tripRoutesCache.get(tripId);
-        if (routePoints && routePoints.length >= 2) {
-          const marker = markers[v.vehicle_id];
-          const lastIdx = (marker && typeof marker._routeIndex === 'number') ? marker._routeIndex : 0;
-          const match = findBestRouteMatch([curLat, curLng], routePoints, lastIdx, 35);
-
-          if (match && match.distance <= 120.0) {
-            const cumDists = getTripCumDists(tripId, routePoints);
-            const stopPositions = getTripStopPositions(tripId, routePoints, cumDists);
-
-            // Pozícia vozidla v metroch od začiatku trasy
-            const vehPos = cumDists[match.segmentIndex] + match.t * (cumDists[match.segmentIndex + 1] - cumDists[match.segmentIndex]);
-
-            // Zastávky pred vozidlom v smere jazdy
-            const upcomingStops = stopPositions.filter(sp => sp.pos > vehPos + 8.0);
-
-            let currPos = vehPos;
-            let timeRemain = PREDICTION_HORIZON_SECONDS - simTime;
-            let lockedStopCoords = null;
-
-            for (let i = 0; i < upcomingStops.length; i++) {
-              const sp = upcomingStops[i];
-              const distToStop = sp.pos - currPos;
-              const driveTime = distToStop / speedMs;
-
-              if (driveTime > timeRemain) {
-                currPos += timeRemain * speedMs;
-                timeRemain = 0.0;
-                break;
-              }
-
-              const arrTime = simTime + driveTime;
-              const depTime = arrTime + STOP_DWELL_SECONDS;
-
-              if (PREDICTION_HORIZON_SECONDS <= depTime) {
-                // V čase +60s vozidlo práve stojí na zastávke -> uzamknúť na súradniciach zastávky
-                lockedStopCoords = [
-                  Number(sp.stop.latitude !== undefined ? sp.stop.latitude : sp.stop.lat),
-                  Number(sp.stop.longitude !== undefined ? sp.stop.longitude : (sp.stop.lng !== undefined ? sp.stop.lng : sp.stop.lon))
-                ];
-                break;
-              } else {
-                // Prejde cez zastávku, stojí 20s a pokračuje
-                currPos = sp.pos;
-                simTime = depTime;
-                timeRemain = PREDICTION_HORIZON_SECONDS - simTime;
-              }
-            }
-
-            if (lockedStopCoords && !isNaN(lockedStopCoords[0]) && !isNaN(lockedStopCoords[1])) {
-              return lockedStopCoords;
-            }
-
-            if (timeRemain > 0.0) {
-              currPos += timeRemain * speedMs;
-            }
-
-            return getPointAlongRouteAtDistance(routePoints, cumDists, currPos);
-          }
-        }
-      }
-
-      // 5. FALLBACK: LINEÁRNA EXTRAPOLÁCIA PO VEKTORE POHYBU (ak trasa nie je dostupná)
-      const effectiveDriveSeconds = PREDICTION_HORIZON_SECONDS - simTime;
-      const targetDistanceMeters = Math.min(800.0, Math.max(10.0, speedMs * effectiveDriveSeconds));
-
-      if (hist && hist.prevLat !== null && hist.prevLng !== null) {
-        const vDist = getDistanceMeters([hist.prevLat, hist.prevLng], [curLat, curLng]);
-        if (vDist >= 1.5) {
-          const dLat = (curLat - hist.prevLat) / vDist;
-          const dLng = (curLng - hist.prevLng) / vDist;
-          return [
-            curLat + dLat * targetDistanceMeters,
-            curLng + dLng * targetDistanceMeters
-          ];
-        }
-      }
-
-      return [curLat, curLng];
-    }
-
-    /**
-     * Posunie bod po geometrii trasy (modelRoutePoints) v smere jazdy o požadovanú vzdialenosť.
-     * Ak trasa končí skôr (konečná zastávka), zastaví striktne na konečnej.
-     */
-    function projectAlongRoute(startMatch, routePoints, distanceMeters) {
-      if (!startMatch || !routePoints || routePoints.length < 2) return startMatch ? startMatch.projectedPoint : null;
-
-      let remaining = distanceMeters;
-      let currentPt = startMatch.projectedPoint;
-      let segIdx = startMatch.segmentIndex;
-
-      // Krok 1: Posun do konca aktuálneho segmentu
-      const nextWp = routePoints[segIdx + 1];
-      if (!nextWp) return currentPt;
-
-      const dToNext = getDistanceMeters(currentPt, nextWp);
-
-      if (remaining <= dToNext) {
-        const frac = dToNext > 0.0001 ? remaining / dToNext : 0;
-        return [
-          currentPt[0] + frac * (nextWp[0] - currentPt[0]),
-          currentPt[1] + frac * (nextWp[1] - currentPt[1])
-        ];
-      }
-
-      remaining -= dToNext;
-      currentPt = [nextWp[0], nextWp[1]];
-      segIdx++;
-
-      // Krok 2: Posun cez ďalšie segmenty ulíc a zákrut
-      while (segIdx < routePoints.length - 1 && remaining > 0) {
-        const pA = routePoints[segIdx];
-        const pB = routePoints[segIdx + 1];
-        const segDist = getDistanceMeters(pA, pB);
-
-        if (remaining <= segDist) {
-          const frac = segDist > 0.0001 ? remaining / segDist : 0;
-          return [
-            pA[0] + frac * (pB[0] - pA[0]),
-            pA[1] + frac * (pB[1] - pA[1])
-          ];
-        }
-
-        remaining -= segDist;
-        currentPt = [pB[0], pB[1]];
-        segIdx++;
-      }
-
-      return currentPt;
-    }
-
-    /**
-     * Okamžite prepočíta a plynulo animuje polohy všetkých aktívnych markerov na mape.
-     * Volá sa pri prepnutí prepínača (Zapnuté / Vypnuté).
+     * Okamžite prepočíta a plynulo animuje polohy všetkých aktívnych markerov pri prepnutí prepínača.
      */
     function recalculateAllVehiclePositions() {
       const rawList = (vehiclesCache && vehiclesCache.length > 0) ? vehiclesCache : latestVehiclesList;
       if (!rawList || rawList.length === 0) return;
 
-      rawList.forEach(v => {
-        const id = v.vehicle_id;
-        const marker = markers[id];
-        if (!marker || !v.latitude || !v.longitude) return;
-
-        const targetPos = isLivePredictionActive ? getPredictedVehicleLatLng(v) : [Number(v.latitude), Number(v.longitude)];
-
-        if (marker._slideAnim && marker._slideAnim.frameId) {
-          cancelAnimationFrame(marker._slideAnim.frameId);
-          marker._slideAnim = null;
-        }
-
-        slideMarkerTo(marker, targetPos, 1200, {
-          isFollowed: (followingVehicleId !== null && String(followingVehicleId) === String(id)),
-          tripId: v.trip_id,
-          onStep: (curLat, curLng) => {
-            if (followingVehicleId !== null && String(followingVehicleId) === String(id)) {
-              const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(curLat, curLng) : [curLat, curLng];
-              map.panTo(targetCenter, { animate: false });
-            }
+      if (isLivePredictionActive) {
+        prefetchViewportTripRoutes();
+        rawList.forEach(v => {
+          const id = v.vehicle_id;
+          if (!v.latitude || !v.longitude) return;
+          const marker = markers[id];
+          if (marker && marker._slideAnim && marker._slideAnim.frameId) {
+            cancelAnimationFrame(marker._slideAnim.frameId);
+            marker._slideAnim = null;
           }
+          if (!vehicleRawStates.has(id)) {
+            recordVehicleTelemetry(v);
+          }
+          const vis = vehicleVisualStates.get(id);
+          if (vis) vis.isInitialized = false;
+          updateVisualStateFromRaw(id, true);
         });
-      });
+        startDeadReckoningLoop();
+      } else {
+        stopDeadReckoningLoop();
+        rawList.forEach(v => {
+          const id = v.vehicle_id;
+          const vis = vehicleVisualStates.get(id);
+          if (vis) {
+            vis.isInitialized = false;
+            vis.transitionTimer = 0;
+          }
+          const marker = markers[id];
+          if (!marker || !v.latitude || !v.longitude) return;
+
+          const targetPos = [Number(v.latitude), Number(v.longitude)];
+          if (marker._slideAnim && marker._slideAnim.frameId) {
+            cancelAnimationFrame(marker._slideAnim.frameId);
+            marker._slideAnim = null;
+          }
+
+          slideMarkerTo(marker, targetPos, 1200, {
+            isFollowed: (followingVehicleId !== null && String(followingVehicleId) === String(id)),
+            tripId: v.trip_id,
+            onStep: (curLat, curLng) => {
+              if (followingVehicleId !== null && String(followingVehicleId) === String(id)) {
+                const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(curLat, curLng) : [curLat, curLng];
+                map.panTo(targetCenter, { animate: false });
+              }
+            }
+          });
+        });
+      }
     }
 
     window.toggleLivePrediction = toggleLivePrediction;
     window.initLivePredictionState = initLivePredictionState;
     window.getPredictedVehicleLatLng = getPredictedVehicleLatLng;
+    window.getLatLngAtDistance = getLatLngAtDistance;
+    window.snapLatLngToRoute1D = snapLatLngToRoute1D;
+    window.buildAndCacheRoute1D = buildAndCacheRoute1D;
+    window.onTripRoute1DLoaded = onTripRoute1DLoaded;
+    window.vehicleRawStates = vehicleRawStates;
+    window.vehicleVisualStates = vehicleVisualStates;
+    window.tripRoute1DCache = tripRoute1DCache;
+    window.tripStops1DCache = tripStops1DCache;
 
     // Tvorba kompletného Leaflet markera pre vozidlo (ikona, interakcie, Bottom Sheet)
     function createVehicleMarker(v, initialPos, targetLodMode) {
@@ -18523,6 +19099,11 @@
           updateDelayHeatmap();
         }
 
+        // Záznam surových telemetrických dát (rawState) pre všetky vozidlá
+        vehicles.forEach(v => {
+          recordVehicleTelemetry(v);
+        });
+
         // Ak aktuálne nie sme v mape (#view-map je skrytá), nezaťažujeme DOM ani Leaflet výpočtami
         if (currentAppView !== 'map') {
           return;
@@ -18541,7 +19122,8 @@
           if (followed && followed.latitude && followed.longitude) {
             // Ak marker sledovaného vozidla ešte nie je na mape, vycentrujeme mapu s vertikálnym offsetom
             if (!markers[followingVehicleId]) {
-              const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(followed.latitude, followed.longitude) : [followed.latitude, followed.longitude];
+              const followPos = isLivePredictionActive ? getPredictedVehicleLatLng(followed) : [followed.latitude, followed.longitude];
+              const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(followPos[0], followPos[1]) : followPos;
               map.panTo(targetCenter, {
                 animate: true,
                 duration: 1.0
@@ -18552,15 +19134,15 @@
           }
         }
 
-        // Záznam telemetrických dát a výpočet rýchlosti pre všetky vozidlá
-        vehicles.forEach(v => {
-          recordVehicleTelemetry(v);
-        });
-
         // Prepočet množiny povolených vozidiel (Plné zobrazenie na PC, Responzívny Viewport Culling na mobile)
         latestVisibleVehicleIds = computeVisibleVehicleIds(vehicles);
 
-        // Aktualizácia telemetrie a plynulý posun (SlideTo) pre existujúce markery
+        if (isLivePredictionActive) {
+          prefetchViewportTripRoutes();
+          startDeadReckoningLoop();
+        }
+
+        // Aktualizácia telemetrie a plynulý posun pre existujúce markery
         vehicles.forEach(v => {
           const id = v.vehicle_id;
           if (markers[id] && v.latitude && v.longitude) {
@@ -18597,18 +19179,25 @@
               return;
             }
 
-            // Plynulý posun (Route-Snapped Live GPS interpolácia pozdĺž modelRoutePoints - 35s lineárny pohyb)
-            slideMarkerTo(markers[id], targetPos, 35000, {
-              isFollowed: isFollowed,
-              tripId: v.trip_id,
-              onStep: (curLat, curLng) => {
-                // Ak je aktívny Follow Mode, plynulo zosúladíme kameru s pohybom vozidla (s vertikálnym offsetom pre popup)
-                if (followingVehicleId !== null && String(followingVehicleId) === String(id)) {
-                  const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(curLat, curLng) : [curLat, curLng];
-                  map.panTo(targetCenter, { animate: false });
-                }
+            if (isLivePredictionActive) {
+              // Pri zapnutej predikcii riadi pohyb kontinuálny 1D Route-Constrained Dead Reckoning Engine
+              if (markers[id]._slideAnim && markers[id]._slideAnim.frameId) {
+                cancelAnimationFrame(markers[id]._slideAnim.frameId);
+                markers[id]._slideAnim = null;
               }
-            });
+            } else {
+              // Plynulý posun (Route-Snapped Live GPS interpolácia pozdĺž modelRoutePoints - 35s lineárny pohyb)
+              slideMarkerTo(markers[id], targetPos, 35000, {
+                isFollowed: isFollowed,
+                tripId: v.trip_id,
+                onStep: (curLat, curLng) => {
+                  if (followingVehicleId !== null && String(followingVehicleId) === String(id)) {
+                    const targetCenter = (typeof getFollowCenterLatLng === 'function') ? getFollowCenterLatLng(curLat, curLng) : [curLat, curLng];
+                    map.panTo(targetCenter, { animate: false });
+                  }
+                }
+              });
+            }
           }
         });
 
@@ -18624,8 +19213,10 @@
               map.removeLayer(markers[id]);
             }
             delete markers[id];
-            vehicleTelemetryHistory.delete(id);
-            vehicleTelemetryHistory.delete(numId);
+            vehicleRawStates.delete(id);
+            vehicleRawStates.delete(numId);
+            vehicleVisualStates.delete(id);
+            vehicleVisualStates.delete(numId);
           }
         }
 
@@ -18714,7 +19305,7 @@
             markers[id].setIcon(createVehicleMarkerIcon(v, comm.isStale, targetLodMode));
             markers[id]._lodMode = targetLodMode;
           }
-          if (!markers[id]._slideAnim) {
+          if (!markers[id]._slideAnim && !isLivePredictionActive) {
             markers[id].setLatLng(latLng);
             markers[id]._targetLatLng = latLng;
           }
